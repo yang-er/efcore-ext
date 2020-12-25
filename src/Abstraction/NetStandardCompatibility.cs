@@ -1,4 +1,8 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -114,6 +118,58 @@ internal static class NetStandardCompatibilityExtensions
         var hs = new HashSet<T>();
         foreach (var item in ts) hs.Add(item);
         return hs;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Expression<Func<T4, T3>> Combine<T1, T2, T3, T4>(
+        this Expression<Func<T1, T2, T3>> expression,
+        T4 objectTemplate,
+        Expression<Func<T4, T1>> place1,
+        Expression<Func<T4, T2>> place2)
+    {
+        if (expression == null) return null;
+        var parameter = place1.Parameters.Single();
+        var hold1 = place1.Body;
+        var hold2 = new ParameterReplaceVisitor(
+            (place2.Parameters[0], parameter))
+            .Visit(place2.Body);
+        var newBody = new ParameterReplaceVisitor(
+            (expression.Parameters[0], hold1),
+            (expression.Parameters[1], hold2))
+            .Visit(expression.Body);
+        return Expression.Lambda<Func<T4, T3>>(newBody, parameter);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static IQueryable<T> WhereIf<T>(
+        this IQueryable<T> source,
+        Expression<Func<T, bool>> expression)
+    {
+        if (expression == null) return source;
+        return source.Where(expression);
+    }
+
+    private static readonly Func<IQueryProvider, IQueryContextFactory> GetQueryContextFactory
+        = Internals.CreateLambda<IQueryProvider, IQueryContextFactory>(param => param
+             .As<EntityQueryProvider>()
+             .AccessField("_queryCompiler")
+             .As<QueryCompiler>()
+             .AccessField("_queryContextFactory")
+             .As<IQueryContextFactory>())
+        .Compile();
+
+    private static QueryContextDependencies AccessDependencies(IQueryProvider queryProvider)
+        => GetQueryContextFactory(queryProvider)
+            .Private<QueryContextDependencies>("_dependencies");
+
+    public static DbContext GetDbContext<T>(this IQueryable<T> query) where T : class
+    {
+        return AccessDependencies(query.Provider).StateManager.Context;
+    }
+
+    public static DbContext GetDbContext<T>(this DbSet<T> set) where T : class
+    {
+        return set.GetService<ICurrentDbContext>().Context;
     }
 }
 

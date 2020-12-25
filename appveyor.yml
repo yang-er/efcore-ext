@@ -1,16 +1,6 @@
 version: 3.1.{build}
 configuration: Release
 
-dotnet_csproj:
-  patch: true
-  file: '**\*.csproj'
-  version: '{version}'
-  version_prefix: '{version}'
-  package_version: '{version}'
-  assembly_version: '{version}'
-  file_version: '{version}'
-  informational_version: '{version}'
-
 before_build:
 - cmd: nuget restore
 
@@ -18,3 +8,7 @@ build:
   publish_nuget: true
   publish_nuget_symbols: true
   verbosity: minimal
+
+artifacts:
+- path: src/**/*.nupkg
+  name: NuGet Packages

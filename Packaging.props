@@ -11,14 +11,14 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>EntityFrameworkCore</PackageTags>
     <PackageReleaseNotes>Redesign the APIs, support INSERT INTO SELECT and MERGE INTO instructions.</PackageReleaseNotes>
-    <PackageVersion>3.1.15</PackageVersion>
+    <PackageVersion>3.1.18</PackageVersion>
     <AssemblyVersion>3.1.10.0</AssemblyVersion>
     <FileVersion>3.1.10.0</FileVersion>
     <RepositoryUrl>https://github.com/yang-er/EFCore.BulkExtensions</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <EntityFrameworkCoreVersion>3.1.7</EntityFrameworkCoreVersion>
+    <EntityFrameworkCoreVersion>3.1.10</EntityFrameworkCoreVersion>
   </PropertyGroup>
 
 </Project>

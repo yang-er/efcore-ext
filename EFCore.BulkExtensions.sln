@@ -13,6 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		Packaging.props = Packaging.props
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.InMemory", "src\InMemory\Microsoft.EntityFrameworkCore.Bulk.InMemory.csproj", "{46ECB4BE-BCE4-4B86-9C6C-35E3F5D3E894}"
@@ -21,9 +22,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{43502E08-17D
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BulkTest.SqlServer", "test\SqlServer\BulkTest.SqlServer.csproj", "{51324660-BA06-44FC-BDAA-4F8CF24C8B5F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.SqlServer", "test\SqlServer\BulkTest.SqlServer.csproj", "{51324660-BA06-44FC-BDAA-4F8CF24C8B5F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BulkTest.InMemory", "test\InMemory\BulkTest.InMemory.csproj", "{EB12C163-E844-4227-AA9F-ACFDE436B597}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.InMemory", "test\InMemory\BulkTest.InMemory.csproj", "{EB12C163-E844-4227-AA9F-ACFDE436B597}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.Cacheable", "test\Cacheable\BulkTest.Cacheable.csproj", "{1702DE10-AB47-448A-8833-FFC673EC6F47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +58,10 @@ Global
 		{EB12C163-E844-4227-AA9F-ACFDE436B597}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB12C163-E844-4227-AA9F-ACFDE436B597}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB12C163-E844-4227-AA9F-ACFDE436B597}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1702DE10-AB47-448A-8833-FFC673EC6F47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1702DE10-AB47-448A-8833-FFC673EC6F47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1702DE10-AB47-448A-8833-FFC673EC6F47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1702DE10-AB47-448A-8833-FFC673EC6F47}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -66,6 +73,7 @@ Global
 		{46ECB4BE-BCE4-4B86-9C6C-35E3F5D3E894} = {43502E08-17D1-4058-B588-0E268B175832}
 		{51324660-BA06-44FC-BDAA-4F8CF24C8B5F} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
 		{EB12C163-E844-4227-AA9F-ACFDE436B597} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
+		{1702DE10-AB47-448A-8833-FFC673EC6F47} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F6CFFD1D-D456-4A8F-86FC-7CF2C893AB08}

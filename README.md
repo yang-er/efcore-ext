@@ -4,18 +4,30 @@
 
 Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, Merge Into**).
 
-Current version is EFCore 3.1 and Microsoft SQL Server (2008+).
+Current version supports EFCore 3.1.
 
 Targeting `netcoreapp31` and used on .NET Core 3.1 projects.
 
+- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk): EFCore Bulk extension definition
+- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.InMemory%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.InMemory): InMemory bulk operation provider
+- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.Relational%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.Relational): Basis of Relational providers
+- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.SqlServer%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.SqlServer): SqlServer bulk operation provider
+
+When you want to split EFCore definition and database type, you may reference to `Microsoft.EntityFrameworkCore.Bulk` in your storage implementation project, and reference to `Microsoft.EntityFrameworkCore.Bulk.SqlServer` in your host startup project.
+
 ## Setup in project
 
-Configure this when creating an DbContext with DbContextOptionsBuilder.
-
-Note that it can be used only with EFCore's internal service provider.
+Configure this when creating an `DbContext` with `DbContextOptionsBuilder`.
 
 ```csharp
-options.UseSqlServer(connectionString).UseBulkExtensions();
+options.UseSqlServer(connectionString, b => b.UseBulk());
+options.UseInMemoryDatabase(databaseName, o => o.UseBulk());
+```
+
+If you want to try TableSplittingJoinsRemoval to remove useless self-joins, you may try
+
+```csharp
+options.UseTableSplittingJoinsRemoval();
 ```
 
 ## Delete
@@ -32,6 +44,13 @@ affectedRows = context.Items
 affectedRows = context.Items
     .Where(a => a.ItemId <= 500)
     .BatchUpdate(a => new Item { Quantity = a.Quantity + 100 });
+
+affectedRows = context.ItemAs.BatchUpdateJoin(
+    inner: context.ItemBs,
+    outerKeySelector: a => a.Id,
+    innerKeySelector: b => b.Id,
+    condition: (a, b) => a.Id == 1, // can be null
+    updateSelector: (a, b) => new ItemA { Value = a.Value + b.Value - 3 });
 ```
 
 ## SelectInto: Repeat entities
@@ -67,3 +86,11 @@ Note that when update/insert expressions are null, delete is true, it will becom
 ## Bulk\*\*\*\*
 
 It is removed now. It takes time to clear up the logics.
+
+## Cache
+
+```csharp
+options.UseCahce();
+
+await context.Items.CountAsync("tag", TimeSpan.FromSeconds(10));
+```

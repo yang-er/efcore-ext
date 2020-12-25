@@ -1,8 +1,6 @@
 ﻿#nullable enable
 using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -15,19 +13,6 @@ namespace Microsoft.EntityFrameworkCore
 {
     public static class BatchOperationExtensions
     {
-        private static readonly Func<IQueryProvider, IQueryContextFactory> GetQueryContextFactory
-            = Internals.CreateLambda<IQueryProvider, IQueryContextFactory>(param => param
-                 .As<EntityQueryProvider>()
-                 .AccessField("_queryCompiler")
-                 .As<QueryCompiler>()
-                 .AccessField("_queryContextFactory")
-                 .As<IQueryContextFactory>())
-            .Compile();
-
-        private static QueryContextDependencies AccessDependencies(IQueryProvider queryProvider)
-            => GetQueryContextFactory(queryProvider)
-                .Private<QueryContextDependencies>("_dependencies");
-
         /// <summary>
         /// Perform merge as <c>MERGE INTO</c> operations.
         /// </summary>
@@ -53,7 +38,7 @@ namespace Microsoft.EntityFrameworkCore
             where TTarget : class
             where TSource : class
         {
-            var context = targetTable.GetService<ICurrentDbContext>().Context;
+            var context = targetTable.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.Merge(context,
                 targetTable, sourceTable,
@@ -88,7 +73,7 @@ namespace Microsoft.EntityFrameworkCore
             where TTarget : class
             where TSource : class
         {
-            var context = targetTable.GetService<ICurrentDbContext>().Context;
+            var context = targetTable.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.MergeAsync(context,
                 targetTable, sourceTable,
@@ -107,7 +92,7 @@ namespace Microsoft.EntityFrameworkCore
             this IQueryable<T> query)
             where T : class
         {
-            var context = AccessDependencies(query.Provider).StateManager.Context;
+            var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchDelete(context, query);
         }
@@ -124,7 +109,7 @@ namespace Microsoft.EntityFrameworkCore
             CancellationToken cancellationToken = default)
             where T : class
         {
-            var context = AccessDependencies(query.Provider).StateManager.Context;
+            var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchDeleteAsync(context, query, cancellationToken);
         }
@@ -141,7 +126,7 @@ namespace Microsoft.EntityFrameworkCore
             Expression<Func<T, T>> updateExpression)
             where T : class
         {
-            var context = AccessDependencies(query.Provider).StateManager.Context;
+            var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchUpdate(context, query, updateExpression);
         }
@@ -160,9 +145,68 @@ namespace Microsoft.EntityFrameworkCore
             CancellationToken cancellationToken = default)
             where T : class
         {
-            var context = AccessDependencies(query.Provider).StateManager.Context;
+            var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchUpdateAsync(context, query, updateExpression, cancellationToken);
+        }
+
+        /// <summary>
+        /// Perform batch update as <c>UPDATE SET INNER JOIN</c> operations.
+        /// </summary>
+        /// <typeparam name="TOuter">The outer entity type.</typeparam>
+        /// <typeparam name="TInner">The inner entity type.</typeparam>
+        /// <typeparam name="TKey">The join key type.</typeparam>
+        /// <param name="outer">The outer source.</param>
+        /// <param name="inner">The inner source.</param>
+        /// <param name="outerKeySelector">The outer key selector.</param>
+        /// <param name="innerKeySelector">The inner key selector.</param>
+        /// <param name="updateSelector">The update expression.</param>
+        /// <param name="condition">The condition.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The affected rows.</returns>
+        public static int BatchUpdateJoin<TOuter, TInner, TKey>(
+            this DbSet<TOuter> outer,
+            IQueryable<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>>? condition = null)
+            where TOuter : class
+            where TInner : class
+        {
+            var context = outer.GetDbContext();
+            var provider = context.GetService<IBatchOperationProvider>();
+            return provider.BatchUpdateJoin(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
+        }
+
+        /// <summary>
+        /// Perform batch update as <c>UPDATE SET INNER JOIN</c> async operations.
+        /// </summary>
+        /// <typeparam name="TOuter">The outer entity type.</typeparam>
+        /// <typeparam name="TInner">The inner entity type.</typeparam>
+        /// <typeparam name="TKey">The join key type.</typeparam>
+        /// <param name="outer">The outer source.</param>
+        /// <param name="inner">The inner source.</param>
+        /// <param name="outerKeySelector">The outer key selector.</param>
+        /// <param name="innerKeySelector">The inner key selector.</param>
+        /// <param name="updateSelector">The update expression.</param>
+        /// <param name="condition">The condition.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The task for affected rows.</returns>
+        public static Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
+            this DbSet<TOuter> outer,
+            IQueryable<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>>? condition = null,
+            CancellationToken cancellationToken = default)
+            where TOuter : class
+            where TInner : class
+        {
+            var context = outer.GetDbContext();
+            var provider = context.GetService<IBatchOperationProvider>();
+            return provider.BatchUpdateJoinAsync(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition, cancellationToken);
         }
 
         /// <summary>
@@ -177,7 +221,7 @@ namespace Microsoft.EntityFrameworkCore
             DbSet<T> to)
             where T : class
         {
-            var context = to.GetService<ICurrentDbContext>().Context;
+            var context = to.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchInsertInto(context, query, to);
         }
@@ -196,7 +240,7 @@ namespace Microsoft.EntityFrameworkCore
             CancellationToken cancellationToken = default)
             where T : class
         {
-            var context = to.GetService<ICurrentDbContext>().Context;
+            var context = to.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchInsertIntoAsync(context, query, to, cancellationToken);
         }
@@ -211,7 +255,7 @@ namespace Microsoft.EntityFrameworkCore
             this IQueryable<T> query)
             where T : class
         {
-            var context = AccessDependencies(query.Provider).StateManager.Context;
+            var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.ToParametrizedSql(context, query);
         }

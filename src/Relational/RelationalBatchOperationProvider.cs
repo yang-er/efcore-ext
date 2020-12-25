@@ -120,5 +120,51 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var (command, parameters) = execution.Generate(type, entityType);
             return (command.CommandText, parameters);
         }
+
+        private IQueryable<TOuter> CreateUpdateJoinQuery<TOuter, TInner, TKey>(
+            IQueryable<TOuter> outer,
+            IQueryable<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition = null)
+        {
+            return outer
+                .Join(inner, outerKeySelector, innerKeySelector, (outer, inner) => new { outer, inner })
+                .WhereIf(condition.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner))
+                .Select(updateSelector.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner));
+        }
+
+        public virtual int BatchUpdateJoin<TOuter, TInner, TKey>(
+            DbContext context,
+            DbSet<TOuter> outer,
+            IQueryable<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition = null)
+            where TOuter : class
+            where TInner : class
+        {
+            
+            var (sql, sqlParameters) = GetSqlCommand(CreateUpdateJoinQuery(outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition), context, "UPDATE");
+            return context.Database.ExecuteSqlRaw(sql, sqlParameters);
+        }
+
+        public virtual Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
+            DbContext context,
+            DbSet<TOuter> outer,
+            IQueryable<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition = null,
+            CancellationToken cancellationToken = default)
+            where TOuter : class
+            where TInner : class
+        {
+            var (sql, sqlParameters) = GetSqlCommand(CreateUpdateJoinQuery(outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition), context, "UPDATE");
+            return context.Database.ExecuteSqlRawAsync(sql, sqlParameters, cancellationToken);
+        }
     }
 }
