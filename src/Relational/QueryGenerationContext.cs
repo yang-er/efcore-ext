@@ -20,14 +20,24 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         public QueryGenerationContext(IEnumerable<T> execution, Expression expression)
         {
             InternalExpression = expression;
+#if EFCORE50
+            var enumerator = (SingleQueryingEnumerable<T>)execution;
+#elif EFCORE31
             var enumerator = (QueryingEnumerable<T>)execution;
+#endif
             QueryContext = enumerator.Private<RelationalQueryContext>("_relationalQueryContext");
             CommandCache = enumerator.Private<RelationalCommandCache>("_relationalCommandCache");
             var selectExpression = CommandCache.Private<SelectExpression>("_selectExpression");
 
+#if EFCORE50
+            SelectExpression = CommandCache
+                .Private<RelationalParameterBasedSqlProcessor>("_relationalParameterBasedSqlProcessor")
+                .Optimize(selectExpression, QueryContext.ParameterValues, out _);
+#elif EFCORE31
             (SelectExpression, _) = CommandCache
                 .Private<ParameterValueBasedSelectExpressionOptimizer>("_parameterValueBasedSelectExpressionOptimizer")
                 .Optimize(selectExpression, QueryContext.ParameterValues);
+#endif
         }
 
         public Expression InternalExpression { get; }

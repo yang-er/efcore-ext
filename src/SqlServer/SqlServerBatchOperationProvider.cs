@@ -146,9 +146,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 var name = a.ToString();
                 if (name.StartsWith("Insert.") || name.StartsWith("Update."))
                     ((List<ProjectionExpression>)(name.StartsWith("Insert.") ? exp.NotMatchedByTarget : exp.Matched))
-                        .Add(new ProjectionExpression(
+                        .Add(RelationalInternals.CreateProjectionExpression(
                             selectExpression.Projection[(int)constant.Value].Expression,
-                            alias: columns[name.Substring(7)]));
+                            columns[name.Substring(7)]));
                 else
                     throw new InvalidOperationException("Translate failed.");
             }

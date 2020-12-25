@@ -1,9 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
-using Xunit;
-
-[assembly: TestCaseOrderer("PriorityOrderer", "BulkTest.SqlServer")]
 
 internal static partial class ContextUtil
 {
@@ -23,7 +20,7 @@ internal static partial class ContextUtil
         optionsBuilder.UseLoggerFactory(
             LoggerFactory.Create(builder => builder
                 .AddDebug()
-                .AddConsole(c => c.DisableColors = true)));
+                .AddConsole()));
 
         return optionsBuilder.Options;
     }

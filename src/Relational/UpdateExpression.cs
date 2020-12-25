@@ -39,7 +39,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
                     throw new NotImplementedException();
                 int id = (int)((ConstantExpression)b).Value;
                 maps.Add(a, Constant(i++));
-                projs.Add(new ProjectionExpression(list[id].Expression, fieldName));
+                projs.Add(RelationalInternals.CreateProjectionExpression(list[id].Expression, fieldName));
             }
 
             list.Clear();

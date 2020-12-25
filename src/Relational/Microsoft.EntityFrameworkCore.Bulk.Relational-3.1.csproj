@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EntityFrameworkCoreVersion)" />
+    <ProjectReference Include="..\Abstraction\Microsoft.EntityFrameworkCore.Bulk-$(DotNetCoreVersion).csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="obj\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="obj\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="ParameterExtractingExpressionVisitor2-*.cs" />
+    <Compile Include="ParameterExtractingExpressionVisitor2-$(DotNetCoreVersion).cs" Link="ParameterExtractingExpressionVisitor2.cs" />
+  </ItemGroup>
+
+</Project>

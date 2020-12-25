@@ -41,27 +41,23 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var logger = queryCompilationContext.Logger;
 
             // step 1: extract all parameters to check whether this queryable is compiled before.
-            var queryContext = queryCompiler.Private<IQueryContextFactory>("_queryContextFactory").Create();
+            var queryContext = context.GetService<IQueryContextFactory>().Create();
             query = ExtractParameters(queryCompiler, query, queryContext, logger, context.GetType(), context.Model);
 
             // step 2: preprocess
-            query = queryCompilationContext
-                .Private<IQueryTranslationPreprocessorFactory>("_queryTranslationPreprocessorFactory")
+            query = context.GetService<IQueryTranslationPreprocessorFactory>()
                 .Create(queryCompilationContext).Process(query);
 
             // step 3: method translating to be a ShapedQueryExpression
-            query = queryCompilationContext
-                .Private<IQueryableMethodTranslatingExpressionVisitorFactory>("_queryableMethodTranslatingExpressionVisitorFactory")
-                .Create(context.Model).Visit(query);
+            query = context.GetService<IQueryableMethodTranslatingExpressionVisitorFactory>()
+                .Create(queryCompilationContext).Visit(query);
 
             // step 4: postprocess
-            query = queryCompilationContext
-                .Private<IQueryTranslationPostprocessorFactory>("_queryTranslationPostprocessorFactory")
+            query = context.GetService<IQueryTranslationPostprocessorFactory>()
                 .Create(queryCompilationContext).Process(query);
 
             // step 5: ShapedQueryExpression -> [ new QueryableEnumerable(..) ]
-            query = queryCompilationContext
-                .Private<IShapedQueryCompilingExpressionVisitorFactory>("_shapedQueryCompilingExpressionVisitorFactory")
+            query = context.GetService<IShapedQueryCompilingExpressionVisitorFactory>()
                 .Create(queryCompilationContext).Visit(query);
 
             // step 6: append AddParameter sequences before [ new QueryableEnumerable ]
@@ -94,6 +90,15 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var enumerator = compiled(queryContext);
             return new QueryGenerationContext<T>(enumerator, queryable.Expression);
         }
+
+#if EFCORE31
+        private static QueryableMethodTranslatingExpressionVisitor Create(
+            this IQueryableMethodTranslatingExpressionVisitorFactory factory,
+            QueryCompilationContext queryCompilationContext)
+        {
+            return factory.Create(queryCompilationContext.Model);
+        }
+#endif
 
         public static Expression ExtractParameters(
             [NotNull] QueryCompiler queryCompiler,

@@ -15,7 +15,11 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 
         public IReadOnlyList<IReadOnlyList<SqlParameterExpression>> Values { get; }
 
+#if EFCORE50
+        protected override void Print(ExpressionPrinter expressionPrinter)
+#elif EFCORE31
         public override void Print(ExpressionPrinter expressionPrinter)
+#endif
         {
             expressionPrinter.AppendLine("Values Table");
         }

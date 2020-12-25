@@ -3,30 +3,48 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29318.209
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk", "src\Abstraction\Microsoft.EntityFrameworkCore.Bulk.csproj", "{7D066852-F665-4FAB-B65A-5E8244496C24}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.Relational", "src\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational.csproj", "{2D90FC9F-939C-4086-8A3E-044115E283FD}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.SqlServer", "src\SqlServer\Microsoft.EntityFrameworkCore.Bulk.SqlServer.csproj", "{70C4E27E-6992-4FD6-A1AC-E8A62FDC4645}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9326EF08-EAD2-4D5B-B656-42F05BF99F0D}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
-		Packaging.props = Packaging.props
+		.travis.yml = .travis.yml
+		appveyor.yml = appveyor.yml
+		Directory.Build.props = Directory.Build.props
+		deploy.sh = deploy.sh
+		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.InMemory", "src\InMemory\Microsoft.EntityFrameworkCore.Bulk.InMemory.csproj", "{46ECB4BE-BCE4-4B86-9C6C-35E3F5D3E894}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{43502E08-17D1-4058-B588-0E268B175832}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk-5.0", "src\Abstraction\Microsoft.EntityFrameworkCore.Bulk-5.0.csproj", "{7D066852-F665-4FAB-B65A-5E8244496C24}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.Relational-5.0", "src\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-5.0.csproj", "{2D90FC9F-939C-4086-8A3E-044115E283FD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.SqlServer-5.0", "src\SqlServer\Microsoft.EntityFrameworkCore.Bulk.SqlServer-5.0.csproj", "{70C4E27E-6992-4FD6-A1AC-E8A62FDC4645}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.InMemory-5.0", "src\InMemory\Microsoft.EntityFrameworkCore.Bulk.InMemory-5.0.csproj", "{46ECB4BE-BCE4-4B86-9C6C-35E3F5D3E894}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk-3.1", "src\Abstraction\Microsoft.EntityFrameworkCore.Bulk-3.1.csproj", "{DC32E8FA-5BFD-4A86-96FB-072050963D12}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.Relational-3.1", "src\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-3.1.csproj", "{6D3E0375-0E22-40BD-AD70-37525CB18521}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.SqlServer-3.1", "src\SqlServer\Microsoft.EntityFrameworkCore.Bulk.SqlServer-3.1.csproj", "{ED56DCA5-CF8F-4307-8884-08D4D320B17D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.InMemory-3.1", "src\InMemory\Microsoft.EntityFrameworkCore.Bulk.InMemory-3.1.csproj", "{555C2D36-9173-46FB-84FE-330949D9CA77}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.SqlServer", "test\SqlServer\BulkTest.SqlServer.csproj", "{51324660-BA06-44FC-BDAA-4F8CF24C8B5F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.SqlServer-5.0", "test\SqlServer\BulkTest.SqlServer-5.0.csproj", "{51324660-BA06-44FC-BDAA-4F8CF24C8B5F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.InMemory", "test\InMemory\BulkTest.InMemory.csproj", "{EB12C163-E844-4227-AA9F-ACFDE436B597}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.InMemory-5.0", "test\InMemory\BulkTest.InMemory-5.0.csproj", "{EB12C163-E844-4227-AA9F-ACFDE436B597}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.Cacheable", "test\Cacheable\BulkTest.Cacheable.csproj", "{1702DE10-AB47-448A-8833-FFC673EC6F47}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.Cacheable-5.0", "test\Cacheable\BulkTest.Cacheable-5.0.csproj", "{1702DE10-AB47-448A-8833-FFC673EC6F47}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.SqlServer-3.1", "test\SqlServer\BulkTest.SqlServer-3.1.csproj", "{09C08241-6214-45C4-85A6-02C3AF4C0AA7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.InMemory-3.1", "test\InMemory\BulkTest.InMemory-3.1.csproj", "{01AEFEE8-46F9-4588-A15E-FF9167A7547F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.Cacheable-3.1", "test\Cacheable\BulkTest.Cacheable-3.1.csproj", "{44BD5A8F-4375-450E-85B2-19C5BD31140D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -62,6 +80,34 @@ Global
 		{1702DE10-AB47-448A-8833-FFC673EC6F47}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1702DE10-AB47-448A-8833-FFC673EC6F47}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1702DE10-AB47-448A-8833-FFC673EC6F47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC32E8FA-5BFD-4A86-96FB-072050963D12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC32E8FA-5BFD-4A86-96FB-072050963D12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC32E8FA-5BFD-4A86-96FB-072050963D12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC32E8FA-5BFD-4A86-96FB-072050963D12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{555C2D36-9173-46FB-84FE-330949D9CA77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{555C2D36-9173-46FB-84FE-330949D9CA77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{555C2D36-9173-46FB-84FE-330949D9CA77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{555C2D36-9173-46FB-84FE-330949D9CA77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D3E0375-0E22-40BD-AD70-37525CB18521}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D3E0375-0E22-40BD-AD70-37525CB18521}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D3E0375-0E22-40BD-AD70-37525CB18521}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D3E0375-0E22-40BD-AD70-37525CB18521}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED56DCA5-CF8F-4307-8884-08D4D320B17D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED56DCA5-CF8F-4307-8884-08D4D320B17D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED56DCA5-CF8F-4307-8884-08D4D320B17D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED56DCA5-CF8F-4307-8884-08D4D320B17D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44BD5A8F-4375-450E-85B2-19C5BD31140D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44BD5A8F-4375-450E-85B2-19C5BD31140D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44BD5A8F-4375-450E-85B2-19C5BD31140D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44BD5A8F-4375-450E-85B2-19C5BD31140D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01AEFEE8-46F9-4588-A15E-FF9167A7547F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01AEFEE8-46F9-4588-A15E-FF9167A7547F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01AEFEE8-46F9-4588-A15E-FF9167A7547F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01AEFEE8-46F9-4588-A15E-FF9167A7547F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09C08241-6214-45C4-85A6-02C3AF4C0AA7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09C08241-6214-45C4-85A6-02C3AF4C0AA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09C08241-6214-45C4-85A6-02C3AF4C0AA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09C08241-6214-45C4-85A6-02C3AF4C0AA7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -74,6 +120,13 @@ Global
 		{51324660-BA06-44FC-BDAA-4F8CF24C8B5F} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
 		{EB12C163-E844-4227-AA9F-ACFDE436B597} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
 		{1702DE10-AB47-448A-8833-FFC673EC6F47} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
+		{DC32E8FA-5BFD-4A86-96FB-072050963D12} = {43502E08-17D1-4058-B588-0E268B175832}
+		{555C2D36-9173-46FB-84FE-330949D9CA77} = {43502E08-17D1-4058-B588-0E268B175832}
+		{6D3E0375-0E22-40BD-AD70-37525CB18521} = {43502E08-17D1-4058-B588-0E268B175832}
+		{ED56DCA5-CF8F-4307-8884-08D4D320B17D} = {43502E08-17D1-4058-B588-0E268B175832}
+		{44BD5A8F-4375-450E-85B2-19C5BD31140D} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
+		{01AEFEE8-46F9-4588-A15E-FF9167A7547F} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
+		{09C08241-6214-45C4-85A6-02C3AF4C0AA7} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F6CFFD1D-D456-4A8F-86FC-7CF2C893AB08}

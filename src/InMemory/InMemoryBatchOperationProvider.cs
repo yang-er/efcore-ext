@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Query.Internal;
+﻿using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class InMemoryBatchOperationProvider : IBatchOperationProvider
     {
-        private bool EnsureType<T>(IQueryable<T> query) where T : class
+        private static bool EnsureType<T>(IQueryable<T> query) where T : class
         {
             var expression = query.Expression;
             while (expression.NodeType == ExpressionType.Call)
@@ -19,11 +20,15 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 expression = ((MethodCallExpression)expression).Arguments[0];
             }
 
+#if EFCORE31
             return expression.NodeType == ExpressionType.Constant
                 && expression.Type == typeof(EntityQueryable<T>);
+#elif EFCORE50
+            return expression is QueryRootExpression;
+#endif
         }
 
-        private Action<T> CompileUpdate<T>(Expression<Func<T, T>> expression)
+        private static Action<T> CompileUpdate<T>(Expression<Func<T, T>> expression)
         {
             var body = expression.Body;
             var param = expression.Parameters.Single();
@@ -57,7 +62,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
         }
 
-        private Action<T, T2> CompileUpdate<T, T2>(Expression<Func<T, T2, T>> expression)
+        private static Action<T, T2> CompileUpdate<T, T2>(Expression<Func<T, T2, T>> expression)
         {
             if (expression == null) return null;
             var body = expression.Body;
@@ -92,7 +97,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
         }
 
-        private Func<TTarget, TSource, bool> CompileEquals<TTarget, TSource, TJoinKey>(
+        private static Func<TTarget, TSource, bool> CompileEquals<TTarget, TSource, TJoinKey>(
             Expression<Func<TTarget, TJoinKey>> targetKey,
             Expression<Func<TSource, TJoinKey>> sourceKey)
         {
@@ -139,8 +144,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         {
             if (!EnsureType(query))
                 throw new ArgumentException("Query invalid. The operation entity must be in DbContext.");
-            context.Set<T>().RemoveRange(await query.ToArrayAsync());
-            return await context.SaveChangesAsync();
+            context.Set<T>().RemoveRange(await query.ToArrayAsync(cancellationToken));
+            return await context.SaveChangesAsync(cancellationToken);
         }
 
         public int BatchInsertInto<T>(
@@ -188,13 +193,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         {
             if (!EnsureType(query))
                 throw new ArgumentException("Query invalid. The operation entity must be in DbContext.");
-            var entities = await query.ToListAsync();
+            var entities = await query.ToListAsync(cancellationToken);
             entities.ForEach(CompileUpdate(updateExpression));
             context.Set<T>().UpdateRange(entities);
-            return await context.SaveChangesAsync();
+            return await context.SaveChangesAsync(cancellationToken);
         }
 
-        private void SolveMerge<TTarget, TSource, TJoinKey>(
+        private static void SolveMerge<TTarget, TSource, TJoinKey>(
             DbContext context,
             List<TTarget> targetTable,
             List<TSource> sourceTable,
@@ -277,10 +282,10 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TTarget : class
             where TSource : class
         {
-            var target = await targetTable.ToListAsync();
+            var target = await targetTable.ToListAsync(cancellationToken);
             var source = sourceTable.ToList();
             SolveMerge(context, target, source, targetKey, sourceKey, updateExpression, insertExpression, delete);
-            return await context.SaveChangesAsync();
+            return await context.SaveChangesAsync(cancellationToken);
         }
 
         public (string, IEnumerable<object>) ToParametrizedSql<TEntity>(
@@ -343,7 +348,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 outer.Update(a.outer);
             });
 
-            return await context.SaveChangesAsync();
+            return await context.SaveChangesAsync(cancellationToken);
         }
     }
 }

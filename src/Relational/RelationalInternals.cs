@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Query;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -90,14 +91,25 @@ internal static partial class RelationalInternals
         return Expression.Lambda<Action<QuerySqlGenerator>>(body, para).Compile();
     }
 
-
+#if EFCORE50
+    public static readonly Func<ITableBase, TableExpression> CreateTableExpression
+        = typeof(TableExpression)
+            .GetConstructors(bindingFlags)[0]
+            .CreateFactory() as dynamic;
+#elif EFCORE31
     public static readonly Func<string, string, string, TableExpression> CreateTableExpression
         = typeof(TableExpression)
             .GetConstructors(bindingFlags)[0]
             .CreateFactory() as dynamic;
+#endif
 
     public static readonly Func<ParameterExpression, RelationalTypeMapping, SqlParameterExpression> CreateSqlParameterExpression
         = typeof(SqlParameterExpression)
+            .GetConstructors(bindingFlags)[0]
+            .CreateFactory() as dynamic;
+
+    public static readonly Func<SqlExpression, string, ProjectionExpression> CreateProjectionExpression
+        = typeof(ProjectionExpression)
             .GetConstructors(bindingFlags)[0]
             .CreateFactory() as dynamic;
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
@@ -95,7 +95,11 @@ namespace Microsoft.EntityFrameworkCore
                 QueryTranslationPostprocessorDependencies dependencies,
                 QueryTranslationPostprocessor realPostprocessor,
                 QueryCompilationContext queryCompilationContext)
+#if EFCORE50
+                : base(dependencies, queryCompilationContext)
+#elif EFCORE31
                 : base(dependencies)
+#endif
             {
                 RealProcessor = realPostprocessor;
                 Model = queryCompilationContext.Model;

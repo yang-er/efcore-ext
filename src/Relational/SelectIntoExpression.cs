@@ -11,10 +11,17 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         public SelectIntoExpression(SelectExpression selectExpression, IEntityType table)
         {
             Expression = selectExpression;
+
+#if EFCORE50
+            Table = RelationalInternals.CreateTableExpression(
+                table.Model.GetRelationalModel()
+                    .FindTable(table.GetTableName(), table.GetSchema()));
+#elif EFCORE31
             Table = RelationalInternals.CreateTableExpression(
                 table.GetTableName(),
                 table.GetSchema(),
                 table.GetTableName().ToLower().Substring(0, 1));
+#endif
 
             // Do some replacing here..
             var columnNames = table.GetColumns();
@@ -30,7 +37,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
                     throw new NotImplementedException();
                 int id = (int)((ConstantExpression)b).Value;
                 maps.Add(a, Constant(i++));
-                projs.Add(new ProjectionExpression(list[id].Expression, fieldName));
+                projs.Add(RelationalInternals.CreateProjectionExpression(list[id].Expression, fieldName));
             }
 
             list.Clear();
@@ -45,9 +52,9 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         public void Print(ExpressionPrinter expressionPrinter)
         {
             expressionPrinter.Append("Insert Into: ");
-            Table.Print(expressionPrinter);
+            ((IPrintableExpression)Table).Print(expressionPrinter);
             expressionPrinter.AppendLine();
-            Expression.Print(expressionPrinter);
+            ((IPrintableExpression)Expression).Print(expressionPrinter);
         }
     }
 }
