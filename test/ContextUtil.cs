@@ -18,6 +18,8 @@ internal static class ContextUtil
 
         optionsBuilder.UseBulkExtensions();
 
+        optionsBuilder.UseTableSplittingJoinsRemoval();
+
         optionsBuilder.UseLoggerFactory(
             LoggerFactory.Create(builder => builder
                 .AddDebug()

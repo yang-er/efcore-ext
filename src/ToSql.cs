@@ -1,42 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Microsoft.EntityFrameworkCore
 {
     public static class QueryableToSqlExtensions
     {
-        private static readonly Func<IQueryProvider, QueryContextDependencies> _loader;
-
-
-        static QueryableToSqlExtensions()
-        {
-            var bindingFlags = BindingFlags.NonPublic | BindingFlags.Instance;
-            var param = Expression.Parameter(typeof(IQueryProvider), "query");
-            var queryCompiler = Expression.MakeMemberAccess(
-                expression: Expression.Convert(param, typeof(EntityQueryProvider)),
-                member: typeof(EntityQueryProvider).GetField("_queryCompiler", bindingFlags));
-            var queryContextFactory = Expression.MakeMemberAccess(
-                expression: Expression.Convert(queryCompiler, typeof(QueryCompiler)),
-                member: typeof(QueryCompiler).GetField("_queryContextFactory", bindingFlags));
-            var dependencies = Expression.MakeMemberAccess(
-                expression: Expression.Convert(queryContextFactory, typeof(RelationalQueryContextFactory)),
-                member: typeof(RelationalQueryContextFactory).GetField("_dependencies", bindingFlags));
-            var result = Expression.ConvertChecked(dependencies,
-                typeof(DbContext).Assembly.GetType(typeof(QueryContextDependencies).FullName));
-            var lambda = Expression.Lambda<Func<IQueryProvider, QueryContextDependencies>>(result, param);
-            _loader = lambda.Compile();
-        }
-
-
         public static (string, IEnumerable<object>) ToParametrizedSql<TEntity>(this IQueryable<TEntity> query) where TEntity : class
         {
             var context = query.GetDbContext();
@@ -45,18 +19,23 @@ namespace Microsoft.EntityFrameworkCore
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
         public static DbContext GetDbContext(this IQueryable query)
         {
-            return _loader(query.Provider).StateManager.Context;
+            return Internals.AccessDependencies(query.Provider).StateManager.Context;
         }
 
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
         public static DbContextOptionsBuilder UseBulkExtensions(this DbContextOptionsBuilder optionsBuilder)
         {
             return optionsBuilder.ReplaceService<IQuerySqlGeneratorFactory, EnhancedQuerySqlGeneratorFactory>();
         }
 
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
         public static Dictionary<string, string> GetColumns(
             this IEntityType entityType)
         {
@@ -73,6 +52,8 @@ namespace Microsoft.EntityFrameworkCore
         }
 
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
         public static Dictionary<string, ValueConverter> GetValueConverters(
             this IEntityType entityType)
         {

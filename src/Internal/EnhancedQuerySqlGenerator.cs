@@ -11,19 +11,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class EnhancedQuerySqlGenerator : SqlServerQuerySqlGenerator
     {
-        internal static readonly Func<SelectExpression, IDictionary<ProjectionMember, Expression>> _getMapper;
-        static readonly Action<QuerySqlGenerator> _createCommand;
         private Func<ColumnExpression, bool> change = c => false;
-
-        static EnhancedQuerySqlGenerator()
-        {
-            _getMapper = ReflectionExtensions
-                .PrivateField<SelectExpression, IDictionary<ProjectionMember, Expression>>("_projectionMapping")
-                .Compile();
-            _createCommand = EnhancedQuerySqlGeneratorFactory
-                .CreateOne()
-                .Compile();
-        }
 
         public EnhancedQuerySqlGenerator(QuerySqlGeneratorDependencies dependencies)
             : base(dependencies)
@@ -92,7 +80,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(SelectIntoExpression selectIntoExpression)
         {
-            _createCommand(this);
+            Internals.InitQuerySqlGenerator(this);
 
             var selectExpression = selectIntoExpression.Expression;
             GenerateTagsHeaderComment(selectExpression);
@@ -112,7 +100,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(UpdateExpression updateExpression)
         {
-            _createCommand(this);
+            Internals.InitQuerySqlGenerator(this);
             Sql.Append("UPDATE ");
 
             if (updateExpression.Limit != null)
@@ -152,7 +140,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(DeleteExpression deleteExpression)
         {
-            _createCommand(this);
+            Internals.InitQuerySqlGenerator(this);
             Sql.Append("DELETE ");
 
             if (deleteExpression.Limit != null)
@@ -181,7 +169,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(MergeExpression mergeExpression)
         {
-            _createCommand(this);
+            Internals.InitQuerySqlGenerator(this);
 
             var targetAlias = mergeExpression.TargetTable.Alias;
             var sourceAlias = mergeExpression.SourceTable.Alias;

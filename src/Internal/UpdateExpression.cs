@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Bulk;
-using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +26,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 
             // Do some replacing here..
             var columnNames = table.GetColumns();
-            var proj = EnhancedQuerySqlGenerator._getMapper(selectExpression);
+            var proj = Internals.AccessProjectionMapping(selectExpression);
             var list = (List<ProjectionExpression>)selectExpression.Projection;
             int i = 0;
             var projs = new List<ProjectionExpression>();

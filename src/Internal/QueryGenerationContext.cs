@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore.Storage.Internal;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
@@ -90,11 +89,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         private SqlParameter CreateParameter(TypeMappedRelationalParameter parInfo)
         {
-            var typeMap = EnhancedQuerySqlGeneratorFactory.GetRTM(parInfo);
+            var typeMap = Internals.AccessRelationalTypeMapping(parInfo);
             var value = QueryContext.ParameterValues[parInfo.InvariantName];
             if (typeMap.Converter != null)
                 value = typeMap.Converter.ConvertToProvider(value);
-            var nullable = EnhancedQuerySqlGeneratorFactory.GetIN(parInfo);
+            var nullable = Internals.AccessIsNullable(parInfo);
 
             var parameter = new SqlParameter
             {

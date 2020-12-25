@@ -140,7 +140,7 @@ namespace Microsoft.EntityFrameworkCore
             }
 
             var columns = entityType.GetColumns();
-            var map = EnhancedQuerySqlGenerator._getMapper(selectExpression);
+            var map = Internals.AccessProjectionMapping(selectExpression);
             foreach (var (a, b) in map)
             {
                 if (!(b is ConstantExpression constant))

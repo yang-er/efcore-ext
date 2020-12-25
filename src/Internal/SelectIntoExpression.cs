@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Bulk;
-using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -11,14 +10,14 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         public SelectIntoExpression(SelectExpression selectExpression, IEntityType table)
         {
             Expression = selectExpression;
-            Table = EnhancedQuerySqlGeneratorFactory.CreateTable(
+            Table = Internals.CreateTableExpression(
                 table.GetTableName(),
                 table.GetSchema(),
                 table.GetTableName().ToLower().Substring(0, 1));
 
             // Do some replacing here..
             var columnNames = table.GetColumns();
-            var proj = EnhancedQuerySqlGenerator._getMapper(selectExpression);
+            var proj = Internals.AccessProjectionMapping(selectExpression);
             var list = (List<ProjectionExpression>)selectExpression.Projection;
             int i = 0;
             var projs = new List<ProjectionExpression>();
