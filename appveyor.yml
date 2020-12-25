@@ -1,0 +1,29 @@
+version: 3.1.{build}
+configuration: Release
+
+dotnet_csproj:
+  patch: true
+  file: '**\*.csproj'
+  version: '{version}'
+  version_prefix: '{version}'
+  package_version: '{version}'
+  assembly_version: '{version}'
+  file_version: '{version}'
+  informational_version: '{version}'
+
+before_build:
+- cmd: nuget restore
+
+build:
+  publish_nuget: true
+  publish_nuget_symbols: true
+  verbosity: minimal
+
+deploy:
+- provider: NuGet
+  server: https://nuget.pkg.github.com/yang-er/index.json
+  api_key:
+    secure: p0KObstHI0dK5RxeIYaazJ0QqbcF/n/L5nR0aYLXC2viNPTMkCXXwsL/wnVxNZTb
+  username:
+    secure: 8stOv5FQ8rbtCJMYO5frcUIpVh8jl2x7fyaj5h3K9po=
+  skip_symbols: true

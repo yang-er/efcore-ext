@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Title>Microsoft.EntityFrameworkCore.Bulk</Title>
+    <Version>3.1.0</Version>
+    <Authors>borisdj;yang-er</Authors>
+    <Description>Entity Framework Core Batch Extensions for Insert Update Delete and Read (CRUD) operations on SQL Server</Description>
+    <PackageProjectUrl>https://github.com/yang-er/EFCore.BulkExtensions</PackageProjectUrl>
+    <Company />
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>EntityFrameworkCore</PackageTags>
+    <PackageReleaseNotes>Redesign the APIs, support INSERT INTO SELECT and MERGE INTO instructions.</PackageReleaseNotes>
+    <PackageVersion>3.1.1</PackageVersion>
+    <AssemblyVersion>3.1.0.0</AssemblyVersion>
+    <FileVersion>3.1.0.0</FileVersion>
+    <RepositoryUrl>https://github.com/yang-er/EFCore.BulkExtensions</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;EF1001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.0" />
+  </ItemGroup>
+
+</Project>
