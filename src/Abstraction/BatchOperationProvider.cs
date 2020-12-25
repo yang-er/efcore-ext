@@ -38,7 +38,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TTarget, TSource, TTarget>>? updateExpression,
             Expression<Func<TSource, TTarget>>? insertExpression,
             bool delete,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             where TTarget : class
             where TSource : class;
 
@@ -50,7 +50,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         Task<int> BatchDeleteAsync<T>(
             DbContext context,
             IQueryable<T> query,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             where T : class;
 
         int BatchUpdate<T>(
@@ -63,7 +63,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbContext context,
             IQueryable<T> query,
             Expression<Func<T, T>> updateExpression,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             where T : class;
 
         int BatchUpdateJoin<TOuter, TInner, TKey>(
@@ -73,7 +73,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TOuter, TKey>> outerKeySelector,
             Expression<Func<TInner, TKey>> innerKeySelector,
             Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>>? condition = null)
+            Expression<Func<TOuter, TInner, bool>>? condition)
             where TOuter : class
             where TInner : class;
 
@@ -84,8 +84,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TOuter, TKey>> outerKeySelector,
             Expression<Func<TInner, TKey>> innerKeySelector,
             Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>>? condition = null,
-            CancellationToken cancellationToken = default)
+            Expression<Func<TOuter, TInner, bool>>? condition,
+            CancellationToken cancellationToken)
             where TOuter : class
             where TInner : class;
 
@@ -99,8 +99,27 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbContext context,
             IQueryable<T> query,
             DbSet<T> to,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             where T : class;
+
+        int Upsert<TTarget, TSource>(
+            DbContext context,
+            DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>>? updateExpression)
+            where TTarget : class
+            where TSource : class;
+
+        Task<int> UpsertAsync<TTarget, TSource>(
+            DbContext context,
+            DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>>? updateExpression,
+            CancellationToken cancellationToken)
+            where TTarget : class
+            where TSource : class;
 
         (string, IEnumerable<object>) ToParametrizedSql<TEntity>(
             DbContext context,

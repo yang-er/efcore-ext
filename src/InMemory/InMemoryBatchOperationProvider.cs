@@ -1,9 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore.Query;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -294,6 +296,115 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TEntity : class
         {
             throw new NotSupportedException();
+        }
+
+        private static Func<TTarget, TSource, bool> GetPredicates<TTarget, TSource>(
+            IEntityType innerType,
+            ParameterExpression outerParam, IReadOnlyList<MemberBinding> outerBindings)
+        {
+            var keys = innerType.FindPrimaryKey();
+            if (keys == null) throw new NotSupportedException($"No primary key configured for {innerType}.");
+
+            var innerParam = Expression.Parameter(typeof(TTarget), "<>_t");
+            var inner = new Expression[keys.Properties.Count];
+            var outer = new Expression[keys.Properties.Count];
+            for (int i = 0; i < keys.Properties.Count; i++)
+            {
+                var prop = keys.Properties[i];
+                var member = (MemberInfo)prop.PropertyInfo ?? prop.FieldInfo;
+                if (prop.IsShadowProperty())
+                    throw new NotSupportedException("Shadow property in primary key is not supported yet.");
+
+                var binding = outerBindings.OfType<MemberAssignment>().FirstOrDefault(m => m.Member == member);
+                if (binding == null)
+                    throw new ArgumentException("The outer member binding doesn't contains the property in primary key.");
+
+                inner[i] = Expression.MakeMemberAccess(innerParam, member);
+                outer[i] = binding.Expression;
+            }
+
+            var body = inner.Zip(outer, Expression.Equal).Aggregate(Expression.AndAlso);
+            var lambda = Expression.Lambda<Func<TTarget, TSource, bool>>(body, innerParam, outerParam);
+            return lambda.Compile();
+        }
+
+        public int Upsert<TTarget, TSource>(
+            DbContext context,
+            DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>> updateExpression)
+            where TTarget : class
+            where TSource : class
+        {
+            if (!(insertExpression.Body is MemberInitExpression keyBody) ||
+                keyBody.NewExpression.Constructor.GetParameters().Length != 0)
+                throw new InvalidOperationException("Insert expression must be empty constructor and contain member initialization.");
+
+            var predicate = GetPredicates<TTarget, TSource>(
+                context.Model.FindEntityType(typeof(TTarget)),
+                insertExpression.Parameters[0], keyBody.Bindings);
+            var factory = insertExpression.Compile();
+            var updater = CompileUpdate(updateExpression);
+
+            var target = set.ToList();
+            var source = sources.ToList();
+
+            foreach (var item in source)
+            {
+                var t = target.FirstOrDefault(_t => predicate.Invoke(_t, item));
+                if (t == null)
+                {
+                    set.Add(factory.Invoke(item));
+                }
+                else if (updater != null)
+                {
+                    updater.Invoke(t, item);
+                    set.Update(t);
+                }
+            }
+
+            return context.SaveChanges();
+        }
+
+        public async Task<int> UpsertAsync<TTarget, TSource>(
+            DbContext context,
+            DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
+            CancellationToken cancellationToken)
+            where TTarget : class
+            where TSource : class
+        {
+            if (!(insertExpression.Body is MemberInitExpression keyBody) ||
+                keyBody.NewExpression.Constructor.GetParameters().Length != 0)
+                throw new InvalidOperationException("Insert expression must be empty constructor and contain member initialization.");
+
+            var predicate = GetPredicates<TTarget, TSource>(
+                context.Model.FindEntityType(typeof(TTarget)),
+                insertExpression.Parameters[0], keyBody.Bindings);
+            var factory = insertExpression.Compile();
+            var updater = CompileUpdate(updateExpression);
+
+            var target = await set.ToListAsync(cancellationToken);
+            var source = sources.ToList();
+
+            foreach (var item in source)
+            {
+                var t = target.FirstOrDefault(_t => predicate.Invoke(_t, item));
+                if (t == null)
+                {
+                    set.Add(factory.Invoke(item));
+                }
+                else if (updater != null)
+                {
+                    updater.Invoke(t, item);
+                    set.Update(t);
+                }
+            }
+
+            return await context.SaveChangesAsync(cancellationToken);
         }
 
         public int BatchUpdateJoin<TOuter, TInner, TKey>(

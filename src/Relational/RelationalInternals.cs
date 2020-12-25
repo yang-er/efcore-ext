@@ -154,4 +154,18 @@ internal static partial class RelationalInternals
 
     public static readonly Action<SelectExpression, string> ApplyAlias
         = S_ApplyAlias();
+
+    private static readonly MethodInfo s_Join_TOuter_TInner_TKey_TResult_5
+        = new Func<IQueryable<object>, IEnumerable<object>, Expression<Func<object, object>>, Expression<Func<object, object>>, Expression<Func<object, object, object>>, IQueryable<object>>(Queryable.Join).GetMethodInfo().GetGenericMethodDefinition();
+
+    public static IQueryable<TResult> Join<TOuter, TInner, TResult>(this IQueryable<TOuter> outer, IEnumerable<TInner> inner, Type joinKeyType, LambdaExpression outerKeySelector, LambdaExpression innerKeySelector, Expression<Func<TOuter, TInner, TResult>> resultSelector)
+    {
+        if (outer == null || inner == null || outerKeySelector == null || innerKeySelector == null || resultSelector == null)
+            throw new ArgumentNullException(nameof(resultSelector));
+        var innerExpression = inner is IQueryable<TInner> q ? q.Expression : Expression.Constant(inner, typeof(IEnumerable<TInner>));
+        return outer.Provider.CreateQuery<TResult>(
+            Expression.Call(
+                null,
+                s_Join_TOuter_TInner_TKey_TResult_5.MakeGenericMethod(typeof(TOuter), typeof(TInner), joinKeyType, typeof(TResult)), outer.Expression, innerExpression, Expression.Quote(outerKeySelector), Expression.Quote(innerKeySelector), Expression.Quote(resultSelector)));
+    }
 }

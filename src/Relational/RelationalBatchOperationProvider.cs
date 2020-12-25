@@ -121,6 +121,31 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return (command.CommandText, parameters);
         }
 
+        public virtual int Upsert<TTarget, TSource>(
+            DbContext context,
+            DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>> updateExpression)
+            where TTarget : class
+            where TSource : class
+        {
+            throw new NotSupportedException("Default batch operation provider doesn't support UPSERT.");
+        }
+
+        public virtual Task<int> UpsertAsync<TTarget, TSource>(
+            DbContext context,
+            DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
+            CancellationToken cancellationToken)
+            where TTarget : class
+            where TSource : class
+        {
+            throw new NotSupportedException("Default batch operation provider doesn't support UPSERT.");
+        }
+
         private IQueryable<TOuter> CreateUpdateJoinQuery<TOuter, TInner, TKey>(
             IQueryable<TOuter> outer,
             IQueryable<TInner> inner,

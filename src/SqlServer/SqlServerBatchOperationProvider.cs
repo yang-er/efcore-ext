@@ -22,7 +22,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TTarget : class
             where TSource : class
         {
-            var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, targetKey, sourceKey, updateExpression, insertExpression, delete);
+            var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, typeof(TJoinKey), targetKey, sourceKey, updateExpression, insertExpression, delete);
             return context.Database.ExecuteSqlRaw(sql, parameters);
         }
 
@@ -39,16 +39,65 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TTarget : class
             where TSource : class
         {
-            var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, targetKey, sourceKey, updateExpression, insertExpression, delete);
+            var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, typeof(TJoinKey), targetKey, sourceKey, updateExpression, insertExpression, delete);
             return context.Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
         }
 
-        private static (string, IEnumerable<object>) GetSqlMerge<TTarget, TSource, TJoinKey>(
+        public override int Upsert<TTarget, TSource>(
+            DbContext context,
+            DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>> updateExpression)
+            where TTarget : class
+            where TSource : class
+        {
+            var (sql, parameters) = GetSqlUpsert(context, set, sources, insertExpression, updateExpression);
+            return context.Database.ExecuteSqlRaw(sql, parameters);
+        }
+
+        public override Task<int> UpsertAsync<TTarget, TSource>(
+            DbContext context,
+            DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
+            CancellationToken cancellationToken)
+            where TTarget : class
+            where TSource : class
+        {
+            var (sql, parameters) = GetSqlUpsert(context, set, sources, insertExpression, updateExpression);
+            return context.Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
+        }
+
+        private static (string, IEnumerable<object>) GetSqlUpsert<TTarget, TSource>(
+            DbContext context,
+            DbSet<TTarget> targetTable,
+            IEnumerable<TSource> sourceTable,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>> updateExpression)
+            where TTarget : class
+            where TSource : class
+        {
+            if (!(insertExpression.Body is MemberInitExpression keyBody) ||
+                keyBody.NewExpression.Constructor.GetParameters().Length != 0)
+                throw new InvalidOperationException("Insert expression must be empty constructor and contain member initialization.");
+
+            AnonymousObjectExpressionFactory.GetTransparentIdentifier(
+                Expression.Parameter(typeof(TTarget), "t"), context.Model.FindEntityType(typeof(TTarget)),
+                insertExpression.Parameters[0], keyBody.Bindings,
+                out var tJoinKey, out var targetKey, out var sourceKey);
+
+            return GetSqlMerge(context, targetTable, sourceTable, tJoinKey, targetKey, sourceKey, updateExpression, insertExpression, false);
+        }
+
+        private static (string, IEnumerable<object>) GetSqlMerge<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable2,
-            Expression<Func<TTarget, TJoinKey>> targetKey,
-            Expression<Func<TSource, TJoinKey>> sourceKey,
+            Type joinKeyType,
+            LambdaExpression targetKey,
+            LambdaExpression sourceKey,
             Expression<Func<TTarget, TSource, TTarget>> updateExpression,
             Expression<Func<TSource, TTarget>> insertExpression,
             bool delete)
@@ -79,6 +128,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .IgnoreQueryFilters()
                 .Join(
                     inner: sourceQuery,
+                    joinKeyType: joinKeyType,
                     outerKeySelector: targetKey,
                     innerKeySelector: sourceKey,
                     resultSelector: MergeResult(updateExpression, insertExpression));

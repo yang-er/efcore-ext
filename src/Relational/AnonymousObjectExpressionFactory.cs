@@ -1,8 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
@@ -11,6 +14,52 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         public static SqlParameterExpression ToSql(this ParameterExpression par, RelationalTypeMapping map)
         {
             return RelationalInternals.CreateSqlParameterExpression(par, map);
+        }
+
+        public static void GetTransparentIdentifier(
+            ParameterExpression targetParam, IEntityType targetType,
+            ParameterExpression sourceParam, IReadOnlyList<MemberBinding> sourceBindings,
+            out Type transparentIdentifierType,
+            out LambdaExpression targetKeySelector,
+            out LambdaExpression sourceKeySelector)
+        {
+            var keys = targetType.FindPrimaryKey();
+            if (keys == null) throw new NotSupportedException($"No primary key configured for {targetType}.");
+
+            transparentIdentifierType = keys.Properties.Count switch
+            {
+                1 => typeof(TransparentIdentifier<>),
+                2 => typeof(TransparentIdentifier<,>),
+                3 => typeof(TransparentIdentifier<,,>),
+                4 => typeof(TransparentIdentifier<,,,>),
+                _ => throw new NotSupportedException($"Primary key with {keys.Properties} properties is not supported yet."),
+            };
+
+            var inner = new Expression[keys.Properties.Count];
+            var outer = new Expression[keys.Properties.Count];
+            var types = new Type[keys.Properties.Count];
+            for (int i = 0; i < keys.Properties.Count; i++)
+            {
+                var prop = keys.Properties[i];
+                var member = (MemberInfo)prop.PropertyInfo ?? prop.FieldInfo;
+                if (prop.IsShadowProperty())
+                    throw new NotSupportedException("Shadow property in primary key is not supported yet.");
+
+                var binding = sourceBindings.OfType<MemberAssignment>().FirstOrDefault(m => m.Member == member);
+                if (binding == null)
+                    throw new ArgumentException("The outer member binding doesn't contains the property in primary key.");
+
+                inner[i] = Expression.MakeMemberAccess(targetParam, member);
+                outer[i] = binding.Expression;
+                types[i] = prop.ClrType;
+            }
+
+            transparentIdentifierType = transparentIdentifierType.MakeGenericType(types);
+            var constructor = transparentIdentifierType.GetConstructors().Single();
+            var innerNew = Expression.New(constructor, inner);
+            var outerNew = Expression.New(constructor, outer);
+            targetKeySelector = Expression.Lambda(innerNew, targetParam);
+            sourceKeySelector = Expression.Lambda(outerNew, sourceParam);
         }
 
         public static NewExpression Create(Type t)
@@ -54,5 +103,45 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             if (type == typeof(TimeSpan)) return ((TimeSpan)i).Hours - 1;
             throw new NotSupportedException();
         }
+
+        #region struct TransparentIdentifier
+
+        struct TransparentIdentifier<T>
+        {
+            public TransparentIdentifier(T _) { }
+            public static bool operator ==(TransparentIdentifier<T> _, TransparentIdentifier<T> __) => false;
+            public static bool operator !=(TransparentIdentifier<T> _, TransparentIdentifier<T> __) => false;
+            public override bool Equals(object obj) => false;
+            public override int GetHashCode() => 0;
+        }
+
+        struct TransparentIdentifier<T1, T2>
+        {
+            public TransparentIdentifier(T1 _, T2 __) { }
+            public static bool operator ==(TransparentIdentifier<T1, T2> _, TransparentIdentifier<T1, T2> __) => false;
+            public static bool operator !=(TransparentIdentifier<T1, T2> _, TransparentIdentifier<T1, T2> __) => false;
+            public override bool Equals(object obj) => false;
+            public override int GetHashCode() => 0;
+        }
+
+        struct TransparentIdentifier<T1, T2, T3>
+        {
+            public TransparentIdentifier(T1 _, T2 __, T3 ___) { }
+            public static bool operator ==(TransparentIdentifier<T1, T2, T3> _, TransparentIdentifier<T1, T2, T3> __) => false;
+            public static bool operator !=(TransparentIdentifier<T1, T2, T3> _, TransparentIdentifier<T1, T2, T3> __) => false;
+            public override bool Equals(object obj) => false;
+            public override int GetHashCode() => 0;
+        }
+
+        struct TransparentIdentifier<T1, T2, T3, T4>
+        {
+            public TransparentIdentifier(T1 _, T2 __, T3 ___, T4 ____) { }
+            public static bool operator ==(TransparentIdentifier<T1, T2, T3, T4> _, TransparentIdentifier<T1, T2, T3, T4> __) => false;
+            public static bool operator !=(TransparentIdentifier<T1, T2, T3, T4> _, TransparentIdentifier<T1, T2, T3, T4> __) => false;
+            public override bool Equals(object obj) => false;
+            public override int GetHashCode() => 0;
+        }
+
+        #endregion
     }
 }

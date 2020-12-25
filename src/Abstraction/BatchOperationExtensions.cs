@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 
 namespace Microsoft.EntityFrameworkCore
 {
+    /// <summary>
+    /// Provide static extensions for batch operations.
+    /// </summary>
     public static class BatchOperationExtensions
     {
         /// <summary>
@@ -38,6 +41,11 @@ namespace Microsoft.EntityFrameworkCore
             where TTarget : class
             where TSource : class
         {
+            Check.NotNull(targetTable, nameof(targetTable));
+            Check.NotNull(sourceTable, nameof(sourceTable));
+            Check.NotNull(targetKey, nameof(targetKey));
+            Check.NotNull(sourceKey, nameof(sourceKey));
+
             var context = targetTable.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.Merge(context,
@@ -73,6 +81,11 @@ namespace Microsoft.EntityFrameworkCore
             where TTarget : class
             where TSource : class
         {
+            Check.NotNull(targetTable, nameof(targetTable));
+            Check.NotNull(sourceTable, nameof(sourceTable));
+            Check.NotNull(targetKey, nameof(targetKey));
+            Check.NotNull(sourceKey, nameof(sourceKey));
+
             var context = targetTable.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.MergeAsync(context,
@@ -92,6 +105,8 @@ namespace Microsoft.EntityFrameworkCore
             this IQueryable<T> query)
             where T : class
         {
+            Check.NotNull(query, nameof(query));
+
             var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchDelete(context, query);
@@ -109,6 +124,8 @@ namespace Microsoft.EntityFrameworkCore
             CancellationToken cancellationToken = default)
             where T : class
         {
+            Check.NotNull(query, nameof(query));
+
             var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchDeleteAsync(context, query, cancellationToken);
@@ -126,6 +143,9 @@ namespace Microsoft.EntityFrameworkCore
             Expression<Func<T, T>> updateExpression)
             where T : class
         {
+            Check.NotNull(query, nameof(query));
+            Check.NotNull(updateExpression, nameof(updateExpression));
+
             var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchUpdate(context, query, updateExpression);
@@ -145,6 +165,9 @@ namespace Microsoft.EntityFrameworkCore
             CancellationToken cancellationToken = default)
             where T : class
         {
+            Check.NotNull(query, nameof(query));
+            Check.NotNull(updateExpression, nameof(updateExpression));
+
             var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchUpdateAsync(context, query, updateExpression, cancellationToken);
@@ -174,6 +197,12 @@ namespace Microsoft.EntityFrameworkCore
             where TOuter : class
             where TInner : class
         {
+            Check.NotNull(outer, nameof(outer));
+            Check.NotNull(inner, nameof(inner));
+            Check.NotNull(outerKeySelector, nameof(outerKeySelector));
+            Check.NotNull(innerKeySelector, nameof(innerKeySelector));
+            Check.NotNull(updateSelector, nameof(updateSelector));
+
             var context = outer.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchUpdateJoin(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
@@ -204,6 +233,12 @@ namespace Microsoft.EntityFrameworkCore
             where TOuter : class
             where TInner : class
         {
+            Check.NotNull(outer, nameof(outer));
+            Check.NotNull(inner, nameof(inner));
+            Check.NotNull(outerKeySelector, nameof(outerKeySelector));
+            Check.NotNull(innerKeySelector, nameof(innerKeySelector));
+            Check.NotNull(updateSelector, nameof(updateSelector));
+
             var context = outer.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchUpdateJoinAsync(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition, cancellationToken);
@@ -221,6 +256,9 @@ namespace Microsoft.EntityFrameworkCore
             DbSet<T> to)
             where T : class
         {
+            Check.NotNull(query, nameof(query));
+            Check.NotNull(to, nameof(to));
+
             var context = to.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchInsertInto(context, query, to);
@@ -240,9 +278,124 @@ namespace Microsoft.EntityFrameworkCore
             CancellationToken cancellationToken = default)
             where T : class
         {
+            Check.NotNull(query, nameof(query));
+            Check.NotNull(to, nameof(to));
+
             var context = to.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.BatchInsertIntoAsync(context, query, to, cancellationToken);
+        }
+
+        /// <summary>
+        /// Perform one insert or update operation.
+        /// </summary>
+        /// <typeparam name="TTarget">The entity type.</typeparam>
+        /// <typeparam name="TSource">The data source type.</typeparam>
+        /// <param name="set">The entity set.</param>
+        /// <param name="sources">The sources for the upserting.</param>
+        /// <param name="insertExpression">The expression for inserting new entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <returns>The affected rows.</returns>
+        public static int Upsert<TSource, TTarget>(
+            this DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>>? updateExpression = null)
+            where TTarget : class
+            where TSource : class
+        {
+            Check.NotNull(set, nameof(set));
+            Check.NotNull(sources, nameof(sources));
+            Check.NotNull(insertExpression, nameof(insertExpression));
+
+            var context = set.GetService<ICurrentDbContext>().Context;
+            var provider = context.GetService<IBatchOperationProvider>();
+            return provider.Upsert(context, set, sources, insertExpression, updateExpression);
+        }
+
+        /// <summary>
+        /// Perform one insert or update async operation.
+        /// </summary>
+        /// <typeparam name="TTarget">The entity type.</typeparam>
+        /// <typeparam name="TSource">The data source type.</typeparam>
+        /// <param name="set">The entity set.</param>
+        /// <param name="sources">The sources for the upserting.</param>
+        /// <param name="insertExpression">The expression for inserting new entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The task for affected rows.</returns>
+        public static Task<int> UpsertAsync<TSource, TTarget>(
+            this DbSet<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>>? updateExpression = null,
+            CancellationToken cancellationToken = default)
+            where TTarget : class
+            where TSource : class
+        {
+            Check.NotNull(set, nameof(set));
+            Check.NotNull(sources, nameof(sources));
+            Check.NotNull(insertExpression, nameof(insertExpression));
+
+            var context = set.GetService<ICurrentDbContext>().Context;
+            var provider = context.GetService<IBatchOperationProvider>();
+            return provider.UpsertAsync(context, set, sources, insertExpression, updateExpression, cancellationToken);
+        }
+
+        /// <summary>
+        /// Perform one insert or update operation.
+        /// </summary>
+        /// <typeparam name="TTarget">The entity type.</typeparam>
+        /// <typeparam name="TSource">The data source type.</typeparam>
+        /// <param name="set">The entity set.</param>
+        /// <param name="source">The source for the upserting.</param>
+        /// <param name="insertExpression">The expression for inserting new entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <returns>The affected rows.</returns>
+        public static int Upsert<TSource, TTarget>(
+            this DbSet<TTarget> set,
+            TSource source,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>>? updateExpression = null)
+            where TTarget : class
+            where TSource : class
+        {
+            Check.NotNull(set, nameof(set));
+            Check.NotNull(source, nameof(source));
+            Check.NotNull(insertExpression, nameof(insertExpression));
+
+            var context = set.GetService<ICurrentDbContext>().Context;
+            var provider = context.GetService<IBatchOperationProvider>();
+            return provider.Upsert(context, set, new[] { source }, insertExpression, updateExpression);
+        }
+
+        /// <summary>
+        /// Perform one insert or update async operation.
+        /// </summary>
+        /// <typeparam name="TTarget">The entity type.</typeparam>
+        /// <typeparam name="TSource">The data source type.</typeparam>
+        /// <param name="set">The entity set.</param>
+        /// <param name="source">The source for the upserting.</param>
+        /// <param name="insertExpression">The expression for inserting new entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The task for affected rows.</returns>
+        public static Task<int> UpsertAsync<TSource, TTarget>(
+            this DbSet<TTarget> set,
+            TSource source,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TSource, TTarget>>? updateExpression = null,
+            CancellationToken cancellationToken = default)
+            where TTarget : class
+            where TSource : class
+        {
+            Check.NotNull(set, nameof(set));
+            Check.NotNull(source, nameof(source));
+            Check.NotNull(insertExpression, nameof(insertExpression));
+
+            var context = set.GetService<ICurrentDbContext>().Context;
+            var provider = context.GetService<IBatchOperationProvider>();
+            return provider.UpsertAsync(context, set, new[] { source }, insertExpression, updateExpression, cancellationToken);
         }
 
         /// <summary>
@@ -255,6 +408,8 @@ namespace Microsoft.EntityFrameworkCore
             this IQueryable<T> query)
             where T : class
         {
+            Check.NotNull(query, nameof(query));
+
             var context = query.GetDbContext();
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.ToParametrizedSql(context, query);
