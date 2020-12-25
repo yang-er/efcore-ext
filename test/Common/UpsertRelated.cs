@@ -85,136 +85,107 @@ namespace Testcase_Upsert
             contextFactory = nameFixture.ContextFactory;
         }
 
-        [Fact, TestPriority(0)]
-        public void Upsert_NewAnonymousObject()
+        private void EnsureRank(RankSource[] sources = null, RankCache[] caches = null)
         {
-            using (var context = contextFactory())
+            caches ??= new[]
             {
-                context.RankCache.BatchDelete();
-                context.RankSource.BatchDelete();
+                new RankCache { TeamId = 2, ContestId = 1, PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = 9, TotalTimeRestricted = 9 },
+                new RankCache { TeamId = 3, ContestId = 1, PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = 9, TotalTimeRestricted = 9 }
+            };
 
-                context.RankSource.AddRange(
-                    new RankSource { ContestId = 2, TeamId = 1, Public = true, Time = 100 },
-                    new RankSource { ContestId = 1, TeamId = 2, Public = false, Time = 77 });
-
-                context.RankCache.AddRange(
-                    new RankCache
-                    {
-                        TeamId = 2,
-                        ContestId = 1,
-                        PointsPublic = 1,
-                        PointsRestricted = 1,
-                        TotalTimePublic = 9,
-                        TotalTimeRestricted = 9
-                    },
-                    new RankCache
-                    {
-                        TeamId = 3,
-                        ContestId = 1,
-                        PointsPublic = 1,
-                        PointsRestricted = 1,
-                        TotalTimePublic = 9,
-                        TotalTimeRestricted = 9
-                    });
-
-                context.SaveChanges();
-            }
-
-            using (var context = contextFactory())
+            sources ??= new[]
             {
-                var ot = new[]
-                {
-                    new { ContestId = 1, TeamId = 2, Time = 50 },
-                    new { ContestId = 3, TeamId = 4, Time = 50 },
-                };
+                new RankSource { ContestId = 1, TeamId = 2, Public = true, Time = 50 },
+                new RankSource { ContestId = 3, TeamId = 4, Public = false, Time = 50 }
+            };
 
-                var e = context.RankCache.Upsert(
-                    ot,
-                    insertExpression:
-                        rc2 => new RankCache
-                        {
-                            PointsPublic = 1,
-                            PointsRestricted = 1,
-                            TotalTimePublic = rc2.Time,
-                            TotalTimeRestricted = rc2.Time,
-                            ContestId = rc2.ContestId,
-                            TeamId = rc2.TeamId,
-                        },
-                    updateExpression:
-                        (rc, rc2) => new RankCache
-                        {
-                            PointsPublic = rc.PointsPublic + 1,
-                            TotalTimePublic = rc.TotalTimePublic + rc2.Time,
-                        });
-            }
+            using var context = contextFactory();
+            context.RankCache.BatchDelete();
+            context.RankSource.BatchDelete();
 
-            using (var context = contextFactory())
-            {
-                Assert.Equal(3, context.RankCache.Count());
-            }
+            context.RankSource.AddRange(sources);
+            context.RankCache.AddRange(caches);
+            context.SaveChanges();
         }
 
         [Fact, TestPriority(0)]
+        public void Upsert_NewAnonymousObject()
+        {
+            EnsureRank(Array.Empty<RankSource>());
+            using var context = contextFactory();
+
+            var e = context.RankCache.Upsert(
+                new[]
+                {
+                    new { ContestId = 1, TeamId = 2, Time = 50 },
+                    new { ContestId = 3, TeamId = 4, Time = 50 },
+                },
+                rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
+                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.Time, });
+
+            Assert.Equal(3, context.RankCache.Count());
+        }
+
+        [Fact, TestPriority(1)]
         public void Upsert_AnotherTable()
         {
-            using (var context = contextFactory())
-            {
-                context.RankCache.BatchDelete();
-                context.RankSource.BatchDelete();
+            EnsureRank();
 
-                context.RankSource.AddRange(
-                    new RankSource { ContestId = 1, TeamId = 2, Public = true, Time = 50 },
-                    new RankSource { ContestId = 3, TeamId = 4, Public = false, Time = 50 });
+            using var context = contextFactory();
+            
+            var e = context.RankCache.Upsert(
+                context.RankSource,
+                rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
+                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.Time, });
 
-                context.RankCache.AddRange(
-                    new RankCache
-                    {
-                        TeamId = 2,
-                        ContestId = 1,
-                        PointsPublic = 1,
-                        PointsRestricted = 1,
-                        TotalTimePublic = 9,
-                        TotalTimeRestricted = 9
-                    },
-                    new RankCache
-                    {
-                        TeamId = 3,
-                        ContestId = 1,
-                        PointsPublic = 1,
-                        PointsRestricted = 1,
-                        TotalTimePublic = 9,
-                        TotalTimeRestricted = 9
-                    });
+            Assert.Equal(3, context.RankCache.Count());
+        }
 
-                context.SaveChanges();
-            }
+#if !IN_MEMORY
+        [Fact, TestPriority(2)]
+#endif
+        public void Upsert_FromSql()
+        {
+            EnsureRank();
 
-            using (var context = contextFactory())
-            {
-                var e = context.RankCache.Upsert(
-                    context.RankSource,
-                    insertExpression:
-                        rc2 => new RankCache
-                        {
-                            PointsPublic = 1,
-                            PointsRestricted = 1,
-                            TotalTimePublic = rc2.Time,
-                            TotalTimeRestricted = rc2.Time,
-                            ContestId = rc2.ContestId,
-                            TeamId = rc2.TeamId,
-                        },
-                    updateExpression:
-                        (rc, rc2) => new RankCache
-                        {
-                            PointsPublic = rc.PointsPublic + 1,
-                            TotalTimePublic = rc.TotalTimePublic + rc2.Time,
-                        });
-            }
+            using var context = contextFactory();
+            var query = context.RankSource.ToParametrizedSql().Item1;
 
-            using (var context = contextFactory())
-            {
-                Assert.Equal(3, context.RankCache.Count());
-            }
+            var e = context.RankCache.Upsert(
+                context.RankSource.FromSqlRaw(query.Trim()),
+                rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
+                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.Time, });
+
+            Assert.Equal(3, context.RankCache.Count());
+        }
+
+        [Fact, TestPriority(3)]
+        public void Upsert_SubSelect()
+        {
+            EnsureRank();
+
+            using var context = contextFactory();
+
+            var e = context.RankCache.Upsert(
+                context.RankSource.Distinct(),
+                rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
+                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.Time, });
+
+            Assert.Equal(3, context.RankCache.Count());
+        }
+
+        [Fact, TestPriority(4)]
+        public void InsertIfNotExists_AnotherTable()
+        {
+            EnsureRank();
+
+            using var context = contextFactory();
+
+            var e = context.RankCache.Upsert(
+                context.RankSource,
+                rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, });
+
+            Assert.Equal(3, context.RankCache.Count());
         }
     }
 }

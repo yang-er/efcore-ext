@@ -20,6 +20,31 @@ internal static partial class RelationalInternals
     const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
     const BindingFlags FindPrivate = BindingFlags.Instance | BindingFlags.NonPublic;
 
+    public static IRelationalCommandBuilder GenerateList<T>(
+        this IRelationalCommandBuilder sql,
+        IReadOnlyList<T> items,
+        Action<T> generationAction,
+        Action<IRelationalCommandBuilder> joinAction = null)
+    {
+        joinAction ??= (isb => isb.Append(", "));
+
+        for (var i = 0; i < items.Count; i++)
+        {
+            if (i > 0) joinAction(sql);
+            generationAction(items[i]);
+        }
+
+        return sql;
+    }
+
+    public static IRelationalCommandBuilder Then(
+        this IRelationalCommandBuilder sql,
+        Action generationAction)
+    {
+        generationAction.Invoke();
+        return sql;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
     public static IReadOnlyList<IReadOnlyList<T>> AsList<T>(this T[,] ts)
@@ -73,12 +98,12 @@ internal static partial class RelationalInternals
         return Expression.Lambda<Action<SelectExpression, SqlExpression>>(body, para1, para2).Compile();
     }
 
-    private static Action<SelectExpression, string> S_ApplyAlias()
+    private static Action<TableExpressionBase, string> S_ApplyAlias()
     {
-        var para1 = Expression.Parameter(typeof(SelectExpression), "select");
+        var para1 = Expression.Parameter(typeof(TableExpressionBase), "table");
         var para2 = Expression.Parameter(typeof(string), "alias");
         var body = Expression.Assign(para1.AccessProperty("Alias"), para2);
-        return Expression.Lambda<Action<SelectExpression, string>>(body, para1, para2).Compile();
+        return Expression.Lambda<Action<TableExpressionBase, string>>(body, para1, para2).Compile();
     }
 
     private static Action<QuerySqlGenerator> S_InitQuerySqlGenerator()
@@ -90,6 +115,15 @@ internal static partial class RelationalInternals
         var right = Expression.Call(builderFactory, method);
         var body = Expression.Assign(builder, right);
         return Expression.Lambda<Action<QuerySqlGenerator>>(body, para).Compile();
+    }
+
+    private static Action<QuerySqlGenerator, FromSqlExpression> S_GenerateFromSql()
+    {
+        var para = Expression.Parameter(typeof(QuerySqlGenerator), "g");
+        var para2 = Expression.Parameter(typeof(FromSqlExpression), "s");
+        var method = typeof(QuerySqlGenerator).GetMethod("GenerateFromSql", FindPrivate);
+        var body = Expression.Call(para, method, para2);
+        return Expression.Lambda<Action<QuerySqlGenerator, FromSqlExpression>>(body, para, para2).Compile();
     }
 
 #if EFCORE50
@@ -152,8 +186,11 @@ internal static partial class RelationalInternals
     public static readonly Action<SelectExpression, SqlExpression> ApplyPredicate
         = S_ApplyPredicate();
 
-    public static readonly Action<SelectExpression, string> ApplyAlias
+    public static readonly Action<TableExpressionBase, string> ApplyAlias
         = S_ApplyAlias();
+
+    public static readonly Action<QuerySqlGenerator, FromSqlExpression> ApplyGenerateFromSql
+        = S_GenerateFromSql();
 
     private static readonly MethodInfo s_Join_TOuter_TInner_TKey_TResult_5
         = new Func<IQueryable<object>, IEnumerable<object>, Expression<Func<object, object>>, Expression<Func<object, object>>, Expression<Func<object, object, object>>, IQueryable<object>>(Queryable.Join).GetMethodInfo().GetGenericMethodDefinition();

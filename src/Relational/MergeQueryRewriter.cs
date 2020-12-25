@@ -109,10 +109,10 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             var exp = new MergeExpression
             {
+                TargetEntityType = entityType,
                 JoinPredicate = innerJoin.JoinPredicate,
                 TargetTable = table,
                 SourceTable = innerJoin.Table,
-                Limit = selectExpression.Limit,
                 NotMatchedBySource = delete,
                 Matched = updateExpression == null ? null : new List<ProjectionExpression>(),
                 NotMatchedByTarget = insertExpression == null ? null : new List<ProjectionExpression>()
