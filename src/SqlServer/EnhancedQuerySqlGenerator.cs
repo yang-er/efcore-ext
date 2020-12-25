@@ -1,15 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore.Query;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.Internal;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
-    public class EnhancedQuerySqlGenerator : SqlServerQuerySqlGenerator
+    public class EnhancedQuerySqlGenerator : SqlServerQuerySqlGenerator, IEnhancedQuerySqlGenerator
     {
         private Func<ColumnExpression, bool> change = c => false;
 
@@ -19,7 +22,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         }
 
         public ISqlGenerationHelper Helper => Dependencies.SqlGenerationHelper;
-        
+
+        public QuerySqlGenerator Self => this;
+
         private void GenerateList<T>(
             IReadOnlyList<T> items,
             Action<T> generationAction,
@@ -80,7 +85,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(SelectIntoExpression selectIntoExpression)
         {
-            Internals.InitQuerySqlGenerator(this);
+            RelationalInternals.InitQuerySqlGenerator(this);
 
             var selectExpression = selectIntoExpression.Expression;
             GenerateTagsHeaderComment(selectExpression);
@@ -100,7 +105,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(UpdateExpression updateExpression)
         {
-            Internals.InitQuerySqlGenerator(this);
+            RelationalInternals.InitQuerySqlGenerator(this);
             Sql.Append("UPDATE ");
 
             if (updateExpression.Limit != null)
@@ -140,7 +145,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(DeleteExpression deleteExpression)
         {
-            Internals.InitQuerySqlGenerator(this);
+            RelationalInternals.InitQuerySqlGenerator(this);
             Sql.Append("DELETE ");
 
             if (deleteExpression.Limit != null)
@@ -169,7 +174,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(MergeExpression mergeExpression)
         {
-            Internals.InitQuerySqlGenerator(this);
+            RelationalInternals.InitQuerySqlGenerator(this);
 
             var targetAlias = mergeExpression.TargetTable.Alias;
             var sourceAlias = mergeExpression.SourceTable.Alias;
@@ -236,6 +241,28 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             Sql.Append(";");
             return Sql.Build();
+        }
+
+        public object CreateParameter(QueryContext context, TypeMappedRelationalParameter parInfo)
+        {
+            var typeMap = RelationalInternals.AccessRelationalTypeMapping(parInfo);
+            var value = context.ParameterValues[parInfo.InvariantName];
+            if (typeMap.Converter != null)
+                value = typeMap.Converter.ConvertToProvider(value);
+            var nullable = RelationalInternals.AccessIsNullable(parInfo);
+
+            var parameter = new SqlParameter
+            {
+                ParameterName = parInfo.Name,
+                Direction = ParameterDirection.Input,
+                Value = value ?? DBNull.Value,
+            };
+
+            if (nullable.HasValue)
+                parameter.IsNullable = nullable.Value;
+            if (typeMap.DbType.HasValue)
+                parameter.DbType = typeMap.DbType.Value;
+            return parameter;
         }
     }
 }

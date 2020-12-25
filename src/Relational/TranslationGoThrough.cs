@@ -5,22 +5,20 @@ using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
     internal static class TranslationStrategy
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static QueryGenerationContext<T> Go<T>(IQueryable<T> query)
+        public static QueryGenerationContext<T> Go<T>(DbContext context, IQueryable<T> query)
         {
-            return StepIn(query);
-            return System(query);
+            return StepIn(context, query);
+            //return System(query);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -35,9 +33,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .GetTypeInfo()
                 .GetDeclaredMethod(nameof(QueryContext.AddParameter));
 
-        public static QueryGenerationContext<T> StepIn<T>(IQueryable<T> queryable)
+        public static QueryGenerationContext<T> StepIn<T>(DbContext context, IQueryable<T> queryable)
         {
-            var context = queryable.GetDbContext();
             var query = queryable.Expression;
             var queryCompiler = queryable.Provider.Private<QueryCompiler>("_queryCompiler");
             var queryCompilationContext = context.GetService<IQueryCompilationContextFactory>().Create(false);

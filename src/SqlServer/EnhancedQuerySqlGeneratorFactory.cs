@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
-    public class EnhancedQuerySqlGeneratorFactory : IQuerySqlGeneratorFactory
+    public class EnhancedQuerySqlGeneratorFactory :
+        IEnhancedQuerySqlGeneratorFactory<SqlServerQuerySqlGeneratorFactory>
     {
         private readonly QuerySqlGeneratorDependencies _dependencies;
 

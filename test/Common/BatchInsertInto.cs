@@ -129,7 +129,6 @@ namespace Testcase_BatchInsertInto
     }
 
     [Collection("DatabaseCollection")]
-    [TestCaseOrderer("PriorityOrderer", "EFCore.BulkExtensions.Tests")]
     public class InsertIntoSql : IClassFixture<NameFixture>
     {
         readonly Func<SelectIntoContext> contextFactory;

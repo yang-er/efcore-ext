@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Linq;
-using System.Linq.Expressions;
+using Xunit;
 
-internal static class ContextUtil
+[assembly: TestCaseOrderer("PriorityOrderer", "BulkTest.SqlServer")]
+
+internal static partial class ContextUtil
 {
     public static DbContextOptions<TContext> GetOptions2<TContext>() where TContext : DbContext
     {
@@ -14,9 +15,8 @@ internal static class ContextUtil
             $"Server=(localdb)\\mssqllocaldb;" +
             $"Database=EFCoreBulkTest;" +
             $"Trusted_Connection=True;" +
-            $"MultipleActiveResultSets=true");
-
-        optionsBuilder.UseBulkExtensions();
+            $"MultipleActiveResultSets=true",
+            s => s.UseBulk());
 
         optionsBuilder.UseTableSplittingJoinsRemoval();
 
@@ -26,18 +26,6 @@ internal static class ContextUtil
                 .AddConsole(c => c.DisableColors = true)));
 
         return optionsBuilder.Options;
-    }
-
-    public static Func<TContext> MakeContextFactory<TContext>() where TContext : DbContext
-    {
-        var schemaName = Guid.NewGuid().ToString()[0..6];
-        var getOptions = Expression.Call(null,
-            typeof(ContextUtil).GetMethod(nameof(GetOptions2)).MakeGenericMethod(typeof(TContext)));
-        var getContext = Expression.New(
-            typeof(TContext).GetConstructors().Single(),
-            Expression.Constant(schemaName, typeof(string)),
-            getOptions);
-        return Expression.Lambda<Func<TContext>>(getContext).Compile();
     }
 
     public static void EnsureContext(this DbContext context)

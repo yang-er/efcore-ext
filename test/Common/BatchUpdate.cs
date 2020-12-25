@@ -125,7 +125,6 @@ namespace Testcase_BatchUpdate
     }
 
     [Collection("DatabaseCollection")]
-    [TestCaseOrderer("PriorityOrderer", "EFCore.BulkExtensions.Tests")]
     public class UpdateSql : IClassFixture<NameFixture>
     {
         readonly Func<UpdateContext> contextFactory;

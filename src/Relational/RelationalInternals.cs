@@ -4,49 +4,63 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
-internal static class Internals
+[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.SqlServer")]
+internal static partial class RelationalInternals
 {
     const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+    const BindingFlags FindPrivate = BindingFlags.Instance | BindingFlags.NonPublic;
 
-    public static MemberExpression AccessPrivateMember(this Expression expression, string name)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static IReadOnlyList<IReadOnlyList<T>> AsList<T>(this T[,] ts)
     {
-        var member = expression.Type.GetMember(name, bindingFlags).Single();
-        return Expression.MakeMemberAccess(expression, member);
+        return new TwoList<T>(ts);
     }
 
-    public static MemberExpression AccessField(this Expression expression, string name)
+    private struct OneList<T> : IReadOnlyList<T>
     {
-        var member = expression.Type.GetField(name, bindingFlags);
-        return Expression.MakeMemberAccess(expression, member);
+        private readonly T[,] inner;
+        private readonly int id1;
+        public T this[int index] => inner[id1, index];
+        public int Count => inner.GetLength(1);
+        public IEnumerator<T> GetEnumerator() => GetEnumerable().GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerable().GetEnumerator();
+
+        public OneList(T[,] _inner, int id)
+        {
+            inner = _inner;
+            id1 = id;
+        }
+
+        private IEnumerable<T> GetEnumerable()
+        {
+            for (int i = 0; i < Count; i++)
+                yield return inner[id1, i];
+        }
     }
 
-    public static MemberExpression AccessProperty(this Expression expression, string name)
+    private class TwoList<T> : IReadOnlyList<IReadOnlyList<T>>
     {
-        var member = expression.Type.GetProperty(name, bindingFlags);
-        return Expression.MakeMemberAccess(expression, member);
-    }
+        private readonly T[,] inner;
+        public IReadOnlyList<T> this[int index] => new OneList<T>(inner, index);
+        public int Count => inner.GetLength(0);
+        public IEnumerator<IReadOnlyList<T>> GetEnumerator() => GetEnumerable().GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerable().GetEnumerator();
+        public TwoList(T[,] _inner) => inner = _inner;
 
-    public static Expression As<T>(this Expression expression)
-    {
-        return Expression.Convert(expression, typeof(T));
-    }
-
-    public static Expression<Func<TIn, TOut>> CreateLambda<TIn, TOut>(
-        Func<ParameterExpression, Expression> bodyBuilder)
-    {
-        var param = Expression.Parameter(typeof(TIn), "arg1");
-        return Expression.Lambda<Func<TIn, TOut>>(bodyBuilder(param), param);
-    }
-
-    public static Delegate CreateFactory(this ConstructorInfo ctor)
-    {
-        var @params = ctor.GetParameters().Select(p => Expression.Parameter(p.ParameterType)).ToArray();
-        return Expression.Lambda(Expression.MemberInit(Expression.New(ctor, @params)), @params).Compile();
+        private IEnumerable<IReadOnlyList<T>> GetEnumerable()
+        {
+            for (int i = 0; i < Count; i++)
+                yield return new OneList<T>(inner, i);
+        }
     }
 
     private static Action<SelectExpression, SqlExpression> S_ApplyPredicate()
@@ -77,7 +91,6 @@ internal static class Internals
     }
 
 
-
     public static readonly Func<string, string, string, TableExpression> CreateTableExpression
         = typeof(TableExpression)
             .GetConstructors(bindingFlags)[0]
@@ -95,17 +108,17 @@ internal static class Internals
             .CreateFactory() as dynamic;
 
     public static readonly Func<TypeMappedRelationalParameter, RelationalTypeMapping> AccessRelationalTypeMapping
-        = CreateLambda<TypeMappedRelationalParameter, RelationalTypeMapping>(
+        = Internals.CreateLambda<TypeMappedRelationalParameter, RelationalTypeMapping>(
             param => param.AccessProperty(nameof(RelationalTypeMapping)))
         .Compile();
 
     public static readonly Func<TypeMappedRelationalParameter, bool?> AccessIsNullable
-        = CreateLambda<TypeMappedRelationalParameter, bool?>(
+        = Internals.CreateLambda<TypeMappedRelationalParameter, bool?>(
             param => param.AccessProperty("IsNullable"))
         .Compile();
 
     public static readonly Func<IQueryProvider, QueryContextDependencies> AccessDependencies
-        = CreateLambda<IQueryProvider, QueryContextDependencies>(param => param
+        = Internals.CreateLambda<IQueryProvider, QueryContextDependencies>(param => param
             .As<EntityQueryProvider>()
             .AccessField("_queryCompiler")
             .As<QueryCompiler>()
@@ -116,7 +129,7 @@ internal static class Internals
         .Compile();
 
     public static readonly Func<SelectExpression, IDictionary<ProjectionMember, Expression>> AccessProjectionMapping
-        = CreateLambda<SelectExpression, IDictionary<ProjectionMember, Expression>>(
+        = Internals.CreateLambda<SelectExpression, IDictionary<ProjectionMember, Expression>>(
             param => param.AccessField("_projectionMapping"))
         .Compile();
 

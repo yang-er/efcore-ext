@@ -10,7 +10,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
     {
         public static SqlParameterExpression ToSql(this ParameterExpression par, RelationalTypeMapping map)
         {
-            return Internals.CreateSqlParameterExpression(par, map);
+            return RelationalInternals.CreateSqlParameterExpression(par, map);
         }
 
         public static NewExpression Create(Type t)

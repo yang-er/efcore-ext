@@ -80,7 +80,6 @@ namespace Testcase_BatchDelete
     }
 
     [Collection("DatabaseCollection")]
-    [TestCaseOrderer("PriorityOrderer", "EFCore.BulkExtensions.Tests")]
     public class DeleteSql : IClassFixture<NameFixture>
     {
         readonly Func<DeleteContext> contextFactory;

@@ -179,7 +179,6 @@ namespace Check_UseLessJoinsRemoval
     }
 
     [Collection("DatabaseCollection")]
-    [TestCaseOrderer("PriorityOrderer", "EFCore.BulkExtensions.Tests")]
     public class UseLessJoinsRemoval : IClassFixture<NameFixture>
     {
         readonly Func<UpdateContext> contextFactory;

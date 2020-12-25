@@ -51,10 +51,6 @@ namespace Testcase_MergeInto
                 entity.ToTable(nameof(RankSource) + "_" + DefaultSchema);
 
                 entity.HasKey(e => new { e.ContestId, e.TeamId });
-
-                entity.HasData(
-                    new RankSource { ContestId = 2, TeamId = 1, Public = true, Time = 100 },
-                    new RankSource { ContestId = 1, TeamId = 2, Public = false, Time = 77 });
             });
         }
     }
@@ -70,6 +66,10 @@ namespace Testcase_MergeInto
             ContextFactory = ContextUtil.MakeContextFactory<MergeContext>();
             using var context = ContextFactory();
             context.EnsureContext();
+
+            context.RankSource.AddRange(
+                new RankSource { ContestId = 2, TeamId = 1, Public = true, Time = 100 },
+                new RankSource { ContestId = 1, TeamId = 2, Public = false, Time = 77 });
 
             context.RankCache.AddRange(
                 new RankCache
@@ -101,7 +101,6 @@ namespace Testcase_MergeInto
     }
 
     [Collection("DatabaseCollection")]
-    [TestCaseOrderer("PriorityOrderer", "EFCore.BulkExtensions.Tests")]
     public sealed class MergeIntoSql : IClassFixture<NameFixture>
     {
         readonly Func<MergeContext> contextFactory;
@@ -185,6 +184,7 @@ namespace Testcase_MergeInto
             Assert.Equal(100, contents[1].TotalTimeRestricted);
         }
 
+#if SQL_SERVER
         [Fact, TestPriority(2)]
         public void SourceFromSql()
         {
@@ -216,5 +216,6 @@ namespace Testcase_MergeInto
                     },
                 delete: true);
         }
+#endif
     }
 }

@@ -1,18 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore.Bulk;
-using Microsoft.EntityFrameworkCore.Internal;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+﻿using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.EntityFrameworkCore
+namespace Microsoft.EntityFrameworkCore.Bulk
 {
-    public static class MergeIntoExtensions
+    public class SqlServerBatchOperationProvider : RelationalBatchOperationProvider
     {
-        public static int Merge<TTarget, TSource, TJoinKey>(
-            this DbSet<TTarget> targetTable,
+        public override int Merge<TTarget, TSource, TJoinKey>(
+            DbContext context,
+            DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
             Expression<Func<TTarget, TJoinKey>> targetKey,
             Expression<Func<TSource, TJoinKey>> sourceKey,
@@ -22,28 +22,26 @@ namespace Microsoft.EntityFrameworkCore
             where TTarget : class
             where TSource : class
         {
-            var context = targetTable.GetDbContext();
             var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, targetKey, sourceKey, updateExpression, insertExpression, delete);
             return context.Database.ExecuteSqlRaw(sql, parameters);
         }
 
-
-        public static async Task<int> MergeAsync<TTarget, TSource, TJoinKey>(
-            this DbSet<TTarget> targetTable,
+        public override Task<int> MergeAsync<TTarget, TSource, TJoinKey>(
+            DbContext context,
+            DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
             Expression<Func<TTarget, TJoinKey>> targetKey,
             Expression<Func<TSource, TJoinKey>> sourceKey,
             Expression<Func<TTarget, TSource, TTarget>> updateExpression,
             Expression<Func<TSource, TTarget>> insertExpression,
-            bool delete)
+            bool delete,
+            CancellationToken cancellationToken)
             where TTarget : class
             where TSource : class
         {
-            var context = targetTable.GetDbContext();
             var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, targetKey, sourceKey, updateExpression, insertExpression, delete);
-            return await context.Database.ExecuteSqlRawAsync(sql, parameters).ConfigureAwait(false);
+            return context.Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
         }
-
 
         private static (string, IEnumerable<object>) GetSqlMerge<TTarget, TSource, TJoinKey>(
             DbContext context,
@@ -86,7 +84,7 @@ namespace Microsoft.EntityFrameworkCore
                     resultSelector: MergeResult(updateExpression, insertExpression));
 
             var entityType = context.Model.FindEntityType(typeof(TTarget));
-            var execution = TranslationStrategy.Go(query);
+            var execution = TranslationStrategy.Go(context, query);
             var selectExpression = execution.SelectExpression;
             var queryContext = execution.QueryContext;
 
@@ -140,7 +138,7 @@ namespace Microsoft.EntityFrameworkCore
             }
 
             var columns = entityType.GetColumns();
-            var map = Internals.AccessProjectionMapping(selectExpression);
+            var map = RelationalInternals.AccessProjectionMapping(selectExpression);
             foreach (var (a, b) in map)
             {
                 if (!(b is ConstantExpression constant))
@@ -150,13 +148,13 @@ namespace Microsoft.EntityFrameworkCore
                     ((List<ProjectionExpression>)(name.StartsWith("Insert.") ? exp.NotMatchedByTarget : exp.Matched))
                         .Add(new ProjectionExpression(
                             selectExpression.Projection[(int)constant.Value].Expression,
-                            alias: columns[name[7..]]));
+                            alias: columns[name.Substring(7)]));
                 else
                     throw new InvalidOperationException("Translate failed.");
             }
 
-            var command = execution.GetMergeCommand(exp);
-            var parameters = execution.CreateParameter(command);
+            var (command, parameters) = execution.Generate("MERGE", null,
+                _ => ((EnhancedQuerySqlGenerator)_).GetCommand(exp));
             return (command.CommandText, parameters);
         }
 
