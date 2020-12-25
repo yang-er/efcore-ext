@@ -92,8 +92,10 @@ namespace Testcase_BatchDelete
             items = nameFixture.Items;
         }
 
+#if !POSTGRE_SQL
         [Theory, TestPriority(0)]
         [InlineData(1)]
+#endif
         public void WithTop(int takeCount)
         {
             using var context = contextFactory();

@@ -184,8 +184,9 @@ namespace Testcase_MergeInto
             Assert.Equal(100, contents[1].TotalTimeRestricted);
         }
 
-#if SQL_SERVER
+#if !IN_MEMORY
         [Fact, TestPriority(2)]
+#endif
         public void SourceFromSql()
         {
             using var context = contextFactory();
@@ -216,6 +217,5 @@ namespace Testcase_MergeInto
                     },
                 delete: true);
         }
-#endif
     }
 }

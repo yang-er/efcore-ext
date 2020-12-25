@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.Relational")]
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.SqlServer")]
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.InMemory")]
+[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.PostgreSql")]
 internal static partial class Internals
 {
     const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;

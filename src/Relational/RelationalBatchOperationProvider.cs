@@ -146,7 +146,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TOuter : class
             where TInner : class
         {
-            
             var (sql, sqlParameters) = GetSqlCommand(CreateUpdateJoinQuery(outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition), context, "UPDATE");
             return context.Database.ExecuteSqlRaw(sql, sqlParameters);
         }

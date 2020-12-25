@@ -1,5 +1,6 @@
 version: 3.1.{build}
 configuration: Release
+services: postgresql12
 
 before_build:
 - cmd: nuget restore
@@ -8,7 +9,7 @@ build:
   publish_nuget: true
   publish_nuget_symbols: true
   verbosity: minimal
-
+  
 artifacts:
 - path: src/**/*.nupkg
   name: NuGet Packages

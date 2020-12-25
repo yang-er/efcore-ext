@@ -102,7 +102,7 @@ namespace Testcase_BatchInsertInto
                 entity.ToTable(nameof(Document) + "_" + DefaultSchema);
 
                 entity.Property(p => p.ContentLength)
-                    .HasComputedColumnSql($"(CONVERT([int], len([{nameof(Document.Content)}])))");
+                    .HasComputedColumnSql(ContextUtil.ConvertLenContentToInt, true);
             });
         }
     }

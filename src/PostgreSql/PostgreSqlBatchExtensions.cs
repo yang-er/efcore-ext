@@ -1,25 +1,27 @@
-﻿using Microsoft.EntityFrameworkCore.Bulk;
+using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal;
 
 namespace Microsoft.EntityFrameworkCore
 {
-    public static class SqlServerBatchExtensions
+    public static class PostgreSqlBatchExtensions
     {
         private static void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IMethodCallTranslatorPlugin, MathTranslation>();
+            services.AddSingleton<IMethodCallTranslatorPlugin, DateTimeOffsetTranslation>();
+            services.AddSingleton<IMemberTranslatorPlugin, DateTimeOffsetTranslation>();
         }
 
-        public static SqlServerDbContextOptionsBuilder UseBulk(this SqlServerDbContextOptionsBuilder builder)
+        public static NpgsqlDbContextOptionsBuilder UseBulk(this NpgsqlDbContextOptionsBuilder builder)
         {
             var builder1 = ((IRelationalDbContextOptionsBuilderInfrastructure)builder).OptionsBuilder;
             var ext = new RelationalBatchDbContextOptionsExtension<
                 EnhancedQuerySqlGeneratorFactory,
-                SqlServerQuerySqlGeneratorFactory,
-                SqlServerBatchOperationProvider>("SqlServerBatchExtension", ConfigureServices);
+                NpgsqlQuerySqlGeneratorFactory,
+                PostgreSqlBatchOperationProvider>("PostgreSqlBatchExtension", ConfigureServices);
             ((IDbContextOptionsBuilderInfrastructure)builder1).AddOrUpdateExtension(ext);
             return builder;
         }

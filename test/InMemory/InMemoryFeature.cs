@@ -1,9 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
 
 internal static partial class ContextUtil
 {
+    public const string ConvertLenContentToInt = "";
+
     public static DbContextOptions<TContext> GetOptions2<TContext>() where TContext : DbContext
     {
         var optionsBuilder = new DbContextOptionsBuilder<TContext>();
@@ -33,8 +37,13 @@ internal static partial class ContextUtil
     {
     }
 
-    public static PropertyBuilder<TProperty> HasComputedColumnSql<TProperty>(this PropertyBuilder<TProperty> _, string __)
+    public static PropertyBuilder<TProperty> HasComputedColumnSql<TProperty>(this PropertyBuilder<TProperty> _, string __, bool ___)
     {
         return _;
+    }
+
+    public static IQueryable<T> FromSqlRaw<T>(this DbSet<T> _, string __) where T : class
+    {
+        throw new NotSupportedException("Non-relational doesn't support form sql.");
     }
 }

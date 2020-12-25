@@ -5,17 +5,19 @@ using System;
 
 internal static partial class ContextUtil
 {
-    public const string ConvertLenContentToInt = "CONVERT([int], len([Content]))";
+    public const string ConvertLenContentToInt = "length(\"Content\")";
 
     public static DbContextOptions<TContext> GetOptions2<TContext>() where TContext : DbContext
     {
         var optionsBuilder = new DbContextOptionsBuilder<TContext>();
 
-        optionsBuilder.UseSqlServer(
-            $"Server=(localdb)\\mssqllocaldb;" +
-            $"Database=EFCoreBulkTest;" +
-            $"Trusted_Connection=True;" +
-            $"MultipleActiveResultSets=true",
+        optionsBuilder.UseNpgsql(
+            $"User ID=postgres;" +
+            $"Password=Password12!;" +
+            $"Host=localhost;" +
+            $"Port=5432;" +
+            $"Database=mengqinyu;" +
+            $"Pooling=true;",
             s => s.UseBulk());
 
         optionsBuilder.UseTableSplittingJoinsRemoval();
@@ -33,7 +35,7 @@ internal static partial class ContextUtil
         if (!context.Database.EnsureCreated())
         {
             var script = context.Database.GenerateCreateScript();
-            foreach (var line in script.Trim().Split("\r\nGO", StringSplitOptions.RemoveEmptyEntries))
+            foreach (var line in script.Trim().Split(";\r\n\r\n", StringSplitOptions.RemoveEmptyEntries))
                 context.Database.ExecuteSqlRaw(line.Trim());
         }
     }
@@ -44,7 +46,7 @@ internal static partial class ContextUtil
         {
             var tableName = item.GetTableName();
             if (tableName != null)
-                context.Database.ExecuteSqlRaw($"DROP TABLE IF EXISTS [{tableName}]");
+                context.Database.ExecuteSqlRaw($"DROP TABLE IF EXISTS \"{tableName}\"");
         }
     }
 

@@ -19,6 +19,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             if (table1.Name != table.GetTableName())
                 throw new NotSupportedException("The query root type mismatch.");
 
+            EntityType = table;
             Table = table1;
             Tables = selectExpression.Tables;
             SetFields = selectExpression.Projection;
@@ -52,15 +53,17 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
                 throw new NotSupportedException("Translation failed.");
         }
 
+        public IEntityType EntityType { get; }
+
         public TableExpression Table { get; }
 
-        public SqlExpression Predicate { get; }
+        public SqlExpression Predicate { get; internal set; }
 
         public SqlExpression Limit { get; }
 
         public IReadOnlyList<ProjectionExpression> SetFields { get; }
 
-        public IReadOnlyList<TableExpressionBase> Tables { get; }
+        public IReadOnlyList<TableExpressionBase> Tables { get; internal set; }
 
         public void Print(ExpressionPrinter expressionPrinter)
         {

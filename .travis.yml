@@ -5,6 +5,7 @@ dotnet: 5.0.101
 script:
   - dotnet restore
   - dotnet build
+  - dotnet pack -c Release -o packages
 
 deploy:
   skip_cleanup: true

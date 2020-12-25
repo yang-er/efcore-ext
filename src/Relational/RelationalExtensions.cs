@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -53,6 +55,20 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .Distinct()
                 .ToDictionary(k => k.Item1, v => v.Item2);
         }
+
+#if EFCORE31
+        public static SqlFunctionExpression Function(
+            this ISqlExpressionFactory factory,
+            string name,
+            IEnumerable<SqlExpression> arguments,
+            bool nullable,
+            IEnumerable<bool> argumentsPropagateNullability,
+            Type returnType,
+            RelationalTypeMapping typeMapping = null)
+        {
+            return factory.Function(name, arguments, returnType, typeMapping);
+        }
+#endif
     }
 
     internal class RelationalBatchDbContextOptionsExtension<TNewFactory, TOldFactory, TProvider> :
@@ -63,10 +79,14 @@ namespace Microsoft.EntityFrameworkCore.Bulk
     {
         private DbContextOptionsExtensionInfo _info;
         private readonly string _name;
+        private readonly Action<IServiceCollection> _configureServices;
 
-        public RelationalBatchDbContextOptionsExtension(string name)
+        public RelationalBatchDbContextOptionsExtension(
+            string name,
+            Action<IServiceCollection> configureServices = null)
         {
             _name = name;
+            _configureServices = configureServices ?? (_ => { });
         }
 
         public DbContextOptionsExtensionInfo Info =>
@@ -80,6 +100,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             services[services.IndexOf(sd)] = ServiceDescriptor.Singleton(sd.ServiceType, typeof(TNewFactory));
 
             services.AddSingleton<IBatchOperationProvider, TProvider>();
+            _configureServices.Invoke(services);
         }
 
         public void Validate(IDbContextOptions options)

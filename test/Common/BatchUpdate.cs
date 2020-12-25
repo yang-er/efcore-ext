@@ -182,7 +182,9 @@ namespace Testcase_BatchUpdate
             Assert.Equal(t, state);
         }
 
+#if !POSTGRE_SQL
         [Fact, TestPriority(1)]
+#endif
         public void WithTakeTop()
         {
             using var context = contextFactory();
@@ -248,7 +250,6 @@ namespace Testcase_BatchUpdate
         {
             using var context = contextFactory();
             context.Judgings
-                .Take(100000)
                 .BatchUpdate(a => new Judging
                 {
                     CompileError = null,
@@ -257,6 +258,7 @@ namespace Testcase_BatchUpdate
                     TotalScore = null,
                     StartTime = DateTimeOffset.Now,
                     Server = null,
+                    Status = Math.Max(a.Status, 8),
                 });
         }
     }

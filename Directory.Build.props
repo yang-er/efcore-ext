@@ -36,6 +36,7 @@
   <PropertyGroup Condition=" $(MSBuildProjectName.StartsWith('BulkTest')) ">
     <AssemblyName>$(MSBuildProjectName)</AssemblyName>
     <DefineConstants>$(DefineConstants);EFCORE_TEST</DefineConstants>
+    <NoWarn>$(NoWarn);xUnit1013</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('-3.1')) And $(MSBuildProjectName.EndsWith('-3.1')) ">
