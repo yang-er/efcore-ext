@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EntityFrameworkCoreVersion)" />
@@ -12,8 +12,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="ParameterExtractingExpressionVisitor2-*.cs" />
-    <Compile Include="ParameterExtractingExpressionVisitor2-$(DotNetCoreVersion).cs" Link="ParameterExtractingExpressionVisitor2.cs" />
+    <Compile Remove="Translation\ParameterExtractingExpressionVisitor2-*.cs" />
+    <Compile Include="Translation\ParameterExtractingExpressionVisitor2-$(DotNetCoreVersion).cs" Link="Translation\ParameterExtractingExpressionVisitor2.cs" />
   </ItemGroup>
 
 </Project>
