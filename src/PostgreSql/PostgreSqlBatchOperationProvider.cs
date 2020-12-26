@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -14,7 +13,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<TTarget> set,
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression)
+            Expression<Func<TTarget, TTarget, TTarget>> updateExpression)
             where TTarget : class
             where TSource : class
         {
@@ -27,7 +26,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<TTarget> set,
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
+            Expression<Func<TTarget, TTarget, TTarget>> updateExpression,
             CancellationToken cancellationToken)
             where TTarget : class
             where TSource : class
@@ -41,7 +40,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression)
+            Expression<Func<TTarget, TTarget, TTarget>> updateExpression)
             where TTarget : class
             where TSource : class
         {
@@ -53,19 +52,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             if (exp == null)
                 return ("SELECT 0", Array.Empty<object>());
 
-            var exp2 = new InsertExpression
-            {
-                EntityType = exp.TargetEntityType,
-                SourceTable = exp.SourceTable,
-                ColumnChanges = exp.ColumnChanges,
-                Columns = exp.NotMatchedByTarget,
-                TableChanges = exp.TableChanges,
-                OnConflictUpdate = exp.Matched,
-                TargetTable = exp.TargetTable,
-            };
-
             var (command, parameters) = execution.Generate("UPSERT", null,
-                _ => ((EnhancedQuerySqlGenerator)_).GetCommand(exp2));
+                _ => ((EnhancedQuerySqlGenerator)_).GetCommand(exp));
             return (command.CommandText, parameters);
         }
     }

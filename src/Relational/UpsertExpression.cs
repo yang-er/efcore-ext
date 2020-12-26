@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 {
-    public class InsertExpression : Expression, IPrintableExpression
+    public class UpsertExpression : Expression, IPrintableExpression
     {
         public IEntityType EntityType { get; internal set; }
 

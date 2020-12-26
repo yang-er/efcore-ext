@@ -121,7 +121,7 @@ namespace Testcase_Upsert
                     new { ContestId = 3, TeamId = 4, Time = 50 },
                 },
                 rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
-                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.Time, });
+                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.TotalTimePublic, });
 
             Assert.Equal(3, context.RankCache.Count());
         }
@@ -136,7 +136,7 @@ namespace Testcase_Upsert
             var e = context.RankCache.Upsert(
                 context.RankSource,
                 rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
-                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.Time, });
+                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.TotalTimePublic, });
 
             Assert.Equal(3, context.RankCache.Count());
         }
@@ -154,7 +154,7 @@ namespace Testcase_Upsert
             var e = context.RankCache.Upsert(
                 context.RankSource.FromSqlRaw(query.Trim()),
                 rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
-                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.Time, });
+                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.TotalTimePublic, });
 
             Assert.Equal(3, context.RankCache.Count());
         }
@@ -169,7 +169,7 @@ namespace Testcase_Upsert
             var e = context.RankCache.Upsert(
                 context.RankSource.Distinct(),
                 rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
-                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.Time, });
+                (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.TotalTimePublic, });
 
             Assert.Equal(3, context.RankCache.Count());
         }

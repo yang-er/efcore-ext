@@ -13,8 +13,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
-            out MergeExpression mergeExpression,
+            Expression<Func<TTarget, TTarget, TTarget>> updateExpression,
+            out UpsertExpression mergeExpression,
             out QueryGenerationContext<Result<TTarget>> execution)
             where TTarget : class
             where TSource : class
@@ -28,11 +28,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 insertExpression.Parameters[0], keyBody.Bindings,
                 out var tJoinKey, out var targetKey, out var sourceKey);
 
-            ParseMerge(
-                context, targetTable, sourceTable,
-                tJoinKey, targetKey, sourceKey,
-                updateExpression, insertExpression, false,
-                out mergeExpression, out execution);
+            mergeExpression = null;
+            execution = null;
         }
 
         /// <remarks>

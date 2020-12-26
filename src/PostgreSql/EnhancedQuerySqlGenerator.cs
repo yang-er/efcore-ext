@@ -224,7 +224,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return Sql.Build();
         }
 
-        public virtual IRelationalCommand GetCommand(InsertExpression insertExpression)
+        public virtual IRelationalCommand GetCommand(UpsertExpression insertExpression)
         {
             RelationalInternals.InitQuerySqlGenerator(this);
 

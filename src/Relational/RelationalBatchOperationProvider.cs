@@ -126,7 +126,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<TTarget> set,
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression)
+            Expression<Func<TTarget, TTarget, TTarget>> updateExpression)
             where TTarget : class
             where TSource : class
         {
@@ -138,7 +138,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<TTarget> set,
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
+            Expression<Func<TTarget, TTarget, TTarget>> updateExpression,
             CancellationToken cancellationToken)
             where TTarget : class
             where TSource : class
@@ -146,7 +146,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             throw new NotSupportedException("Default batch operation provider doesn't support UPSERT.");
         }
 
-        private IQueryable<TOuter> CreateUpdateJoinQuery<TOuter, TInner, TKey>(
+        private static IQueryable<TOuter> CreateUpdateJoinQuery<TOuter, TInner, TKey>(
             IQueryable<TOuter> outer,
             IQueryable<TInner> inner,
             Expression<Func<TOuter, TKey>> outerKeySelector,

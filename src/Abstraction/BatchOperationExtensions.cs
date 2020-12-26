@@ -294,13 +294,13 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="set">The entity set.</param>
         /// <param name="sources">The sources for the upserting.</param>
         /// <param name="insertExpression">The expression for inserting new entity.</param>
-        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity. The first parameter is the existing entity, while the second parameter is the excluded entity.</param>
         /// <returns>The affected rows.</returns>
-        public static int Upsert<TSource, TTarget>(
+        public static int Upsert<TTarget, TSource>(
             this DbSet<TTarget> set,
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>>? updateExpression = null)
+            Expression<Func<TTarget, TTarget, TTarget>>? updateExpression = null)
             where TTarget : class
             where TSource : class
         {
@@ -321,14 +321,14 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="set">The entity set.</param>
         /// <param name="sources">The sources for the upserting.</param>
         /// <param name="insertExpression">The expression for inserting new entity.</param>
-        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity. The first parameter is the existing entity, while the second parameter is the excluded entity.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task for affected rows.</returns>
-        public static Task<int> UpsertAsync<TSource, TTarget>(
+        public static Task<int> UpsertAsync<TTarget, TSource>(
             this DbSet<TTarget> set,
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>>? updateExpression = null,
+            Expression<Func<TTarget, TTarget, TTarget>>? updateExpression = null,
             CancellationToken cancellationToken = default)
             where TTarget : class
             where TSource : class
@@ -352,11 +352,11 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="insertExpression">The expression for inserting new entity.</param>
         /// <param name="updateExpression">The expression for updating the existing entity.</param>
         /// <returns>The affected rows.</returns>
-        public static int Upsert<TSource, TTarget>(
+        public static int Upsert<TTarget, TSource>(
             this DbSet<TTarget> set,
             TSource source,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>>? updateExpression = null)
+            Expression<Func<TTarget, TTarget, TTarget>>? updateExpression = null)
             where TTarget : class
             where TSource : class
         {
@@ -380,11 +380,11 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="updateExpression">The expression for updating the existing entity.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task for affected rows.</returns>
-        public static Task<int> UpsertAsync<TSource, TTarget>(
+        public static Task<int> UpsertAsync<TTarget, TSource>(
             this DbSet<TTarget> set,
             TSource source,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>>? updateExpression = null,
+            Expression<Func<TTarget, TTarget, TTarget>>? updateExpression = null,
             CancellationToken cancellationToken = default)
             where TTarget : class
             where TSource : class

@@ -333,7 +333,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<TTarget> set,
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression)
+            Expression<Func<TTarget, TTarget, TTarget>> updateExpression)
             where TTarget : class
             where TSource : class
         {
@@ -353,13 +353,14 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             foreach (var item in source)
             {
                 var t = target.FirstOrDefault(_t => predicate.Invoke(_t, item));
+                var excluded = factory.Invoke(item);
                 if (t == null)
                 {
-                    set.Add(factory.Invoke(item));
+                    set.Add(excluded);
                 }
                 else if (updater != null)
                 {
-                    updater.Invoke(t, item);
+                    updater.Invoke(t, excluded);
                     set.Update(t);
                 }
             }
@@ -372,7 +373,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<TTarget> set,
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
+            Expression<Func<TTarget, TTarget, TTarget>> updateExpression,
             CancellationToken cancellationToken)
             where TTarget : class
             where TSource : class
@@ -393,13 +394,14 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             foreach (var item in source)
             {
                 var t = target.FirstOrDefault(_t => predicate.Invoke(_t, item));
+                var excluded = factory.Invoke(item);
                 if (t == null)
                 {
-                    set.Add(factory.Invoke(item));
+                    set.Add(excluded);
                 }
                 else if (updater != null)
                 {
-                    updater.Invoke(t, item);
+                    updater.Invoke(t, excluded);
                     set.Update(t);
                 }
             }
