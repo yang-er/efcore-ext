@@ -89,6 +89,29 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TOuter : class
             where TInner : class;
 
+        int BatchUpdateJoin<TOuter, TInner, TKey>(
+            DbContext context,
+            DbSet<TOuter> outer,
+            IReadOnlyList<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>>? condition)
+            where TOuter : class
+            where TInner : class;
+
+        Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
+            DbContext context,
+            DbSet<TOuter> outer,
+            IReadOnlyList<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>>? condition,
+            CancellationToken cancellationToken)
+            where TOuter : class
+            where TInner : class;
+
         int BatchInsertInto<T>(
             DbContext context,
             IQueryable<T> query,

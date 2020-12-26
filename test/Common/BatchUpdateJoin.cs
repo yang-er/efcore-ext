@@ -95,10 +95,38 @@ namespace Testcase_BatchUpdateJoin
                 updateSelector: (a, b) => new ItemA { Value = a.Value + b.Value - 3 });
 
             var list = context.A.OrderBy(a => a.Id).ToList();
+            Assert.Equal(2, list.Count);
             Assert.Equal(1, list[0].Id);
             Assert.Equal(0, list[0].Value);
             Assert.Equal(2, list[1].Id);
             Assert.Equal(1, list[1].Value);
+        }
+
+        [Fact, TestPriority(0)]
+        public void LocalTableJoin()
+        {
+            using var context = contextFactory();
+
+            var lst = new[]
+            {
+                new { Id = 1, Value = 3 },
+                new { Id = 2, Value = 4 },
+                new { Id = 3, Value = 5 },
+            };
+
+            context.B.BatchUpdateJoin(
+                inner: lst,
+                outerKeySelector: a => a.Id,
+                innerKeySelector: b => b.Id,
+                condition: (a, b) => a.Id != 2,
+                updateSelector: (a, b) => new ItemB { Value = a.Value + b.Value });
+
+            var list = context.B.OrderBy(a => a.Id).ToList();
+            Assert.Equal(2, list.Count);
+            Assert.Equal(1, list[0].Id);
+            Assert.Equal(5, list[0].Value);
+            Assert.Equal(2, list[1].Id);
+            Assert.Equal(2, list[1].Value);
         }
     }
 }

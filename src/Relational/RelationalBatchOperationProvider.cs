@@ -40,6 +40,35 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             throw new NotSupportedException("Default batch operation provider doesn't support MERGE INTO.");
         }
 
+        public int BatchUpdateJoin<TOuter, TInner, TKey>(
+            DbContext context,
+            DbSet<TOuter> outer,
+            IReadOnlyList<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition)
+            where TOuter : class
+            where TInner : class
+        {
+            throw new NotSupportedException("Default batch operation provider doesn't support UPDATE JOIN.");
+        }
+
+        public async Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
+            DbContext context,
+            DbSet<TOuter> outer,
+            IReadOnlyList<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition,
+            CancellationToken cancellationToken)
+            where TOuter : class
+            where TInner : class
+        {
+            throw new NotSupportedException("Default batch operation provider doesn't support UPDATE JOIN.");
+        }
+
         public int BatchDelete<T>(
             DbContext context,
             IQueryable<T> query)

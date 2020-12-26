@@ -245,6 +245,79 @@ namespace Microsoft.EntityFrameworkCore
         }
 
         /// <summary>
+        /// Perform batch update as <c>UPDATE SET INNER JOIN</c> operations.
+        /// </summary>
+        /// <typeparam name="TOuter">The outer entity type.</typeparam>
+        /// <typeparam name="TInner">The inner entity type.</typeparam>
+        /// <typeparam name="TKey">The join key type.</typeparam>
+        /// <param name="outer">The outer source.</param>
+        /// <param name="inner">The inner source.</param>
+        /// <param name="outerKeySelector">The outer key selector.</param>
+        /// <param name="innerKeySelector">The inner key selector.</param>
+        /// <param name="updateSelector">The update expression.</param>
+        /// <param name="condition">The condition.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The affected rows.</returns>
+        public static int BatchUpdateJoin<TOuter, TInner, TKey>(
+            this DbSet<TOuter> outer,
+            IReadOnlyList<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>>? condition = null)
+            where TOuter : class
+            where TInner : class
+        {
+            Check.NotNull(outer, nameof(outer));
+            Check.NotNull(inner, nameof(inner));
+            if (inner.Count == 0) return 0;
+            Check.NotNull(outerKeySelector, nameof(outerKeySelector));
+            Check.NotNull(innerKeySelector, nameof(innerKeySelector));
+            Check.NotNull(updateSelector, nameof(updateSelector));
+
+            var context = outer.GetDbContext();
+            var provider = context.GetService<IBatchOperationProvider>();
+            return provider.BatchUpdateJoin(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
+        }
+
+        /// <summary>
+        /// Perform batch update as <c>UPDATE SET INNER JOIN</c> async operations.
+        /// </summary>
+        /// <typeparam name="TOuter">The outer entity type.</typeparam>
+        /// <typeparam name="TInner">The inner entity type.</typeparam>
+        /// <typeparam name="TKey">The join key type.</typeparam>
+        /// <param name="outer">The outer source.</param>
+        /// <param name="inner">The inner source.</param>
+        /// <param name="outerKeySelector">The outer key selector.</param>
+        /// <param name="innerKeySelector">The inner key selector.</param>
+        /// <param name="updateSelector">The update expression.</param>
+        /// <param name="condition">The condition.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The task for affected rows.</returns>
+        public static Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
+            this DbSet<TOuter> outer,
+            IReadOnlyList<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>>? condition = null,
+            CancellationToken cancellationToken = default)
+            where TOuter : class
+            where TInner : class
+        {
+            Check.NotNull(outer, nameof(outer));
+            Check.NotNull(inner, nameof(inner));
+            if (inner.Count == 0) return Task.FromResult(0);
+            Check.NotNull(outerKeySelector, nameof(outerKeySelector));
+            Check.NotNull(innerKeySelector, nameof(innerKeySelector));
+            Check.NotNull(updateSelector, nameof(updateSelector));
+
+            var context = outer.GetDbContext();
+            var provider = context.GetService<IBatchOperationProvider>();
+            return provider.BatchUpdateJoinAsync(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition, cancellationToken);
+        }
+
+        /// <summary>
         /// Perform batch insert into as <c>INSERT INTO SELECT FROM</c> operations.
         /// </summary>
         /// <typeparam name="T">The entity type.</typeparam>
