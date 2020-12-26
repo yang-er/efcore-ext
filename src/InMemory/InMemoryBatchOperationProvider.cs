@@ -207,6 +207,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             List<TSource> sourceTable,
             Expression<Func<TTarget, TJoinKey>> targetKey,
             Expression<Func<TSource, TJoinKey>> sourceKey,
+            Expression<Func<TTarget, TSource, bool>> condition,
             Expression<Func<TTarget, TSource, TTarget>> updateExpression,
             Expression<Func<TSource, TTarget>> insertExpression,
             bool delete)
@@ -216,6 +217,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var set = context.Set<TTarget>();
             var insert = insertExpression?.Compile();
             var update = CompileUpdate(updateExpression);
+            var cond = condition?.Compile();
             var equals = CompileEquals(targetKey, sourceKey);
             var usedSource = new HashSet<TSource>();
 
@@ -233,6 +235,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
                 if (hit != null && update != null)
                 {
+                    if (cond != null && !cond(target, hit))
+                        continue;
                     update(target, hit);
                     usedSource.Add(hit);
                     set.Update(target);
@@ -267,7 +271,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         {
             var target = targetTable.ToList();
             var source = sourceTable.ToList();
-            SolveMerge(context, target, source, targetKey, sourceKey, updateExpression, insertExpression, delete);
+            SolveMerge(context, target, source, targetKey, sourceKey, null, updateExpression, insertExpression, delete);
             return context.SaveChanges();
         }
 
@@ -286,7 +290,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         {
             var target = await targetTable.ToListAsync(cancellationToken);
             var source = sourceTable.ToList();
-            SolveMerge(context, target, source, targetKey, sourceKey, updateExpression, insertExpression, delete);
+            SolveMerge(context, target, source, targetKey, sourceKey, null, updateExpression, insertExpression, delete);
             return await context.SaveChangesAsync(cancellationToken);
         }
 
@@ -416,7 +420,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TOuter, TKey>> outerKeySelector,
             Expression<Func<TInner, TKey>> innerKeySelector,
             Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition = null)
+            Expression<Func<TOuter, TInner, bool>> condition)
             where TOuter : class
             where TInner : class
         {
@@ -443,8 +447,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TOuter, TKey>> outerKeySelector,
             Expression<Func<TInner, TKey>> innerKeySelector,
             Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition = null,
-            CancellationToken cancellationToken = default)
+            Expression<Func<TOuter, TInner, bool>> condition,
+            CancellationToken cancellationToken)
             where TOuter : class
             where TInner : class
         {
@@ -461,6 +465,41 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 outer.Update(a.outer);
             });
 
+            return await context.SaveChangesAsync(cancellationToken);
+        }
+
+        public int BatchUpdateJoin<TOuter, TInner, TKey>(
+            DbContext context,
+            DbSet<TOuter> outer,
+            IReadOnlyList<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition)
+            where TOuter : class
+            where TInner : class
+        {
+            var target = outer.ToList();
+            var source = inner.ToList();
+            SolveMerge(context, target, source, outerKeySelector, innerKeySelector, condition, updateSelector, null, false);
+            return context.SaveChanges();
+        }
+
+        public async Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
+            DbContext context,
+            DbSet<TOuter> outer,
+            IReadOnlyList<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition,
+            CancellationToken cancellationToken)
+            where TOuter : class
+            where TInner : class
+        {
+            var target = await outer.ToListAsync(cancellationToken);
+            var source = inner.ToList();
+            SolveMerge(context, target, source, outerKeySelector, innerKeySelector, condition, updateSelector, null, false);
             return await context.SaveChangesAsync(cancellationToken);
         }
     }
