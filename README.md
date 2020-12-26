@@ -1,8 +1,8 @@
 # EFCore.BulkExtensions
 
-[![Build status](https://ci.appveyor.com/api/projects/status/8damo2nfqc2sbc2g?svg=true)](https://ci.appveyor.com/project/yang-er/efcore-bulkext)
+[![AppVeyor status](https://ci.appveyor.com/api/projects/status/8damo2nfqc2sbc2g?svg=true)](https://ci.appveyor.com/project/yang-er/efcore-bulkext) [![Travis CI status](https://travis-ci.com/yang-er/efcore-ext.svg?branch=master&status=started)](https://travis-ci.com/github/yang-er/efcore-ext)
 
-Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, Merge Into**).
+Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, Merge Into, Upsert**).
 
 Current version supports EFCore 3.1 and EFCore 5.0.
 
@@ -13,6 +13,7 @@ Targeting `net5.0` and used on .NET 5.0 projects.
 - [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.InMemory%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.InMemory): InMemory bulk operation provider
 - [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.Relational%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.Relational): Basis of Relational providers
 - [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.SqlServer%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.SqlServer): SqlServer bulk operation provider
+- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.PostgreSql%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.PostgreSql): Npgsql bulk operation provider
 
 When you want to split EFCore definition and database type, you may reference to `Microsoft.EntityFrameworkCore.Bulk` in your storage implementation project, and reference to `Microsoft.EntityFrameworkCore.Bulk.SqlServer` in your host startup project.
 
@@ -22,6 +23,7 @@ Configure this when creating an `DbContext` with `DbContextOptionsBuilder`.
 
 ```csharp
 options.UseSqlServer(connectionString, b => b.UseBulk());
+options.UseNpgsql(connectionString, s => s.UseBulk());
 options.UseInMemoryDatabase(databaseName, o => o.UseBulk());
 ```
 
@@ -64,6 +66,24 @@ createdRows = context.Items
     .BatchInsertInto(context.OtherItems);
 ```
 
+## Upsert: Update or insert
+
+```csharp
+targetSet.Upsert(
+    sourceQuery,
+    insertExpression: s => new Target { Key1 = s.Key1, Key2 = s.Key2, NormalProp = s.NormalProp },
+    updateExpression: (existing, excluded) => new Target { ... });
+```
+
+The `sourceQuery` can be one of the following items:
+- `IQueryable<TSource>`
+- Local enumerable of `TSource`
+- single anonymous object
+
+Note that the conflict constraint is the primary key, so you should set all primary key fields in insert expression.
+
+The two entities in update expression are both of type `TTarget`, where the existing means the previous row in the database, and the excluded means the item not inserted. You can also fill null with this field, which means `INSERT INTO IF NOT EXISTS`.
+
 ## Merge: Upsert / Synchronize
 
 ```csharp
@@ -83,6 +103,8 @@ context.Items.Merge(
 ```
 
 Note that when update/insert expressions are null, delete is true, it will become truncate.
+
+This function is only available in InMemory and SqlServer providers, since PostgreSQL removed supports for SQL MERGE.
 
 ## Bulk\*\*\*\*
 

@@ -4,12 +4,12 @@
     <LangVersion>8.0</LangVersion>
     <Authors>borisdj;yang-er</Authors>
     <Description>Entity Framework Core Batch Extensions for Insert Update Delete and Read (CRUD) operations</Description>
-    <PackageProjectUrl>https://github.com/yang-er/EFCore.BulkExtensions</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/yang-er/efcore-ext</PackageProjectUrl>
     <Company />
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>EntityFrameworkCore</PackageTags>
     <PackageReleaseNotes>Redesign the APIs, support INSERT INTO SELECT and MERGE INTO instructions.</PackageReleaseNotes>
-    <RepositoryUrl>https://github.com/yang-er/EFCore.BulkExtensions</RepositoryUrl>
+    <RepositoryUrl>https://github.com/yang-er/efcore-ext</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
