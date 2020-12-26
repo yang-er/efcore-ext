@@ -292,27 +292,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
             else
             {
-                change = columnExpression =>
-                {
-                    if (columnExpression.Table.Equals(insertExpression.TableChanges))
-                    {
-                        Sql.Append(Helper.DelimitIdentifier("excluded"))
-                            .Append(".")
-                            .Append(Helper.DelimitIdentifier(insertExpression.ColumnChanges[columnExpression.Name]));
-                        return true;
-                    }
-                    else if (columnExpression.Table.Equals(insertExpression.SourceTable))
-                    {
-                        Sql.Append(Helper.DelimitIdentifier("excluded"))
-                            .Append(".")
-                            .Append(Helper.DelimitIdentifier(columnExpression.Name));
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                };
+                change = _ => false;
+                RelationalInternals.ApplyAlias(insertExpression.ExcludedTable, "excluded");
 
                 Sql.Append("ON CONFLICT ON CONSTRAINT ")
                     .Append(Helper.DelimitIdentifier(insertExpression.EntityType.FindPrimaryKey().GetName()))

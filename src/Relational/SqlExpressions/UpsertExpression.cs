@@ -4,13 +4,15 @@ using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 {
-    public class UpsertExpression : Expression, IPrintableExpression
+    public class UpsertExpression : Expression, IPrintableExpression, IFakeSubselectExpression
     {
         public IEntityType EntityType { get; internal set; }
 
         public TableExpression TargetTable { get; internal set; }
 
         public TableExpressionBase SourceTable { get; internal set; }
+
+        public TableExpression ExcludedTable { get; internal set; }
 
         public IReadOnlyList<ProjectionExpression> OnConflictUpdate { get; internal set; }
 
@@ -25,6 +27,22 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         public void Print(ExpressionPrinter expressionPrinter)
         {
             expressionPrinter.Append("Upsert Entity");
+        }
+
+        TableExpressionBase IFakeSubselectExpression.FakeTable => SourceTable;
+
+        void IFakeSubselectExpression.Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping)
+        {
+            SourceTable = real;
+            TableChanges = fake;
+            ColumnChanges = columnMapping;
+        }
+
+        void IFakeSubselectExpression.AddUpsertField(bool insert, SqlExpression sqlExpression, string columnName)
+        {
+            var list = (List<ProjectionExpression>)(insert ? Columns : OnConflictUpdate);
+            var proj = RelationalInternals.CreateProjectionExpression(sqlExpression, columnName);
+            list.Add(proj);
         }
     }
 }

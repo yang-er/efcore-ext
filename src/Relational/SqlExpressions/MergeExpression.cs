@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 {
-    public class MergeExpression : Expression, IPrintableExpression
+    public class MergeExpression : Expression, IPrintableExpression, IFakeSubselectExpression
     {
         public IEntityType TargetEntityType { get; internal set; }
 
@@ -45,6 +45,22 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         public void Print(ExpressionPrinter expressionPrinter)
         {
             expressionPrinter.Append("Merge Entity");
+        }
+
+        TableExpressionBase IFakeSubselectExpression.FakeTable => SourceTable;
+
+        void IFakeSubselectExpression.Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping)
+        {
+            SourceTable = real;
+            TableChanges = fake;
+            ColumnChanges = columnMapping;
+        }
+
+        void IFakeSubselectExpression.AddUpsertField(bool insert, SqlExpression sqlExpression, string columnName)
+        {
+            var list = (List<ProjectionExpression>)(insert ? NotMatchedByTarget : Matched);
+            var proj = RelationalInternals.CreateProjectionExpression(sqlExpression, columnName);
+            list.Add(proj);
         }
     }
 }

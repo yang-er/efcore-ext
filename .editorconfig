@@ -1,4 +1,3 @@
 ﻿[*.cs]
-
-# EF1001: Internal EF Core API usage.
 dotnet_diagnostic.EF1001.severity = none
+csharp_style_prefer_range_operator = false:suggestion
