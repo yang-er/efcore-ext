@@ -277,6 +277,10 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Visit(insertExpression.TargetTable);
             Sql.AppendLine();
 
+            Sql.Append("(")
+                .GenerateList(insertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
+                .AppendLine(")");
+
             Sql.Append("SELECT ")
                 .GenerateList(insertExpression.Columns, e => Visit(e))
                 .AppendLine();

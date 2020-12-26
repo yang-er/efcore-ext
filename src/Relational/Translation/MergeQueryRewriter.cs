@@ -150,14 +150,10 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var query = targetTable
                 .IgnoreQueryFilters()
                 .Join(sourceQuery, a => 998244353, a => 1000000007, (t, s) => new { t, s })
-                .Join(targetTable.IgnoreQueryFilters(), a => 998244853, a => 100000007, (a, t0) => new { a.t, a.s, t0 })
-                .Select(MergeResult(
-                    placeHolder: new { t = (TTarget)null, s = (TSource)null, t0 = (TTarget)null },
-                    updateExpression: updateExpression,
-                    insertExpression: insertExpression));
+                .Join(targetTable.IgnoreQueryFilters(), a => 998244853, a => 100000007, (a, t0) => new { a.t, a.s, t0 });
 
             var entityType = context.Model.FindEntityType(typeof(TTarget));
-            execution = TranslationStrategy.Go(context, query);
+            execution = TranslationStrategy.Go(context, MergeResult(query, updateExpression, insertExpression));
             var selectExpression = execution.SelectExpression;
             var queryContext = execution.QueryContext;
 
@@ -171,7 +167,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                     && (int)should998244353.Value == left
                     && (int)should1000000007.Value == right;
 
-            // TODO: This logic will be changed after the fix of table-splitting in EFCore 5.0 preview
             if (selectExpression.Tables.Count != 3
                 || selectExpression.Predicate != null
                 || !(selectExpression.Tables[0] is TableExpression table)
@@ -195,6 +190,38 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             normalize.Invoke(upsertExpression, queryContext);
             AddUpsertFields(upsertExpression, entityType, selectExpression);
+
+            static IQueryable<Result<T1>> MergeResult<T0, T1, T2>(
+                IQueryable<T0> query,
+                Expression<Func<T1, T1, T1>> updateExpression,
+                Expression<Func<T2, T1>> insertExpression)
+            {
+                var tst0 = Expression.Parameter(typeof(T0), "tst0");
+                var t = Expression.Property(tst0, "t");
+                var s = Expression.Property(tst0, "s");
+                var t0 = Expression.Property(tst0, "t0");
+                var res = Expression.New(typeof(Result<T1>));
+                var binding = Array.Empty<MemberBinding>().AsEnumerable();
+
+                if (updateExpression != null)
+                    binding = binding.Append(Expression.Bind(
+                        member: typeof(Result<T1>).GetProperty("Update"),
+                        expression: new ParameterReplaceVisitor(
+                            (updateExpression.Parameters[0], t),
+                            (updateExpression.Parameters[1], t0))
+                        .Visit(updateExpression.Body)));
+
+                if (insertExpression != null)
+                    binding = binding.Append(Expression.Bind(
+                        member: typeof(Result<T1>).GetProperty("Insert"),
+                        expression: new ParameterReplaceVisitor(
+                            (insertExpression.Parameters[0], s))
+                        .Visit(insertExpression.Body)));
+
+                var body = Expression.MemberInit(res, binding);
+                var selector = Expression.Lambda<Func<T0, Result<T1>>>(body, tst0);
+                return query.Select(selector);
+            }
         }
 
         /// <remarks>
@@ -246,7 +273,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var selectExpression = execution.SelectExpression;
             var queryContext = execution.QueryContext;
 
-            // TODO: This logic will be changed after the fix of table-splitting in EFCore 5.0 preview
             if (selectExpression.Tables.Count != 2
                 || selectExpression.Predicate != null
                 || !(selectExpression.Tables[1] is InnerJoinExpression innerJoin)
@@ -266,6 +292,34 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             normalize.Invoke(mergeExpression, queryContext);
             AddUpsertFields(mergeExpression, entityType, selectExpression);
+
+            static Expression<Func<T1, T2, Result<T1>>> MergeResult<T1, T2>(
+                Expression<Func<T1, T2, T1>> updateExpression,
+                Expression<Func<T2, T1>> insertExpression)
+            {
+                var para1 = Expression.Parameter(typeof(T1), "t");
+                var para2 = Expression.Parameter(typeof(T2), "s");
+                var res = Expression.New(typeof(Result<T1>));
+                var binding = Array.Empty<MemberBinding>().AsEnumerable();
+
+                if (updateExpression != null)
+                    binding = binding.Append(Expression.Bind(
+                        member: typeof(Result<T1>).GetProperty("Update"),
+                        expression: new ParameterReplaceVisitor(
+                            (updateExpression.Parameters[0], para1),
+                            (updateExpression.Parameters[1], para2))
+                        .Visit(updateExpression.Body)));
+
+                if (insertExpression != null)
+                    binding = binding.Append(Expression.Bind(
+                        member: typeof(Result<T1>).GetProperty("Insert"),
+                        expression: new ParameterReplaceVisitor(
+                            (insertExpression.Parameters[0], para2))
+                        .Visit(insertExpression.Body)));
+
+                var body = Expression.MemberInit(res, binding);
+                return Expression.Lambda<Func<T1, T2, Result<T1>>>(body, para1, para2);
+            }
         }
 
         public class Result<T>
@@ -273,65 +327,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             public T Insert { get; set; }
 
             public T Update { get; set; }
-        }
-
-        private static Expression<Func<T1, T2, Result<T1>>> MergeResult<T1, T2>(
-            Expression<Func<T1, T2, T1>> updateExpression,
-            Expression<Func<T2, T1>> insertExpression)
-        {
-            var para1 = Expression.Parameter(typeof(T1), "t");
-            var para2 = Expression.Parameter(typeof(T2), "s");
-            var res = Expression.New(typeof(Result<T1>));
-            var binding = Array.Empty<MemberBinding>().AsEnumerable();
-
-            if (updateExpression != null)
-                binding = binding.Append(Expression.Bind(
-                    member: typeof(Result<T1>).GetProperty("Update"),
-                    expression: new ParameterReplaceVisitor(
-                        (updateExpression.Parameters[0], para1),
-                        (updateExpression.Parameters[1], para2))
-                    .Visit(updateExpression.Body)));
-
-            if (insertExpression != null)
-                binding = binding.Append(Expression.Bind(
-                    member: typeof(Result<T1>).GetProperty("Insert"),
-                    expression: new ParameterReplaceVisitor(
-                        (insertExpression.Parameters[0], para2))
-                    .Visit(insertExpression.Body)));
-
-            var body = Expression.MemberInit(res, binding);
-            return Expression.Lambda<Func<T1, T2, Result<T1>>>(body, para1, para2);
-        }
-
-        private static Expression<Func<T0, Result<T1>>> MergeResult<T0, T1, T2>(
-            T0 placeHolder,
-            Expression<Func<T1, T1, T1>> updateExpression,
-            Expression<Func<T2, T1>> insertExpression)
-        {
-            var tst0 = Expression.Parameter(typeof(T0), "tst0");
-            var t = Expression.Property(tst0, "t");
-            var s = Expression.Property(tst0, "s");
-            var t0 = Expression.Property(tst0, "t0");
-            var res = Expression.New(typeof(Result<T1>));
-            var binding = Array.Empty<MemberBinding>().AsEnumerable();
-
-            if (updateExpression != null)
-                binding = binding.Append(Expression.Bind(
-                    member: typeof(Result<T1>).GetProperty("Update"),
-                    expression: new ParameterReplaceVisitor(
-                        (updateExpression.Parameters[0], t),
-                        (updateExpression.Parameters[1], t0))
-                    .Visit(updateExpression.Body)));
-
-            if (insertExpression != null)
-                binding = binding.Append(Expression.Bind(
-                    member: typeof(Result<T1>).GetProperty("Insert"),
-                    expression: new ParameterReplaceVisitor(
-                        (insertExpression.Parameters[0], s))
-                    .Visit(insertExpression.Body)));
-
-            var body = Expression.MemberInit(res, binding);
-            return Expression.Lambda<Func<T0, Result<T1>>>(body, tst0);
         }
     }
 }
