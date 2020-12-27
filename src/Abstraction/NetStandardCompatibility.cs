@@ -16,8 +16,8 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.PostgreSql")]
 internal static partial class Internals
 {
-    const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-    const BindingFlags FindPrivate = BindingFlags.Instance | BindingFlags.NonPublic;
+    public const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+    public const BindingFlags FindPrivate = BindingFlags.Instance | BindingFlags.NonPublic;
 
     public static MemberExpression AccessPrivateMember(this Expression expression, string name)
     {
