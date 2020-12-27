@@ -92,19 +92,22 @@ namespace Testcase_BatchDelete
             items = nameFixture.Items;
         }
 
-#if !POSTGRE_SQL
-        [Theory, TestPriority(0)]
-        [InlineData(1)]
-#endif
-        public void WithTop(int takeCount)
+        [Fact]
+        public void WithTop_MustFail()
         {
             using var context = contextFactory();
-            var count = context.Items
-                .Where(a => a.ItemId > 500)
-                .Take(takeCount)
-                .BatchDelete();
-            items.Remove(items.First(a => a.ItemId > 500));
-            Assert.Equal(takeCount, count);
+
+            Assert.Throws<NotSupportedException>(
+                () => context.Items
+                    .Where(a => a.ItemId > 500)
+                    .Take(10)
+                    .BatchDelete());
+
+            Assert.Throws<NotSupportedException>(
+                () => context.Items
+                    .Where(a => a.ItemId > 500)
+                    .Skip(10)
+                    .BatchDelete());
         }
 
         [Fact, TestPriority(1)]

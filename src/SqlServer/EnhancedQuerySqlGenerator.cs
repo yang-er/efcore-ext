@@ -148,19 +148,15 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             RelationalInternals.InitQuerySqlGenerator(this);
             Sql.Append("DELETE ");
 
-            if (deleteExpression.Limit != null)
-            {
-                Sql.Append("TOP(");
-                Visit(deleteExpression.Limit);
-                Sql.Append(") ");
-            }
-
             Sql.Append(Helper.DelimitIdentifier(deleteExpression.Table.Alias));
 
-            if (deleteExpression.Tables.Any())
+            if (deleteExpression.JoinedTables.Any())
             {
                 Sql.AppendLine().Append("FROM ");
-                GenerateList(deleteExpression.Tables, e => Visit(e), sql => sql.AppendLine());
+                Sql.GenerateList(
+                    deleteExpression.JoinedTables,
+                    e => Visit(e),
+                    sql => sql.AppendLine());
             }
 
             if (deleteExpression.Predicate != null)
