@@ -107,6 +107,22 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override Expression VisitSelect(SelectExpression selectExpression)
             => BaseVisitExtension(selectExpression);
 
+        /// <summary>
+        /// Visits the children of the delete expression.
+        /// </summary>
+        /// <param name="deleteExpression">The expression to visit.</param>
+        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
+            => BaseVisitExtension(deleteExpression);
+
+        /// <summary>
+        /// Visits the children of the merge expression.
+        /// </summary>
+        /// <param name="deleteExpression">The expression to visit.</param>
+        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        protected virtual Expression VisitMerge(MergeExpression mergeExpression)
+            => BaseVisitExtension(mergeExpression);
+
 #if EFCORE31
 
         /// <inheritdoc />
@@ -132,6 +148,16 @@ namespace Microsoft.EntityFrameworkCore.Query
             => BaseVisitExtension(tableValuedFunctionExpression);
 
 #endif
+
+        protected override Expression VisitExtension(Expression extensionExpression)
+        {
+            return extensionExpression switch
+            {
+                DeleteExpression deleteExpression => VisitDelete(deleteExpression),
+                MergeExpression mergeExpression => VisitMerge(mergeExpression),
+                _ => base.VisitExtension(extensionExpression)
+            };
+        }
 
         #region .NET Expression Tree Nodes
 

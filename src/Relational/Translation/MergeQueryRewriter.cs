@@ -24,7 +24,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceEnumerable,
             out IQueryable<TSource> sourceQuery,
-            out Action<IFakeSubselectExpression, RelationalQueryContext> normalize)
+            out Func<IFakeSubselectExpression, RelationalQueryContext, IFakeSubselectExpression> normalize)
             where TTarget : class
             where TSource : class
         {
@@ -34,7 +34,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             if (sourceQuery != null)
             {
                 // normal subquery or table
-                normalize = (_, __) => { };
+                normalize = (_, __) => _;
                 return true;
             }
 
@@ -44,7 +44,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             sourceTable = sourceEnumerable.ToList();
             if (sourceTable.Count == 0)
             {
-                normalize = (_, __) => { };
+                normalize = (_, __) => _;
                 return false;
             }
 
@@ -79,7 +79,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                     }
                 }
 
-                exp.Update(
+                return exp.Update(
                     real: new ValuesExpression(items, projects.Select(a => a.a.Name), subquery.Alias),
                     fake: subquery,
                     columnMapping: projects.ToDictionary(a => a.p.Alias, a => a.a.Name));
@@ -188,8 +188,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 ExcludedTable = tableAgain,
             };
 
-            normalize.Invoke(upsertExpression, queryContext);
             AddUpsertFields(upsertExpression, entityType, selectExpression);
+            upsertExpression = (UpsertExpression)normalize.Invoke(upsertExpression, queryContext);
 
             static IQueryable<Result<T1>> MergeResult<T0, T1, T2>(
                 IQueryable<T0> query,
@@ -279,19 +279,14 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 || !(selectExpression.Tables[0] is TableExpression table))
                 throw new NotSupportedException("Unknown entity configured.");
 
-            mergeExpression = new MergeExpression
-            {
-                TargetEntityType = entityType,
-                JoinPredicate = innerJoin.JoinPredicate,
-                TargetTable = table,
-                SourceTable = innerJoin.Table,
-                NotMatchedBySource = delete,
-                Matched = updateExpression == null ? null : new List<ProjectionExpression>(),
-                NotMatchedByTarget = insertExpression == null ? null : new List<ProjectionExpression>()
-            };
+            mergeExpression = new MergeExpression(
+                table, innerJoin.Table, innerJoin.JoinPredicate,
+                updateExpression == null ? null : new List<ProjectionExpression>(),
+                insertExpression == null ? null : new List<ProjectionExpression>(),
+                delete);
 
-            normalize.Invoke(mergeExpression, queryContext);
             AddUpsertFields(mergeExpression, entityType, selectExpression);
+            mergeExpression = (MergeExpression)normalize.Invoke(mergeExpression, queryContext);
 
             static Expression<Func<T1, T2, Result<T1>>> MergeResult<T1, T2>(
                 Expression<Func<T1, T2, T1>> updateExpression,

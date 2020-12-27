@@ -175,16 +175,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var targetAlias = mergeExpression.TargetTable.Alias;
             var sourceAlias = mergeExpression.SourceTable.Alias;
 
-            change = columnExpression =>
-            {
-                if (!columnExpression.Table.Equals(mergeExpression.TableChanges))
-                    return false;
-                Sql.Append(Helper.DelimitIdentifier(columnExpression.Table.Alias))
-                    .Append(".")
-                    .Append(Helper.DelimitIdentifier(mergeExpression.ColumnChanges[columnExpression.Name]));
-                return true;
-            };
-
             Sql.Append("MERGE INTO ");
             VisitTable(mergeExpression.TargetTable);
             Sql.AppendLine().Append("USING ");

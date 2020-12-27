@@ -6,7 +6,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
     {
         TableExpressionBase FakeTable { get; }
 
-        void Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping);
+        IFakeSubselectExpression Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping);
 
         void AddUpsertField(bool insert, SqlExpression sqlExpression, string columnName);
     }

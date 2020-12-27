@@ -1,64 +1,167 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿#nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 {
-    public class MergeExpression : Expression, IPrintableExpression, IFakeSubselectExpression
+    /// <summary>
+    /// An expression that represents a MERGE in a SQL tree.
+    /// </summary>
+    public sealed class MergeExpression : Expression, IPrintableExpression, IFakeSubselectExpression
     {
-        public IEntityType TargetEntityType { get; internal set; }
+        public MergeExpression(
+            TableExpression targetTable,
+            TableExpressionBase sourceTable,
+            SqlExpression joinPredicate,
+            IReadOnlyList<ProjectionExpression>? matched,
+            IReadOnlyList<ProjectionExpression>? notMatchedByTarget,
+            bool notMatchedBySource)
+        {
+            TargetTable = targetTable;
+            SourceTable = sourceTable;
+            JoinPredicate = joinPredicate;
+            Matched = matched;
+            NotMatchedByTarget = notMatchedByTarget;
+            NotMatchedBySource = notMatchedBySource;
+        }
 
-        public TableExpression TargetTable { get; internal set; }
+        /// <summary>
+        /// The target table to merge into.
+        /// </summary>
+        public TableExpression TargetTable { get; }
 
-        public TableExpressionBase SourceTable { get; internal set; }
+        /// <summary>
+        /// The source table to merge from.
+        /// </summary>
+        public TableExpressionBase SourceTable { get; }
 
-        public SqlExpression JoinPredicate { get; internal set; }
+        /// <summary>
+        /// The join predicate.
+        /// </summary>
+        public SqlExpression JoinPredicate { get; }
 
-        /// <remarks>
-        /// When null, no this column.
-        /// </remarks>
-        public IReadOnlyList<ProjectionExpression> Matched { get; internal set; }
+        /// <summary>
+        /// When a row is matched between source and target, update the
+        /// columns represented by <see cref="ProjectionExpression"/>.
+        /// When <c>null</c>, do nothing.
+        /// </summary>
+        public IReadOnlyList<ProjectionExpression>? Matched { get; }
 
-        /// <remarks>
-        /// When null, no this column.
-        /// </remarks>
-        public IReadOnlyList<ProjectionExpression> NotMatchedByTarget { get; internal set; }
+        /// <summary>
+        /// When a row is not matched by target, insert a new row with
+        /// columns represented by <see cref="ProjectionExpression"/>.
+        /// When <c>null</c>, do nothing.
+        /// </summary>
+        public IReadOnlyList<ProjectionExpression>? NotMatchedByTarget { get; }
 
-        /// <remarks>
-        /// When false, no this column.
-        /// </remarks>
-        public bool NotMatchedBySource { get; internal set; }
+        /// <summary>
+        /// When a row is not matched by source, decide whether to delete this row.
+        /// </summary>
+        public bool NotMatchedBySource { get; }
 
-        /// <remarks>
-        /// When <see cref="SourceTable"/> is a <see cref="ValuesExpression"/>,
-        /// we should replace this with that values table without tranversing the expression tree.
-        /// </remarks>
-        public TableExpressionBase TableChanges { get; internal set; }
+        /// <inheritdoc />
+        protected override Expression VisitChildren(ExpressionVisitor visitor)
+        {
+            const string CallerName = "VisitMerge";
 
-        /// <remarks>
-        /// When <see cref="SourceTable"/> is a <see cref="ValuesExpression"/>,
-        /// we should replace the column name with the correct CLR property name without tranversing the expression tree.
-        /// </remarks>
-        public Dictionary<string, string> ColumnChanges { get; internal set; }
+            var targetTable = visitor.VisitAndConvert(TargetTable, CallerName);
+            bool changed = targetTable != TargetTable;
+
+            var sourceTable = visitor.VisitAndConvert(SourceTable, CallerName);
+            changed = changed || sourceTable != SourceTable;
+            
+            var joinPredicate = visitor.VisitAndConvert(JoinPredicate, CallerName);
+            changed = changed || joinPredicate != JoinPredicate;
+
+            bool matchedChanged = false;
+            var matched = Matched?.ToList();
+            for (int i = 0; matched != null && i < matched.Count; i++)
+            {
+                matched[i] = visitor.VisitAndConvert(matched[i], CallerName);
+                matchedChanged = matchedChanged || matched[i] != Matched![i];
+            }
+
+            bool notMatchedByTargetChanged = false;
+            var notMatchedByTarget = NotMatchedByTarget?.ToList();
+            for (int i = 0; notMatchedByTarget != null && i < notMatchedByTarget.Count; i++)
+            {
+                notMatchedByTarget[i] = visitor.VisitAndConvert(notMatchedByTarget[i], CallerName);
+                notMatchedByTargetChanged = notMatchedByTargetChanged || notMatchedByTarget[i] != NotMatchedByTarget![i];
+            }
+
+            changed = changed || matchedChanged || notMatchedByTargetChanged;
+            if (!changed) return this;
+            return new MergeExpression(
+                targetTable,
+                sourceTable,
+                joinPredicate,
+                matchedChanged ? matched : Matched,
+                notMatchedByTargetChanged ? notMatchedByTarget : NotMatchedByTarget,
+                NotMatchedBySource);
+        }
 
         /// <inheritdoc />
         public void Print(ExpressionPrinter expressionPrinter)
         {
-            expressionPrinter.Append("Merge Entity");
+            expressionPrinter.Append("MERGE INTO ").Visit(TargetTable);
+            expressionPrinter.AppendLine().Append("USING ").Visit(SourceTable);
+            expressionPrinter.AppendLine().Append("ON ").Visit(JoinPredicate);
+
+            expressionPrinter.AppendLine().Append("WHEN MATCHED");
+            using (expressionPrinter.Indent())
+            {
+                if (Matched != null)
+                {
+                    expressionPrinter
+                        .AppendLine().Append("THEN UPDATE SET ")
+                        .VisitCollection(Matched, (p, e) => p.Append(e.Alias).Append(" = ").Visit(e.Expression));
+                }
+                else
+                {
+                    expressionPrinter
+                        .AppendLine().Append("THEN DO NOTHING");
+                }
+            }
+
+            expressionPrinter.AppendLine().Append("WHEN NOT MATCHED BY TARGET");
+            using (expressionPrinter.Indent())
+            {
+                if (NotMatchedByTarget != null)
+                {
+                    expressionPrinter
+                        .AppendLine().Append("THEN INSERT (")
+                        .VisitCollection(NotMatchedByTarget, (p, e) => p.Append(e.Alias))
+                        .Append(") VALUES (")
+                        .VisitCollection(NotMatchedByTarget, (p, e) => p.Visit(e.Expression))
+                        .Append(")");
+                }
+                else
+                {
+                    expressionPrinter
+                        .AppendLine().Append("THEN DO NOTHING");
+                }
+            }
+
+            expressionPrinter.AppendLine().Append("WHEN NOT MATCHED BY SOURCE");
+            using (expressionPrinter.Indent())
+            {
+                expressionPrinter.AppendLine()
+                    .Append(NotMatchedBySource ? "THEN DELETE" : "THEN DO NOTHING");
+            }
         }
 
         TableExpressionBase IFakeSubselectExpression.FakeTable => SourceTable;
 
-        void IFakeSubselectExpression.Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping)
+        IFakeSubselectExpression IFakeSubselectExpression.Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping)
         {
-            SourceTable = real;
-            TableChanges = fake;
-            ColumnChanges = columnMapping;
+            var @new = new FakeSelectReplacingVisitor(fake, real, columnMapping).VisitAndConvert(this, null);
+            return @new;
         }
 
         void IFakeSubselectExpression.AddUpsertField(bool insert, SqlExpression sqlExpression, string columnName)
         {
-            var list = (List<ProjectionExpression>)(insert ? NotMatchedByTarget : Matched);
+            var list = (List<ProjectionExpression>)(insert ? NotMatchedByTarget : Matched)!;
             var proj = RelationalInternals.CreateProjectionExpression(sqlExpression, columnName);
             list.Add(proj);
         }
