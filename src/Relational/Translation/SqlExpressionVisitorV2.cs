@@ -118,10 +118,34 @@ namespace Microsoft.EntityFrameworkCore.Query
         /// <summary>
         /// Visits the children of the merge expression.
         /// </summary>
-        /// <param name="deleteExpression">The expression to visit.</param>
+        /// <param name="mergeExpression">The expression to visit.</param>
         /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
         protected virtual Expression VisitMerge(MergeExpression mergeExpression)
             => BaseVisitExtension(mergeExpression);
+
+        /// <summary>
+        /// Visits the children of the select into expression.
+        /// </summary>
+        /// <param name="selectIntoExpression">The expression to visit.</param>
+        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        protected virtual Expression VisitSelectInto(SelectIntoExpression selectIntoExpression)
+            => BaseVisitExtension(selectIntoExpression);
+
+        /// <summary>
+        /// Visits the children of the update expression.
+        /// </summary>
+        /// <param name="updateExpression">The expression to visit.</param>
+        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        protected virtual Expression VisitUpdate(UpdateExpression updateExpression)
+            => BaseVisitExtension(updateExpression);
+
+        /// <summary>
+        /// Visits the children of the values expression.
+        /// </summary>
+        /// <param name="valuesExpression">The expression to visit.</param>
+        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        protected virtual Expression VisitValues(ValuesExpression valuesExpression)
+            => BaseVisitExtension(valuesExpression);
 
 #if EFCORE31
 
@@ -155,6 +179,9 @@ namespace Microsoft.EntityFrameworkCore.Query
             {
                 DeleteExpression deleteExpression => VisitDelete(deleteExpression),
                 MergeExpression mergeExpression => VisitMerge(mergeExpression),
+                ValuesExpression valuesExpression => VisitValues(valuesExpression),
+                UpdateExpression updateExpression => VisitUpdate(updateExpression),
+                SelectIntoExpression selectIntoExpression => VisitSelectInto(selectIntoExpression),
                 _ => base.VisitExtension(extensionExpression)
             };
         }

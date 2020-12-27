@@ -40,12 +40,10 @@ internal static partial class RelationalInternals
     public static ExpressionPrinter VisitCollection<T>(
         this ExpressionPrinter expressionPrinter,
         IReadOnlyList<T> items,
-        Action<ExpressionPrinter, T> generateExpression = null,
+        Action<ExpressionPrinter, T> generateExpression,
         Action<ExpressionPrinter> joinAction = null)
-        where T : Expression, IPrintableExpression
     {
         joinAction ??= (isb => isb.Append(", "));
-        generateExpression ??= ((p, e) => p.Visit(e));
 
         for (var i = 0; i < items.Count; i++)
         {
