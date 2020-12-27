@@ -31,11 +31,12 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 
         TableExpressionBase IFakeSubselectExpression.FakeTable => SourceTable;
 
-        void IFakeSubselectExpression.Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping)
+        IFakeSubselectExpression IFakeSubselectExpression.Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping)
         {
             SourceTable = real;
             TableChanges = fake;
             ColumnChanges = columnMapping;
+            return this;
         }
 
         void IFakeSubselectExpression.AddUpsertField(bool insert, SqlExpression sqlExpression, string columnName)

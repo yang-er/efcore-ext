@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿#nullable enable
+using Microsoft.EntityFrameworkCore.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,17 +12,11 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
     /// </summary>
     public sealed class DeleteExpression : Expression, IPrintableExpression
     {
-        /// <summary>
-        /// Creates an expression that represents a DELETE in a SQL tree.
-        /// </summary>
-        /// <param name="table">The primary table.</param>
-        /// <param name="predicate">The WHERE part.</param>
-        /// <param name="joinedTables">The JOIN part.</param>
         public DeleteExpression(
             TableExpression table,
-            SqlExpression predicate,
+            SqlExpression? predicate,
             IReadOnlyList<TableExpressionBase> joinedTables,
-            ISet<string> tags)
+            ISet<string>? tags)
         {
             Table = Check.NotNull(table, nameof(table));
             JoinedTables = Check.HasNoNulls(joinedTables, nameof(joinedTables));
@@ -64,7 +59,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         /// <summary>
         /// The <c>WHERE</c> predicate for the <c>DELETE</c>.
         /// </summary>
-        public SqlExpression Predicate { get; }
+        public SqlExpression? Predicate { get; }
 
         /// <summary>
         /// The list of tables sources used to generate the result set.
@@ -86,7 +81,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             for (int i = 0; i < joinedTables.Count; i++)
             {
                 joinedTables[i] = visitor.VisitAndConvert(JoinedTables[i], CallerName);
-                changed = changed || joinedTables[i] == JoinedTables[i];
+                changed = changed || joinedTables[i] != JoinedTables[i];
             }
 
             if (!changed) return this;
