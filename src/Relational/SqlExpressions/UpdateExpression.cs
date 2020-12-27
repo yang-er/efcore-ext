@@ -8,6 +8,9 @@ using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 {
+    /// <summary>
+    /// An expression that represents an UPDATE in a SQL tree.
+    /// </summary>
     public sealed class UpdateExpression : Expression, IPrintableExpression
     {
         public UpdateExpression(

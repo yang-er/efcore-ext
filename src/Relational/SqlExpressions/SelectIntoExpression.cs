@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Bulk;
+﻿#nullable enable
+using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Metadata;
 using System;
 using System.Collections.Generic;
@@ -6,55 +7,95 @@ using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 {
+    /// <summary>
+    /// An expression that represents a SELECT INTO in a SQL tree.
+    /// </summary>
     public sealed class SelectIntoExpression : Expression, IPrintableExpression
     {
-        public SelectIntoExpression(SelectExpression selectExpression, IEntityType table)
+        public SelectIntoExpression(
+            string tableName,
+            string schema,
+            SelectExpression selectExpression)
         {
+            TableName = tableName;
+            Schema = schema;
             Expression = selectExpression;
-
-#if EFCORE50
-            Table = RelationalInternals.CreateTableExpression(
-                table.Model.GetRelationalModel()
-                    .FindTable(table.GetTableName(), table.GetSchema()));
-#elif EFCORE31
-            Table = RelationalInternals.CreateTableExpression(
-                table.GetTableName(),
-                table.GetSchema(),
-                table.GetTableName().ToLower().Substring(0, 1));
-#endif
-
-            // Do some replacing here..
-            var columnNames = table.GetColumns();
-            var proj = RelationalInternals.AccessProjectionMapping(selectExpression);
-            var list = (List<ProjectionExpression>)selectExpression.Projection;
-            int i = 0;
-            var projs = new List<ProjectionExpression>();
-            var maps = new Dictionary<ProjectionMember, Expression>();
-
-            foreach (var (a, b) in proj)
-            {
-                if (!columnNames.TryGetValue(a.ToString(), out var fieldName))
-                    throw new NotImplementedException();
-                int id = (int)((ConstantExpression)b).Value;
-                maps.Add(a, Constant(i++));
-                projs.Add(RelationalInternals.CreateProjectionExpression(list[id].Expression, fieldName));
-            }
-
-            list.Clear();
-            list.AddRange(projs);
-            selectExpression.ReplaceProjectionMapping(maps);
         }
 
-        public TableExpression Table { get; }
+        /// <summary>
+        /// The table to INSERT INTO.
+        /// </summary>
+        public string TableName { get; }
 
+        /// <summary>
+        /// The table to INSERT INTO.
+        /// </summary>
+        public string Schema { get; }
+
+        /// <summary>
+        /// The SELECT expression to insert.
+        /// </summary>
         public SelectExpression Expression { get; }
 
+        /// <inheritdoc />
+        protected override Expression VisitChildren(ExpressionVisitor visitor)
+        {
+            var expression = visitor.VisitAndConvert(Expression, "VisitSelectInto");
+            if (expression == Expression) return this;
+            return new SelectIntoExpression(TableName, Schema, expression);
+        }
+
+        /// <inheritdoc />
         public void Print(ExpressionPrinter expressionPrinter)
         {
-            expressionPrinter.Append("Insert Into: ");
-            ((IPrintableExpression)Table).Print(expressionPrinter);
-            expressionPrinter.AppendLine();
-            ((IPrintableExpression)Expression).Print(expressionPrinter);
+            expressionPrinter.Append("INSERT INTO ").AppendLine(TableName);
+            expressionPrinter.Visit(Expression);
+        }
+
+        /// <summary>
+        /// Creates an <c>INSERT INTO SELECT</c> expression.
+        /// </summary>
+        /// <param name="selectExpression">The SELECT expression.</param>
+        /// <param name="entityType">The entity type.</param>
+        public static SelectIntoExpression CreateFromSelect(SelectExpression selectExpression, IEntityType entityType)
+        {
+            var tableName = entityType.GetTableName();
+            var schema = entityType.GetSchema();
+
+            // Do some replacing here..
+            var columnNames = entityType.GetColumns();
+            var projection = (List<ProjectionExpression>)selectExpression.Projection;
+            var projectionMapping = RelationalInternals.AccessProjectionMapping(selectExpression);
+            var newProjections = new List<ProjectionExpression>();
+            var newProjectionMapping = new Dictionary<ProjectionMember, Expression>();
+            int i = 0;
+
+            foreach (var (member, _id) in projectionMapping)
+            {
+                if (!columnNames.TryGetValue(member.ToString(), out var fieldName))
+                    throw new NotImplementedException("Projection mapping failed.");
+
+                int id = (int)((ConstantExpression)_id).Value!;
+                newProjectionMapping.Add(member, Constant(i++));
+                newProjections.Add(RelationalInternals.CreateProjectionExpression(projection[id].Expression, fieldName));
+            }
+
+#pragma warning disable CS0618
+            var newExpression = selectExpression.Update(
+                newProjections,
+                (List<TableExpressionBase>)selectExpression.Tables,
+                selectExpression.Predicate,
+                (List<SqlExpression>)selectExpression.GroupBy,
+                selectExpression.Having,
+                (List<OrderingExpression>)selectExpression.Orderings,
+                selectExpression.Limit,
+                selectExpression.Offset,
+                selectExpression.IsDistinct,
+                selectExpression.Alias);
+#pragma warning restore CS0618
+
+            newExpression.ReplaceProjectionMapping(newProjectionMapping);
+            return new SelectIntoExpression(tableName, schema, newExpression);
         }
     }
 }

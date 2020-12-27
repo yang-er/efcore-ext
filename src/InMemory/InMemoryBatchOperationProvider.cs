@@ -13,21 +13,38 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class InMemoryBatchOperationProvider : IBatchOperationProvider
     {
-        private static bool EnsureType<T>(IQueryable<T> query) where T : class
+        private static IQueryable<T> EnsureType<T>(IQueryable<T> query) where T : class
         {
             var expression = query.Expression;
             while (expression.NodeType == ExpressionType.Call)
             {
                 // expression = Call someFunc(IQueryable<T> some, ..., ...)
-                expression = ((MethodCallExpression)expression).Arguments[0];
+                var methodCall = (MethodCallExpression)expression;
+                expression = methodCall.Arguments[0];
+
+                if (methodCall.Method.DeclaringType == typeof(Queryable)
+                    && (methodCall.Method.Name == nameof(Queryable.Take)
+                    || methodCall.Method.Name == nameof(Queryable.TakeLast)
+                    || methodCall.Method.Name == nameof(Queryable.TakeWhile)
+                    || methodCall.Method.Name == nameof(Queryable.Skip)
+                    || methodCall.Method.Name == nameof(Queryable.SkipLast)
+                    || methodCall.Method.Name == nameof(Queryable.SkipWhile)))
+                    throw new NotSupportedException("Batch update/delete doesn't support .Take() or .Skip()");
             }
 
 #if EFCORE31
-            return expression.NodeType == ExpressionType.Constant
+            bool validated = expression.NodeType == ExpressionType.Constant
                 && expression.Type == typeof(EntityQueryable<T>);
 #elif EFCORE50
-            return expression is QueryRootExpression;
+            bool validated = expression is QueryRootExpression;
 #endif
+
+            if (!validated)
+            {
+                throw new ArgumentException("Query invalid. The operation entity must be in DbContext.");
+            }
+
+            return query;
         }
 
         private static Action<T> CompileUpdate<T>(Expression<Func<T, T>> expression)
@@ -132,9 +149,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             IQueryable<T> query)
             where T : class
         {
-            if (!EnsureType(query))
-                throw new ArgumentException("Query invalid. The operation entity must be in DbContext.");
-            context.Set<T>().RemoveRange(query.ToArray());
+            context.Set<T>().RemoveRange(EnsureType(query).ToArray());
             return context.SaveChanges();
         }
 
@@ -144,9 +159,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             CancellationToken cancellationToken = default)
             where T : class
         {
-            if (!EnsureType(query))
-                throw new ArgumentException("Query invalid. The operation entity must be in DbContext.");
-            context.Set<T>().RemoveRange(await query.ToArrayAsync(cancellationToken));
+            context.Set<T>().RemoveRange(await EnsureType(query).ToArrayAsync(cancellationToken));
             return await context.SaveChangesAsync(cancellationToken);
         }
 
@@ -178,9 +191,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             updateExpression)
             where T : class
         {
-            if (!EnsureType(query))
-                throw new ArgumentException("Query invalid. The operation entity must be in DbContext.");
-            var entities = query.ToList();
+            var entities = EnsureType(query).ToList();
             entities.ForEach(CompileUpdate(updateExpression));
             context.Set<T>().UpdateRange(entities);
             return context.SaveChanges();
@@ -193,9 +204,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             CancellationToken cancellationToken = default)
             where T : class
         {
-            if (!EnsureType(query))
-                throw new ArgumentException("Query invalid. The operation entity must be in DbContext.");
-            var entities = await query.ToListAsync(cancellationToken);
+            var entities = await EnsureType(query).ToListAsync(cancellationToken);
             entities.ForEach(CompileUpdate(updateExpression));
             context.Set<T>().UpdateRange(entities);
             return await context.SaveChangesAsync(cancellationToken);

@@ -60,7 +60,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 SELECT => generator.GetCommand(SelectExpression),
                 UPDATE => generator.GetCommand(UpdateExpression.CreateFromSelect(SelectExpression, entityType, InternalExpression)),
                 DELETE => generator.GetCommand(DeleteExpression.CreateFromSelect(SelectExpression, entityType)),
-                INSERT => generator.GetCommand(new SelectIntoExpression(SelectExpression, entityType)),
+                INSERT => generator.GetCommand(SelectIntoExpression.CreateFromSelect(SelectExpression, entityType)),
                 _ => customGeneration(generator) ?? throw new ArgumentNullException(nameof(customGeneration)),
             };
 

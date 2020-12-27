@@ -63,7 +63,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             GenerateTagsHeaderComment(selectExpression);
 
             Sql.Append("INSERT INTO ")
-                .Append(Helper.DelimitIdentifier(selectIntoExpression.Table.Name, selectIntoExpression.Table.Schema))
+                .Append(Helper.DelimitIdentifier(selectIntoExpression.TableName, selectIntoExpression.Schema))
                 .Append(" (");
 
             Sql.GenerateList(
