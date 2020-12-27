@@ -23,14 +23,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Version postgresVersion)
             : base(dependencies, reverseNullOrderingEnabled, postgresVersion)
         {
-            Generator = sqlExpressionFactory;
         }
 
-        public ISqlExpressionFactory Generator { get; }
-
         public ISqlGenerationHelper Helper => Dependencies.SqlGenerationHelper;
-
-        public QuerySqlGenerator Self => this;
 
 #if EFCORE31
         private static readonly Regex _composableSql
@@ -128,53 +123,21 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(UpdateExpression updateExpression)
         {
-            if (updateExpression.Limit != null)
+            if (!updateExpression.Expanded)
             {
-                throw new NotSupportedException("PostgreSQL doesn't support LIMIT while executing UPDATE.");
+                // This is a strange behavior for PostgreSQL. I don't like it.
+                updateExpression = updateExpression.Expand();
             }
 
             RelationalInternals.InitQuerySqlGenerator(this);
-            Sql.Append("UPDATE ");
-
-            if (updateExpression.Tables.Count == 1)
-            {
-                change = columnExpression =>
-                {
-                    if (columnExpression.Table != updateExpression.Table) return false;
-                    Sql.Append(Helper.DelimitIdentifier(columnExpression.Name));
-                    return true;
-                };
-
-                Sql.AppendLine(Helper.DelimitIdentifier(updateExpression.Table.Name));
-                updateExpression.Tables = Array.Empty<TableExpressionBase>();
-            }
-            else if (updateExpression.Tables[1] is InnerJoinExpression innerJoin)
-            {
-                Sql.Append(Helper.DelimitIdentifier(updateExpression.Table.Name))
-                    .Append(AliasSeparator)
-                    .AppendLine(Helper.DelimitIdentifier(updateExpression.Table.Alias));
-
-                var newTables = updateExpression.Tables.Skip(1).ToList();
-                newTables[0] = innerJoin.Table;
-                updateExpression.Tables = newTables;
-
-                if (updateExpression.Predicate == null)
-                    updateExpression.Predicate = innerJoin.JoinPredicate;
-                else
-                    updateExpression.Predicate = Generator.AndAlso(updateExpression.Predicate, innerJoin.JoinPredicate);
-            }
-            else
-            {
-                throw new NotSupportedException(
-                    "Translation failed for this kind of entity update. " +
-                    "If you'd like to provide more information on this, " +
-                    "please contact the plugin author.");
-            }
-
-            Sql.Append("SET ");
+            Sql.Append("UPDATE ")
+                .Append(Helper.DelimitIdentifier(updateExpression.ExpandedTable.Name))
+                .Append(AliasSeparator)
+                .AppendLine(Helper.DelimitIdentifier(updateExpression.ExpandedTable.Alias))
+                .Append("SET ");
 
             Sql.GenerateList(
-                updateExpression.SetFields,
+                updateExpression.Fields,
                 e => Sql.Append(Helper.DelimitIdentifier(e.Alias))
                     .Append(" = ")
                     .Then(() => Visit(e.Expression)));

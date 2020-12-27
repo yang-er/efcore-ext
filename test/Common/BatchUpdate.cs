@@ -182,29 +182,23 @@ namespace Testcase_BatchUpdate
             Assert.Equal(t, state);
         }
 
-#if !POSTGRE_SQL
         [Fact, TestPriority(1)]
-#endif
-        public void WithTakeTop()
+        public void WithTakeTopSkip_MustFail()
         {
             using var context = contextFactory();
             decimal price = 0;
 
-            var state = context.Items
-                .Where(a => a.ItemId <= 388 && a.Price >= price)
-                .Take(10)
-                .BatchUpdate(a => new Item { Price = a.Price == 1.5m ? 3.0m : price, Description = a.Description + " TOP(10)" });
+            Assert.Throws<NotSupportedException>(
+                () => context.Items
+                    .Where(a => a.ItemId <= 388 && a.Price >= price)
+                    .Take(10)
+                    .BatchUpdate(a => new Item { Price = a.Price == 1.5m ? 3.0m : price, Description = a.Description + " TOP(10)" }));
 
-            int t = 0;
-
-            foreach (var o in items.Where(a => a.ItemId <= 388 && a.Price >= price).Take(10))
-            {
-                o.Price = o.Price == 1.5m ? 3.0m : price;
-                o.Description += " TOP(10)";
-                t++;
-            }
-
-            Assert.Equal(t, state);
+            Assert.Throws<NotSupportedException>(
+                () => context.Items
+                    .Where(a => a.ItemId <= 388 && a.Price >= price)
+                    .Skip(10)
+                    .BatchUpdate(a => new Item { Price = a.Price == 1.5m ? 3.0m : price, Description = a.Description + " TOP(10)" }));
         }
 
         [Fact, TestPriority(2)]

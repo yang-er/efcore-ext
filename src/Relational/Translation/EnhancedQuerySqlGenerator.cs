@@ -7,8 +7,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public interface IEnhancedQuerySqlGenerator
     {
-        QuerySqlGenerator Self { get; }
-
         object CreateParameter(QueryContext context, TypeMappedRelationalParameter parInfo);
 
         IRelationalCommand GetCommand(SelectExpression selectExpression);

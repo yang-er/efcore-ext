@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
@@ -14,37 +13,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class EnhancedQuerySqlGenerator : SqlServerQuerySqlGenerator, IEnhancedQuerySqlGenerator
     {
-        private Func<ColumnExpression, bool> change = c => false;
-
         public EnhancedQuerySqlGenerator(QuerySqlGeneratorDependencies dependencies)
             : base(dependencies)
         {
         }
 
         public ISqlGenerationHelper Helper => Dependencies.SqlGenerationHelper;
-
-        public QuerySqlGenerator Self => this;
-
-        private void GenerateList<T>(
-            IReadOnlyList<T> items,
-            Action<T> generationAction,
-            Action<IRelationalCommandBuilder> joinAction = null)
-        {
-            joinAction ??= (isb => isb.Append(", "));
-
-            for (var i = 0; i < items.Count; i++)
-            {
-                if (i > 0) joinAction(Sql);
-                generationAction(items[i]);
-            }
-        }
-
-        protected override Expression VisitColumn(ColumnExpression columnExpression)
-        {
-            if (!change(columnExpression))
-                base.VisitColumn(columnExpression);
-            return columnExpression;
-        }
 
         protected override Expression VisitExtension(Expression extensionExpression)
         {
@@ -61,13 +35,10 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .IncrementIndent()
                 .AppendLine();
 
-            GenerateList(tableExpression.Values, a =>
-            {
-                Sql.Append("(");
-                GenerateList(a, e => Visit(e));
-                Sql.Append(")");
-            },
-            sql => sql.Append(",").AppendLine());
+            Sql.GenerateList(
+                tableExpression.Values,
+                a => Sql.Append("(").GenerateList(a, e => Visit(e)).Append(")"),
+                sql => sql.Append(",").AppendLine());
 
             Sql.DecrementIndent()
                 .AppendLine()
@@ -76,7 +47,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .Append(Helper.DelimitIdentifier(tableExpression.Alias))
                 .Append(" (");
 
-            GenerateList(tableExpression.ColumnNames,
+            Sql.GenerateList(
+                tableExpression.ColumnNames,
                 a => Sql.Append(Helper.DelimitIdentifier(a)));
 
             Sql.Append(")");
@@ -94,7 +66,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .Append(Helper.DelimitIdentifier(selectIntoExpression.Table.Name, selectIntoExpression.Table.Schema))
                 .Append(" (");
 
-            GenerateList(selectExpression.Projection, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)));
+            Sql.GenerateList(
+                selectExpression.Projection,
+                e => Sql.Append(Helper.DelimitIdentifier(e.Alias)));
 
             Sql.AppendLine(")");
 
@@ -105,21 +79,17 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(UpdateExpression updateExpression)
         {
+            if (updateExpression.Expanded)
+                throw new InvalidOperationException("Update expression accidently expanded.");
+
             RelationalInternals.InitQuerySqlGenerator(this);
             Sql.Append("UPDATE ");
 
-            if (updateExpression.Limit != null)
-            {
-                Sql.Append("TOP(");
-                Visit(updateExpression.Limit);
-                Sql.Append(") ");
-            }
-
-            string tableExp = Helper.DelimitIdentifier(updateExpression.Table.Alias);
+            string tableExp = Helper.DelimitIdentifier(updateExpression.Tables[0].Alias);
 
             Sql.AppendLine(tableExp).Append("SET ");
 
-            GenerateList(updateExpression.SetFields, e =>
+            Sql.GenerateList(updateExpression.Fields, e =>
             {
                 Sql.Append(tableExp)
                     .Append(".")
@@ -131,7 +101,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             if (updateExpression.Tables.Any())
             {
                 Sql.AppendLine().Append("FROM ");
-                GenerateList(updateExpression.Tables, e => Visit(e), sql => sql.AppendLine());
+                Sql.GenerateList(updateExpression.Tables, e => Visit(e), sql => sql.AppendLine());
             }
 
             if (updateExpression.Predicate != null)
@@ -192,7 +162,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 using (Sql.Indent())
                 {
                     Sql.AppendLine().Append("THEN UPDATE SET ");
-                    GenerateList(mergeExpression.Matched, e =>
+
+                    Sql.GenerateList(mergeExpression.Matched, e =>
                     {
                         Sql.Append(Helper.DelimitIdentifier(targetAlias))
                             .Append(".")
@@ -208,13 +179,15 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 Sql.AppendLine().Append("WHEN NOT MATCHED BY TARGET");
                 using (Sql.Indent())
                 {
-                    Sql.AppendLine().Append("THEN INSERT (");
-                    GenerateList(mergeExpression.NotMatchedByTarget,
-                        e => Sql.Append(Helper.DelimitIdentifier(e.Alias)));
-                    Sql.Append(") VALUES (");
-                    GenerateList(mergeExpression.NotMatchedByTarget,
-                        e => Visit(e.Expression));
-                    Sql.Append(")");
+                    Sql.AppendLine().Append("THEN INSERT (")
+                        .GenerateList(
+                            mergeExpression.NotMatchedByTarget,
+                            e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
+                        .Append(") VALUES (")
+                        .GenerateList(
+                            mergeExpression.NotMatchedByTarget,
+                            e => Visit(e.Expression))
+                        .Append(")");
                 }
             }
 
