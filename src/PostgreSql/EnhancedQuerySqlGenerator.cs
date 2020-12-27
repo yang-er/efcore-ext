@@ -196,21 +196,14 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(DeleteExpression deleteExpression)
         {
-            if (deleteExpression.Limit != null)
-            {
-                throw new NotSupportedException("PostgreSQL doesn't support LIMIT while executing DELETE.");
-            }
-
             RelationalInternals.InitQuerySqlGenerator(this);
             Sql.Append("DELETE ");
 
-            // Sql.Append(Helper.DelimitIdentifier(deleteExpression.Table.Alias));
-
-            if (deleteExpression.Tables.Any())
+            if (deleteExpression.JoinedTables.Any())
             {
                 Sql.AppendLine().Append("FROM ");
                 Sql.GenerateList(
-                    deleteExpression.Tables,
+                    deleteExpression.JoinedTables,
                     e => Visit(e),
                     sql => sql.AppendLine());
             }
