@@ -13,11 +13,11 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <XysMinorVersion>20</XysMinorVersion>
+    <XysMinorVersion>21</XysMinorVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('-5.0')) ">
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>$(MSBuildProjectName.Replace('-5.0', ''))</AssemblyName>
     <DotNetCoreVersion>5.0</DotNetCoreVersion>
     <EntityFrameworkCoreVersion>[5.0.1,6.0.0)</EntityFrameworkCoreVersion>
@@ -39,7 +39,7 @@
     <NoWarn>$(NoWarn);xUnit1013</NoWarn>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('-3.1')) And $(MSBuildProjectName.EndsWith('-3.1')) ">
+  <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('-3.1')) And $(MSBuildProjectName.StartsWith('BulkTest')) ">
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 

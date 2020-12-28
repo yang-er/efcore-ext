@@ -6,8 +6,8 @@ Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, M
 
 Current version supports EFCore 3.1 and EFCore 5.0.
 
-Targeting `netcoreapp3.1` and used on .NET Core 3.1 projects.
-Targeting `net5.0` and used on .NET 5.0 projects.
+Targeting `netstandard2.0` and used on EFCore 3.1 projects.
+Targeting `netstandard2.1` and used on EFCore 5.0 projects.
 
 - [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk): EFCore Bulk extension definition
 - [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.InMemory%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.InMemory): InMemory bulk operation provider
@@ -115,5 +115,5 @@ It is removed now. It takes time to clear up the logics.
 ```csharp
 options.UseCahce();
 
-await context.Items.CountAsync("tag", TimeSpan.FromSeconds(10));
+await context.Items.CachedCountAsync("tag", TimeSpan.FromSeconds(10));
 ```

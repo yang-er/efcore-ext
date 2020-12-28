@@ -24,10 +24,10 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
                 if (methodCall.Method.DeclaringType == typeof(Queryable)
                     && (methodCall.Method.Name == nameof(Queryable.Take)
-                    || methodCall.Method.Name == nameof(Queryable.TakeLast)
+                    || methodCall.Method.Name == "TakeLast"
                     || methodCall.Method.Name == nameof(Queryable.TakeWhile)
                     || methodCall.Method.Name == nameof(Queryable.Skip)
-                    || methodCall.Method.Name == nameof(Queryable.SkipLast)
+                    || methodCall.Method.Name == "SkipLast"
                     || methodCall.Method.Name == nameof(Queryable.SkipWhile)))
                     throw new NotSupportedException("Batch update/delete doesn't support .Take() or .Skip()");
             }
