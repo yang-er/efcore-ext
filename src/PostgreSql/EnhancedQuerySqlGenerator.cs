@@ -16,7 +16,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
     {
         public EnhancedQuerySqlGenerator(
             QuerySqlGeneratorDependencies dependencies,
-            ISqlExpressionFactory sqlExpressionFactory,
             bool reverseNullOrderingEnabled,
             Version postgresVersion)
             : base(dependencies, reverseNullOrderingEnabled, postgresVersion)
@@ -272,6 +271,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             if (typeMap.DbType.HasValue)
                 parameter.DbType = typeMap.DbType.Value;
             return parameter;
+        }
+
+        public IRelationalCommand GetCommand(MergeExpression mergeExpression)
+        {
+            throw new NotSupportedException();
         }
     }
 }

@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
-    internal static class MergeQueryRewriter
+    internal static class QueryRewriter
     {
         /// <summary>
         /// Convert the source local table to a fake subquery or real-query itself.
@@ -87,6 +87,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return true;
         }
 
+
         /// <summary>
         /// Process for insert / update fields.
         /// </summary>
@@ -122,6 +123,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
         }
 
+
         /// <remarks>
         /// <para>
         /// This is provided for PostgreSQL / MySQL UPSERT.
@@ -138,7 +140,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TSource, TTarget>> insertExpression,
             Expression<Func<TTarget, TTarget, TTarget>> updateExpression,
             out UpsertExpression upsertExpression,
-            out QueryGenerationContext<Result<TTarget>> execution)
+            out QueryGenerationContext<Result<TTarget>> queryRewritingContext)
             where TTarget : class
             where TSource : class
         {
@@ -147,7 +149,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 throw new InvalidOperationException("Insert expression must be empty constructor and contain member initialization.");
 
             upsertExpression = null;
-            execution = null;
+            queryRewritingContext = null;
 
             if (!DetectSourceTable(targetTable, sourceTable, out var sourceQuery, out var callback))
                 return;
@@ -158,9 +160,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .Join(targetTable.IgnoreQueryFilters(), a => 998244853, a => 100000007, (a, t0) => new { a.t, a.s, t0 });
 
             var entityType = context.Model.FindEntityType(typeof(TTarget));
-            execution = TranslationStrategy.Go(context, MergeResult(query, updateExpression, insertExpression));
-            var selectExpression = execution.SelectExpression;
-            var queryContext = execution.QueryContext;
+            queryRewritingContext = TranslationStrategy.Go(context, MergeResult(query, updateExpression, insertExpression));
+            var selectExpression = queryRewritingContext.SelectExpression;
+            var queryContext = queryRewritingContext.QueryContext;
 
             static bool CheckJoinPredicate(SqlExpression sqlExpression, int left, int right)
                 => sqlExpression is SqlBinaryExpression binary
@@ -227,6 +229,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
         }
 
+
         /// <remarks>
         /// <para>
         /// This is provided for SQL Server MERGE INTO, so there's <c>NOT MATCHED</c>,
@@ -248,12 +251,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TSource, TTarget>> insertExpression,
             bool delete,
             out MergeExpression mergeExpression,
-            out QueryGenerationContext<Result<TTarget>> execution)
+            out QueryGenerationContext<Result<TTarget>> queryRewritingContext)
             where TTarget : class
             where TSource : class
         {
             mergeExpression = null;
-            execution = null;
+            queryRewritingContext = null;
 
             var e = DetectSourceTable(targetTable, sourceTable2, out var sourceQuery, out var callback);
             if (!e && delete) return;
@@ -263,9 +266,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .Join(sourceQuery, joinKeyType, targetKey, sourceKey, MergeResult(updateExpression, insertExpression));
 
             var entityType = context.Model.FindEntityType(typeof(TTarget));
-            execution = TranslationStrategy.Go(context, query);
-            var selectExpression = execution.SelectExpression;
-            var queryContext = execution.QueryContext;
+            queryRewritingContext = TranslationStrategy.Go(context, query);
+            var selectExpression = queryRewritingContext.SelectExpression;
+            var queryContext = queryRewritingContext.QueryContext;
 
             if (selectExpression.Tables.Count != 2
                 || selectExpression.Predicate != null
@@ -313,6 +316,81 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 return Expression.Lambda<Func<T1, T2, Result<T1>>>(body, para1, para2);
             }
         }
+
+
+        public static void ParseDelete<T>(
+            DbContext context,
+            IQueryable<T> queryable,
+            out DeleteExpression deleteExpression,
+            out QueryGenerationContext<T> queryRewritingContext)
+        {
+            var entityType = context.Model.FindEntityType(typeof(T));
+            queryRewritingContext = TranslationStrategy.Go(context, queryable);
+
+            deleteExpression = DeleteExpression.CreateFromSelect(
+                queryRewritingContext.SelectExpression,
+                entityType);
+        }
+
+
+        public static void ParseSelectInto<T>(
+            DbContext context,
+            IQueryable<T> queryable,
+            out SelectIntoExpression selectIntoExpression,
+            out QueryGenerationContext<T> queryRewritingContext)
+        {
+            var entityType = context.Model.FindEntityType(typeof(T));
+            queryRewritingContext = TranslationStrategy.Go(context, queryable);
+
+            selectIntoExpression = SelectIntoExpression.CreateFromSelect(
+                queryRewritingContext.SelectExpression,
+                entityType);
+        }
+
+
+        public static void ParseUpdate<T>(
+            DbContext context,
+            IQueryable<T> query,
+            Expression<Func<T, T>> updateSelector,
+            out UpdateExpression updateExpression,
+            out QueryGenerationContext<T> queryRewritingContext)
+        {
+            var queryable = query.Select(updateSelector);
+            var entityType = context.Model.FindEntityType(typeof(T));
+            queryRewritingContext = TranslationStrategy.Go(context, queryable);
+
+            updateExpression = UpdateExpression.CreateFromSelect(
+                queryRewritingContext.SelectExpression,
+                entityType,
+                queryRewritingContext.InternalExpression);
+        }
+
+
+        public static void ParseUpdateJoinQueryable<TOuter, TInner, TKey>(
+            DbContext context,
+            IQueryable<TOuter> outer,
+            IQueryable<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition,
+            out UpdateExpression updateExpression,
+            out QueryGenerationContext<TOuter> queryRewritingContext)
+        {
+            var queryable = outer
+                .Join(inner, outerKeySelector, innerKeySelector, (outer, inner) => new { outer, inner })
+                .WhereIf(condition.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner))
+                .Select(updateSelector.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner));
+
+            var entityType = context.Model.FindEntityType(typeof(TOuter));
+            queryRewritingContext = TranslationStrategy.Go(context, queryable);
+
+            updateExpression = UpdateExpression.CreateFromSelect(
+                queryRewritingContext.SelectExpression,
+                entityType,
+                queryRewritingContext.InternalExpression);
+        }
+
 
         public class Result<T>
         {

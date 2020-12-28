@@ -99,18 +99,6 @@ internal static partial class Internals
                 : type.UnwrapNullableType();
 }
 
-internal sealed class NotNullAttribute : Attribute
-{
-}
-
-internal sealed class AllowNullAttribute : Attribute
-{
-}
-
-internal sealed class DisallowNullAttribute : Attribute
-{
-}
-
 internal static class NetStandardCompatibilityExtensions
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

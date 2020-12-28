@@ -3,74 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class SqlServerBatchOperationProvider : RelationalBatchOperationProvider
     {
-        public override int Merge<TTarget, TSource, TJoinKey>(
-            DbContext context,
-            DbSet<TTarget> targetTable,
-            IEnumerable<TSource> sourceTable,
-            Expression<Func<TTarget, TJoinKey>> targetKey,
-            Expression<Func<TSource, TJoinKey>> sourceKey,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
-            Expression<Func<TSource, TTarget>> insertExpression,
-            bool delete)
-            where TTarget : class
-            where TSource : class
-        {
-            var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, typeof(TJoinKey), targetKey, sourceKey, updateExpression, insertExpression, delete);
-            return context.Database.ExecuteSqlRaw(sql, parameters);
-        }
-
-        public override Task<int> MergeAsync<TTarget, TSource, TJoinKey>(
-            DbContext context,
-            DbSet<TTarget> targetTable,
-            IEnumerable<TSource> sourceTable,
-            Expression<Func<TTarget, TJoinKey>> targetKey,
-            Expression<Func<TSource, TJoinKey>> sourceKey,
-            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
-            Expression<Func<TSource, TTarget>> insertExpression,
-            bool delete,
-            CancellationToken cancellationToken)
-            where TTarget : class
-            where TSource : class
-        {
-            var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, typeof(TJoinKey), targetKey, sourceKey, updateExpression, insertExpression, delete);
-            return context.Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
-        }
-
-        public override int Upsert<TTarget, TSource>(
-            DbContext context,
-            DbSet<TTarget> set,
-            IEnumerable<TSource> sources,
-            Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TTarget, TTarget>> updateExpression)
-            where TTarget : class
-            where TSource : class
-        {
-            var (sql, parameters) = GetSqlUpsert(context, set, sources, insertExpression, updateExpression);
-            return context.Database.ExecuteSqlRaw(sql, parameters);
-        }
-
-        public override Task<int> UpsertAsync<TTarget, TSource>(
-            DbContext context,
-            DbSet<TTarget> set,
-            IEnumerable<TSource> sources,
-            Expression<Func<TSource, TTarget>> insertExpression,
-            Expression<Func<TTarget, TTarget, TTarget>> updateExpression,
-            CancellationToken cancellationToken)
-            where TTarget : class
-            where TSource : class
-        {
-            var (sql, parameters) = GetSqlUpsert(context, set, sources, insertExpression, updateExpression);
-            return context.Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
-        }
-
-        private static (string, IEnumerable<object>) GetSqlUpsert<TTarget, TSource>(
+        protected override (string, IEnumerable<object>) GetSqlUpsert<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
@@ -90,21 +28,20 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 insertExpression.Parameters[0], keyBody.Bindings,
                 out var tJoinKey, out var targetKey, out var sourceKey);
 
-            MergeQueryRewriter.ParseMerge(
+            QueryRewriter.ParseMerge(
                 context, targetTable, sourceTable,
                 tJoinKey, targetKey, sourceKey,
                 updateExpression, insertExpression, false,
-                out var exp, out var execution);
+                out var mergeExpression, out var queryRewritingContext);
 
-            if (exp == null)
+            if (mergeExpression == null)
                 return ("SELECT 0", Array.Empty<object>());
 
-            var (command, parameters) = execution.Generate("MERGE", null,
-                _ => ((EnhancedQuerySqlGenerator)_).GetCommand(exp));
+            var (command, parameters) = queryRewritingContext.Generate(mergeExpression);
             return (command.CommandText, parameters);
         }
 
-        private static (string, IEnumerable<object>) GetSqlMerge<TTarget, TSource>(
+        protected override (string, IEnumerable<object>) GetSqlMerge<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable2,
@@ -117,19 +54,18 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TTarget : class
             where TSource : class
         {
-            MergeQueryRewriter.ParseMerge(
+            QueryRewriter.ParseMerge(
                 context, targetTable, sourceTable2,
                 joinKeyType, targetKey, sourceKey,
                 updateExpression, insertExpression, delete,
-                out var exp, out var execution);
+                out var mergeExpression, out var queryRewritingContext);
 
-            if (exp == null)
+            if (mergeExpression == null)
                 return (delete
                     ? $"TRUNCATE TABLE [{context.Model.FindEntityType(typeof(TTarget)).GetTableName()}]"
                     : $"SELECT 0", Array.Empty<object>());
 
-            var (command, parameters) = execution.Generate("MERGE", null,
-                _ => ((EnhancedQuerySqlGenerator)_).GetCommand(exp));
+            var (command, parameters) = queryRewritingContext.Generate(mergeExpression);
             return (command.CommandText, parameters);
         }
 

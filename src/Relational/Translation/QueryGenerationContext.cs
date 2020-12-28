@@ -48,20 +48,18 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public SelectExpression SelectExpression { get; }
 
-        public (IRelationalCommand, List<object>) Generate(
-            string target, IEntityType entityType,
-            Func<IEnhancedQuerySqlGenerator, IRelationalCommand> customGeneration = null)
+        public (IRelationalCommand, List<object>) Generate(Expression expression)
         {
-            customGeneration ??= _ => throw new NotImplementedException();
-
             var generator = CreateGenerator();
-            var command = target switch
+            var command = expression switch
             {
-                SELECT => generator.GetCommand(SelectExpression),
-                UPDATE => generator.GetCommand(UpdateExpression.CreateFromSelect(SelectExpression, entityType, InternalExpression)),
-                DELETE => generator.GetCommand(DeleteExpression.CreateFromSelect(SelectExpression, entityType)),
-                INSERT => generator.GetCommand(SelectIntoExpression.CreateFromSelect(SelectExpression, entityType)),
-                _ => customGeneration(generator) ?? throw new ArgumentNullException(nameof(customGeneration)),
+                SelectExpression selectExpression => generator.GetCommand(selectExpression),
+                UpdateExpression updateExpression => generator.GetCommand(updateExpression),
+                UpsertExpression upsertExpression => generator.GetCommand(upsertExpression),
+                MergeExpression mergeExpression => generator.GetCommand(mergeExpression),
+                DeleteExpression deleteExpression => generator.GetCommand(deleteExpression),
+                SelectIntoExpression selectIntoExpression => generator.GetCommand(selectIntoExpression),
+                _ => throw new ArgumentNullException(nameof(expression)),
             };
 
             var @params = new List<object>();

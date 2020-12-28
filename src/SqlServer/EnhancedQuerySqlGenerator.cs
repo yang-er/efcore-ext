@@ -223,5 +223,10 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 parameter.DbType = typeMap.DbType.Value;
             return parameter;
         }
+
+        public IRelationalCommand GetCommand(UpsertExpression upsertExpression)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

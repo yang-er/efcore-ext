@@ -228,12 +228,12 @@ namespace Microsoft.EntityFrameworkCore
         {
             public static IEqualityComparer<ProjectionExpression> Default = new ProjectionNameComparer();
 
-            public bool Equals([AllowNull] ProjectionExpression x, [AllowNull] ProjectionExpression y)
+            public bool Equals(ProjectionExpression x, ProjectionExpression y)
             {
                 return x.Alias == y.Alias;
             }
 
-            public int GetHashCode([DisallowNull] ProjectionExpression obj)
+            public int GetHashCode(ProjectionExpression obj)
             {
                 return obj.Alias.GetHashCode();
             }

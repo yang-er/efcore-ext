@@ -16,6 +16,10 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         IRelationalCommand GetCommand(UpdateExpression updateExpression);
 
         IRelationalCommand GetCommand(DeleteExpression deleteExpression);
+
+        IRelationalCommand GetCommand(MergeExpression mergeExpression);
+
+        IRelationalCommand GetCommand(UpsertExpression upsertExpression);
     }
 
     public interface IEnhancedQuerySqlGeneratorFactory<TOldFactory> : IQuerySqlGeneratorFactory

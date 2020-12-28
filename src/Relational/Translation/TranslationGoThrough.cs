@@ -36,13 +36,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         public static QueryGenerationContext<T> StepIn<T>(DbContext context, IQueryable<T> queryable)
         {
             var query = queryable.Expression;
-            var queryCompiler = queryable.Provider.Private<QueryCompiler>("_queryCompiler");
+            var evaluatableExpressionFilter = context.GetService<IEvaluatableExpressionFilter>();
             var queryCompilationContext = context.GetService<IQueryCompilationContextFactory>().Create(false);
             var logger = queryCompilationContext.Logger;
 
             // step 1: extract all parameters to check whether this queryable is compiled before.
             var queryContext = context.GetService<IQueryContextFactory>().Create();
-            query = ExtractParameters(queryCompiler, query, queryContext, logger, context.GetType(), context.Model);
+            query = ExtractParameters(evaluatableExpressionFilter, query, queryContext, logger, context.GetType(), context.Model);
 
             // step 2: preprocess
             query = context.GetService<IQueryTranslationPreprocessorFactory>()
@@ -101,17 +101,17 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 #endif
 
         public static Expression ExtractParameters(
-            [NotNull] QueryCompiler queryCompiler,
-            [NotNull] Expression query,
-            [NotNull] IParameterValues parameterValues,
-            [NotNull] IDiagnosticsLogger<DbLoggerCategory.Query> logger,
-            [NotNull] Type contextType,
-            [NotNull] IModel model,
+            IEvaluatableExpressionFilter evaluatableExpressionFilter,
+            Expression query,
+            IParameterValues parameterValues,
+            IDiagnosticsLogger<DbLoggerCategory.Query> logger,
+            Type contextType,
+            IModel model,
             bool parameterize = true,
             bool generateContextAccessors = false)
         {
             var visitor = new ParameterExtractingExpressionVisitor2(
-                queryCompiler.Private<IEvaluatableExpressionFilter>("_evaluatableExpressionFilter"),
+                evaluatableExpressionFilter,
                 parameterValues,
                 contextType,
                 model,
