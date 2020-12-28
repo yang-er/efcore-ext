@@ -14,8 +14,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class EnhancedQuerySqlGenerator : NpgsqlQuerySqlGenerator, IEnhancedQuerySqlGenerator
     {
-        private Func<ColumnExpression, bool> change = c => false;
-
         public EnhancedQuerySqlGenerator(
             QuerySqlGeneratorDependencies dependencies,
             ISqlExpressionFactory sqlExpressionFactory,
@@ -40,13 +38,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         }
 #endif
 
-        protected override Expression VisitColumn(ColumnExpression columnExpression)
-        {
-            if (!change(columnExpression))
-                base.VisitColumn(columnExpression);
-            return columnExpression;
-        }
-
         protected override Expression VisitFromSql(FromSqlExpression fromSqlExpression)
         {
             if (fromSqlExpression.Alias != null)
@@ -62,6 +53,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return extensionExpression switch
             {
                 ValuesExpression values => VisitValues(values),
+                ExcludedTableColumnExpression excludedTableColumnExpression => VisitExcludedTableColumn(excludedTableColumnExpression),
                 _ => base.VisitExtension(extensionExpression),
             };
         }
@@ -97,6 +89,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
 
             return tableExpression;
+        }
+
+        protected virtual Expression VisitExcludedTableColumn(ExcludedTableColumnExpression excludedTableColumnExpression)
+        {
+            Sql.Append("excluded.").Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name));
+            return excludedTableColumnExpression;
         }
 
         public virtual IRelationalCommand GetCommand(SelectIntoExpression selectIntoExpression)
@@ -217,16 +215,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 Sql.DecrementIndent()
                     .AppendLine()
                     .AppendLine(")");
-
-                change = columnExpression =>
-                {
-                    if (!columnExpression.Table.Equals(insertExpression.TableChanges))
-                        return false;
-                    Sql.Append(Helper.DelimitIdentifier(columnExpression.Table.Alias))
-                        .Append(".")
-                        .Append(Helper.DelimitIdentifier(insertExpression.ColumnChanges[columnExpression.Name]));
-                    return true;
-                };
             }
 
             Sql.Append("INSERT INTO ");
@@ -252,19 +240,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
             else
             {
-                change = _ => false;
-                RelationalInternals.ApplyAlias(insertExpression.ExcludedTable, "excluded");
-
                 Sql.Append("ON CONFLICT ON CONSTRAINT ")
-                    .Append(Helper.DelimitIdentifier(insertExpression.EntityType.FindPrimaryKey().GetName()))
+                    .Append(Helper.DelimitIdentifier(insertExpression.ConflictConstraintName))
                     .AppendLine(" DO UPDATE")
                     .Append("SET ")
-                    .GenerateList(insertExpression.OnConflictUpdate,
-                    e =>
-                    {
-                        Sql.Append(Helper.DelimitIdentifier(e.Alias)).Append(" = ");
-                        Visit(e.Expression);
-                    });
+                    .GenerateList(
+                        insertExpression.OnConflictUpdate,
+                        e => Sql.Append(Helper.DelimitIdentifier(e.Alias)).Append(" = ").Then(() => Visit(e.Expression)));
             }
 
             return Sql.Build();

@@ -18,13 +18,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         /// <param name="targetTable">The target table.</param>
         /// <param name="sourceEnumerable">The source table.</param>
         /// <param name="sourceQuery">The source query created for join or other usages.</param>
-        /// <param name="normalize">The action to normalize the fake query.</param>
+        /// <param name="callback">The action to normalize the fake query.</param>
         /// <returns>Whether to fallback to empty source table.</returns>
         private static bool DetectSourceTable<TTarget, TSource>(
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceEnumerable,
             out IQueryable<TSource> sourceQuery,
-            out Func<IFakeSubselectExpression, RelationalQueryContext, IFakeSubselectExpression> normalize)
+            out Func<SelectExpression, QueryContext, (ValuesExpression, IReadOnlyDictionary<string, string>)?> callback)
             where TTarget : class
             where TSource : class
         {
@@ -34,7 +34,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             if (sourceQuery != null)
             {
                 // normal subquery or table
-                normalize = (_, __) => _;
+                callback = (_, __) => null;
                 return true;
             }
 
@@ -44,7 +44,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             sourceTable = sourceEnumerable.ToList();
             if (sourceTable.Count == 0)
             {
-                normalize = (_, __) => _;
+                callback = (_, __) => null;
                 return false;
             }
 
@@ -53,9 +53,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 Expression.Parameter(typeof(TTarget), "t"));
             sourceQuery = targetTable.Select(selector).Distinct();
 
-            normalize = (exp, queryContext) =>
+            callback = (subquery, queryContext) =>
             {
-                if (!(exp.FakeTable is SelectExpression subquery))
+                if (subquery == null)
                     throw new InvalidOperationException("Translate failed.");
                 var props = typeof(TSource).GetProperties();
 
@@ -79,10 +79,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                     }
                 }
 
-                return exp.Update(
-                    real: new ValuesExpression(items, projects.Select(a => a.a.Name), subquery.Alias),
-                    fake: subquery,
-                    columnMapping: projects.ToDictionary(a => a.p.Alias, a => a.a.Name));
+                return (
+                    new ValuesExpression(items, projects.Select(a => a.a.Name), subquery.Alias),
+                    projects.ToDictionary(a => a.p.Alias, a => a.a.Name));
             };
 
             return true;
@@ -91,25 +90,35 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         /// <summary>
         /// Process for insert / update fields.
         /// </summary>
-        private static void AddUpsertFields(
-            IFakeSubselectExpression exp,
+        private static void ParseInsertOrUpdateFields(
             IEntityType entityType,
-            SelectExpression selectExpression)
+            SelectExpression selectExpression,
+            out IReadOnlyList<ProjectionExpression> insert,
+            out IReadOnlyList<ProjectionExpression> update)
         {
-            var columns = entityType.GetColumns();
-            var map = RelationalInternals.AccessProjectionMapping(selectExpression);
-            foreach (var (a, b) in map)
+            insert = new List<ProjectionExpression>();
+            update = new List<ProjectionExpression>();
+
+            var columnNames = entityType.GetColumns();
+            var projectionMapping = RelationalInternals.AccessProjectionMapping(selectExpression);
+            foreach (var (projectionMember, _id) in projectionMapping)
             {
-                if (!(b is ConstantExpression constant))
-                    throw new NotSupportedException("Wrong query.");
-                var name = a.ToString();
-                if (name.StartsWith("Insert.") || name.StartsWith("Update."))
-                    exp.AddUpsertField(
-                        insert: name.StartsWith("Insert."),
-                        sqlExpression: selectExpression.Projection[(int)constant.Value].Expression,
-                        columnName: columns[name.Substring(7)]);
-                else
-                    throw new InvalidOperationException("Translate failed.");
+                if (!(_id is ConstantExpression constant) || !(constant.Value is int id))
+                {
+                    throw new NotSupportedException("Translation failed for parsing these projection mapping.");
+                }
+
+                var name = projectionMember.ToString();
+                var target = name.Substring(0, 7) switch
+                {
+                    "Insert." => (List<ProjectionExpression>)insert,
+                    "Update." => (List<ProjectionExpression>)update,
+                    _ => throw new InvalidOperationException("Unknown projection member"),
+                };
+
+                target.Add(RelationalInternals.CreateProjectionExpression(
+                    selectExpression.Projection[id].Expression,
+                    columnNames[name.Substring(7)]));
             }
         }
 
@@ -140,11 +149,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             upsertExpression = null;
             execution = null;
 
-            if (!DetectSourceTable(
-                targetTable,
-                sourceTable,
-                out var sourceQuery,
-                out var normalize))
+            if (!DetectSourceTable(targetTable, sourceTable, out var sourceQuery, out var callback))
                 return;
 
             var query = targetTable
@@ -178,18 +183,16 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 || tableAgain.Name != table.Name)
                 throw new NotSupportedException("Unknown entity configured.");
 
-            upsertExpression = new UpsertExpression
-            {
-                TargetTable = table,
-                SourceTable = innerJoin.Table,
-                OnConflictUpdate = updateExpression == null ? null : new List<ProjectionExpression>(),
-                Columns = new List<ProjectionExpression>(),
-                EntityType = entityType,
-                ExcludedTable = tableAgain,
-            };
+            ParseInsertOrUpdateFields(
+                entityType, selectExpression,
+                out var inserts, out var updates);
 
-            AddUpsertFields(upsertExpression, entityType, selectExpression);
-            upsertExpression = (UpsertExpression)normalize.Invoke(upsertExpression, queryContext);
+            upsertExpression = new UpsertExpression(
+                table, innerJoin.Table, inserts,
+                updateExpression == null ? null : updates,
+                entityType.FindPrimaryKey().GetName());
+
+            FakeSelectReplacingVisitor.Process(ref upsertExpression, innerJoin.Table, queryContext, callback, tableAgain);
 
             static IQueryable<Result<T1>> MergeResult<T0, T1, T2>(
                 IQueryable<T0> query,
@@ -252,21 +255,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             mergeExpression = null;
             execution = null;
 
-            var e = DetectSourceTable(
-                targetTable,
-                sourceTable2,
-                out var sourceQuery,
-                out var normalize);
+            var e = DetectSourceTable(targetTable, sourceTable2, out var sourceQuery, out var callback);
             if (!e && delete) return;
 
             var query = targetTable
                 .IgnoreQueryFilters()
-                .Join(
-                    inner: sourceQuery,
-                    joinKeyType: joinKeyType,
-                    outerKeySelector: targetKey,
-                    innerKeySelector: sourceKey,
-                    resultSelector: MergeResult(updateExpression, insertExpression));
+                .Join(sourceQuery, joinKeyType, targetKey, sourceKey, MergeResult(updateExpression, insertExpression));
 
             var entityType = context.Model.FindEntityType(typeof(TTarget));
             execution = TranslationStrategy.Go(context, query);
@@ -279,14 +273,17 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 || !(selectExpression.Tables[0] is TableExpression table))
                 throw new NotSupportedException("Unknown entity configured.");
 
+            ParseInsertOrUpdateFields(
+                entityType, selectExpression,
+                out var inserts, out var updates);
+
             mergeExpression = new MergeExpression(
                 table, innerJoin.Table, innerJoin.JoinPredicate,
-                updateExpression == null ? null : new List<ProjectionExpression>(),
-                insertExpression == null ? null : new List<ProjectionExpression>(),
+                updateExpression == null ? null : updates,
+                insertExpression == null ? null : inserts,
                 delete);
 
-            AddUpsertFields(mergeExpression, entityType, selectExpression);
-            mergeExpression = (MergeExpression)normalize.Invoke(mergeExpression, queryContext);
+            FakeSelectReplacingVisitor.Process(ref mergeExpression, innerJoin.Table, queryContext, callback);
 
             static Expression<Func<T1, T2, Result<T1>>> MergeResult<T1, T2>(
                 Expression<Func<T1, T2, T1>> updateExpression,

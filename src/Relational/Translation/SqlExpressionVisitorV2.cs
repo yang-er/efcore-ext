@@ -147,6 +147,22 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected virtual Expression VisitValues(ValuesExpression valuesExpression)
             => BaseVisitExtension(valuesExpression);
 
+        /// <summary>
+        /// Visits the children of the upsert expression.
+        /// </summary>
+        /// <param name="upsertExpression">The expression to visit.</param>
+        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        protected virtual Expression VisitUpsert(UpsertExpression upsertExpression)
+            => BaseVisitExtension(upsertExpression);
+
+        /// <summary>
+        /// Visits the children of the excluded table column expression.
+        /// </summary>
+        /// <param name="excludedTableColumnExpression">The expression to visit.</param>
+        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        protected virtual Expression VisitExcludedTableColumn(ExcludedTableColumnExpression excludedTableColumnExpression)
+            => BaseVisitExtension(excludedTableColumnExpression);
+
 #if EFCORE31
 
         /// <inheritdoc />

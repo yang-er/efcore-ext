@@ -20,6 +20,8 @@ internal static partial class RelationalInternals
     const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
     const BindingFlags FindPrivate = BindingFlags.Instance | BindingFlags.NonPublic;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
     public static IRelationalCommandBuilder GenerateList<T>(
         this IRelationalCommandBuilder sql,
         IReadOnlyList<T> items,
@@ -37,6 +39,8 @@ internal static partial class RelationalInternals
         return sql;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
     public static ExpressionPrinter VisitCollection<T>(
         this ExpressionPrinter expressionPrinter,
         IReadOnlyList<T> items,
@@ -54,6 +58,8 @@ internal static partial class RelationalInternals
         return expressionPrinter;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
     public static IRelationalCommandBuilder Then(
         this IRelationalCommandBuilder sql,
         Action generationAction)

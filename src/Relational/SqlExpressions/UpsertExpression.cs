@@ -1,49 +1,95 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿#nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 {
-    public class UpsertExpression : Expression, IPrintableExpression, IFakeSubselectExpression
+    /// <summary>
+    /// An expression that represents an UPSERT in a SQL tree.
+    /// </summary>
+    public class UpsertExpression : Expression, IPrintableExpression
     {
-        public IEntityType EntityType { get; internal set; }
+        public UpsertExpression(
+            TableExpression targetTable,
+            TableExpressionBase sourceTable,
+            IReadOnlyList<ProjectionExpression> columns,
+            IReadOnlyList<ProjectionExpression>? onConflict,
+            string conflictConstraintName)
+        {
+            TargetTable = targetTable;
+            SourceTable = sourceTable;
+            Columns = columns;
+            OnConflictUpdate = onConflict;
+            ConflictConstraintName = conflictConstraintName;
+        }
 
+        /// <summary>
+        /// The target table to INSERT INTO.
+        /// </summary>
         public TableExpression TargetTable { get; internal set; }
 
+        /// <summary>
+        /// The source table to SELECT FROM.
+        /// </summary>
         public TableExpressionBase SourceTable { get; internal set; }
 
-        public TableExpression ExcludedTable { get; internal set; }
-
-        public IReadOnlyList<ProjectionExpression> OnConflictUpdate { get; internal set; }
-
+        /// <summary>
+        /// The columns being inserted, whose alias is the corresponding column name.
+        /// </summary>
         public IReadOnlyList<ProjectionExpression> Columns { get; internal set; }
 
-        /// <inheritdoc cref="MergeExpression.TableChanges" />
-        public TableExpressionBase TableChanges { get; internal set; }
+        /// <summary>
+        /// The expressions being updated when conflict.
+        /// </summary>
+        public IReadOnlyList<ProjectionExpression>? OnConflictUpdate { get; internal set; }
 
-        /// <inheritdoc cref="MergeExpression.ColumnChanges" />
-        public Dictionary<string, string> ColumnChanges { get; internal set; }
+        /// <summary>
+        /// The conflict constraint name.
+        /// </summary>
+        public string ConflictConstraintName { get; }
 
+        /// <inheritdoc />
         public void Print(ExpressionPrinter expressionPrinter)
         {
             expressionPrinter.Append("Upsert Entity");
         }
 
-        TableExpressionBase IFakeSubselectExpression.FakeTable => SourceTable;
-
-        IFakeSubselectExpression IFakeSubselectExpression.Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping)
+        /// <inheritdoc />
+        protected override Expression VisitChildren(ExpressionVisitor visitor)
         {
-            SourceTable = real;
-            TableChanges = fake;
-            ColumnChanges = columnMapping;
-            return this;
-        }
+            const string CallerName = "VisitUpsert";
 
-        void IFakeSubselectExpression.AddUpsertField(bool insert, SqlExpression sqlExpression, string columnName)
-        {
-            var list = (List<ProjectionExpression>)(insert ? Columns : OnConflictUpdate);
-            var proj = RelationalInternals.CreateProjectionExpression(sqlExpression, columnName);
-            list.Add(proj);
+            var targetTable = visitor.VisitAndConvert(TargetTable, CallerName);
+            bool changed = targetTable != TargetTable;
+
+            var sourceTable = visitor.VisitAndConvert(SourceTable, CallerName);
+            changed = changed || sourceTable != SourceTable;
+
+            bool onConflictUpdateChanged = false;
+            var onConflictUpdate = OnConflictUpdate?.ToList();
+            for (int i = 0; OnConflictUpdate != null && onConflictUpdate != null && i < OnConflictUpdate.Count; i++)
+            {
+                onConflictUpdate[i] = visitor.VisitAndConvert(OnConflictUpdate[i], CallerName);
+                onConflictUpdateChanged = onConflictUpdateChanged || onConflictUpdate[i] != OnConflictUpdate[i];
+            }
+
+            bool columnsChanged = false;
+            var columns = Columns.ToList();
+            for (int i = 0; i < columns.Count; i++)
+            {
+                columns[i] = visitor.VisitAndConvert(Columns[i], CallerName);
+                columnsChanged = columnsChanged || columns[i] != Columns[i];
+            }
+
+            changed = changed || onConflictUpdateChanged || columnsChanged;
+            if (!changed) return this;
+            return new UpsertExpression(
+                targetTable,
+                sourceTable,
+                columnsChanged ? columns : Columns,
+                onConflictUpdateChanged ? onConflictUpdate : OnConflictUpdate,
+                ConflictConstraintName);
         }
     }
 }

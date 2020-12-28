@@ -8,7 +8,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
     /// <summary>
     /// An expression that represents a MERGE in a SQL tree.
     /// </summary>
-    public sealed class MergeExpression : Expression, IPrintableExpression, IFakeSubselectExpression
+    public sealed class MergeExpression : Expression, IPrintableExpression
     {
         public MergeExpression(
             TableExpression targetTable,
@@ -149,21 +149,6 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
                 expressionPrinter.AppendLine()
                     .Append(NotMatchedBySource ? "THEN DELETE" : "THEN DO NOTHING");
             }
-        }
-
-        TableExpressionBase IFakeSubselectExpression.FakeTable => SourceTable;
-
-        IFakeSubselectExpression IFakeSubselectExpression.Update(TableExpressionBase real, SelectExpression fake, Dictionary<string, string> columnMapping)
-        {
-            var @new = new FakeSelectReplacingVisitor(fake, real, columnMapping).VisitAndConvert(this, null);
-            return @new;
-        }
-
-        void IFakeSubselectExpression.AddUpsertField(bool insert, SqlExpression sqlExpression, string columnName)
-        {
-            var list = (List<ProjectionExpression>)(insert ? NotMatchedByTarget : Matched)!;
-            var proj = RelationalInternals.CreateProjectionExpression(sqlExpression, columnName);
-            list.Add(proj);
         }
     }
 }

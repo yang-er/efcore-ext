@@ -78,6 +78,25 @@ internal static partial class Internals
     [DebuggerStepThrough]
     public static bool IsAnonymousType(this Type type)
         => type.FullName.StartsWith("<>f__AnonymousType");
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static bool IsNullableValueType(this Type type)
+        => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static bool IsNullableType(this Type type)
+        => !type.IsValueType || type.IsNullableValueType();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static Type MakeNullable(this Type type, bool nullable = true)
+        => type.IsNullableType() == nullable
+            ? type
+            : nullable
+                ? typeof(Nullable<>).MakeGenericType(type)
+                : type.UnwrapNullableType();
 }
 
 internal sealed class NotNullAttribute : Attribute
