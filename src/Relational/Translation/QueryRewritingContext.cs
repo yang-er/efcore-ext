@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Query;
+﻿using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -10,34 +9,42 @@ using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
-    public class QueryGenerationContext<T>
+    public class QueryRewritingContext
     {
-        const string SELECT = "SELECT";
-        const string INSERT = "INSERT";
-        const string DELETE = "DELETE";
-        const string UPDATE = "UPDATE";
-
-        public QueryGenerationContext(IEnumerable<T> execution, Expression expression)
+        private QueryRewritingContext(
+            Expression originalQueryExpression,
+            RelationalQueryContext queryContext,
+            RelationalCommandCache commandCache,
+            SelectExpression selectExpression)
         {
-            InternalExpression = expression;
+            InternalExpression = originalQueryExpression;
+            QueryContext = queryContext;
+            CommandCache = commandCache;
+            SelectExpression = selectExpression;
+        }
+
+        public static QueryRewritingContext Create<T>(IEnumerable<T> execution, Expression expression)
+        {
 #if EFCORE50
             var enumerator = (SingleQueryingEnumerable<T>)execution;
 #elif EFCORE31
             var enumerator = (QueryingEnumerable<T>)execution;
 #endif
-            QueryContext = enumerator.Private<RelationalQueryContext>("_relationalQueryContext");
-            CommandCache = enumerator.Private<RelationalCommandCache>("_relationalCommandCache");
-            var selectExpression = CommandCache.Private<SelectExpression>("_selectExpression");
+            var queryContext = enumerator.Private<RelationalQueryContext>("_relationalQueryContext");
+            var commandCache = enumerator.Private<RelationalCommandCache>("_relationalCommandCache");
+            var selectExpression = commandCache.Private<SelectExpression>("_selectExpression");
 
 #if EFCORE50
-            SelectExpression = CommandCache
+            selectExpression = commandCache
                 .Private<RelationalParameterBasedSqlProcessor>("_relationalParameterBasedSqlProcessor")
-                .Optimize(selectExpression, QueryContext.ParameterValues, out _);
+                .Optimize(selectExpression, queryContext.ParameterValues, out _);
 #elif EFCORE31
-            (SelectExpression, _) = CommandCache
+            (selectExpression, _) = commandCache
                 .Private<ParameterValueBasedSelectExpressionOptimizer>("_parameterValueBasedSelectExpressionOptimizer")
-                .Optimize(selectExpression, QueryContext.ParameterValues);
+                .Optimize(selectExpression, queryContext.ParameterValues);
 #endif
+
+            return new QueryRewritingContext(expression, queryContext, commandCache, selectExpression);
         }
 
         public Expression InternalExpression { get; }

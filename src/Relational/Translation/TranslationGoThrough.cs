@@ -15,17 +15,17 @@ namespace Microsoft.EntityFrameworkCore.Bulk
     internal static class TranslationStrategy
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static QueryGenerationContext<T> Go<T>(DbContext context, IQueryable<T> query)
+        public static QueryRewritingContext Go<T>(DbContext context, IQueryable<T> query)
         {
             return StepIn(context, query);
             //return System(query);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static QueryGenerationContext<T> System<T>(IQueryable<T> query)
+        public static QueryRewritingContext System<T>(IQueryable<T> query)
         {
             var enumerator = query.Provider.Execute<IEnumerable<T>>(query.Expression);
-            return new QueryGenerationContext<T>(enumerator, query.Expression);
+            return QueryRewritingContext.Create(enumerator, query.Expression);
         }
 
         private static readonly MethodInfo _queryContextAddParameterMethodInfo
@@ -33,7 +33,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .GetTypeInfo()
                 .GetDeclaredMethod(nameof(QueryContext.AddParameter));
 
-        public static QueryGenerationContext<T> StepIn<T>(DbContext context, IQueryable<T> queryable)
+        public static QueryRewritingContext StepIn<T>(DbContext context, IQueryable<T> queryable)
         {
             var query = queryable.Expression;
             var evaluatableExpressionFilter = context.GetService<IEvaluatableExpressionFilter>();
@@ -88,7 +88,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             // step 8: begin the execution
             var enumerator = compiled(queryContext);
-            return new QueryGenerationContext<T>(enumerator, queryable.Expression);
+            return QueryRewritingContext.Create(enumerator, queryable.Expression);
         }
 
 #if EFCORE31

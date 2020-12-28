@@ -140,7 +140,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TSource, TTarget>> insertExpression,
             Expression<Func<TTarget, TTarget, TTarget>> updateExpression,
             out UpsertExpression upsertExpression,
-            out QueryGenerationContext<Result<TTarget>> queryRewritingContext)
+            out QueryRewritingContext queryRewritingContext)
             where TTarget : class
             where TSource : class
         {
@@ -251,7 +251,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TSource, TTarget>> insertExpression,
             bool delete,
             out MergeExpression mergeExpression,
-            out QueryGenerationContext<Result<TTarget>> queryRewritingContext)
+            out QueryRewritingContext queryRewritingContext)
             where TTarget : class
             where TSource : class
         {
@@ -322,7 +322,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbContext context,
             IQueryable<T> queryable,
             out DeleteExpression deleteExpression,
-            out QueryGenerationContext<T> queryRewritingContext)
+            out QueryRewritingContext queryRewritingContext)
         {
             var entityType = context.Model.FindEntityType(typeof(T));
             queryRewritingContext = TranslationStrategy.Go(context, queryable);
@@ -337,7 +337,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbContext context,
             IQueryable<T> queryable,
             out SelectIntoExpression selectIntoExpression,
-            out QueryGenerationContext<T> queryRewritingContext)
+            out QueryRewritingContext queryRewritingContext)
         {
             var entityType = context.Model.FindEntityType(typeof(T));
             queryRewritingContext = TranslationStrategy.Go(context, queryable);
@@ -353,7 +353,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             IQueryable<T> query,
             Expression<Func<T, T>> updateSelector,
             out UpdateExpression updateExpression,
-            out QueryGenerationContext<T> queryRewritingContext)
+            out QueryRewritingContext queryRewritingContext)
         {
             var queryable = query.Select(updateSelector);
             var entityType = context.Model.FindEntityType(typeof(T));
@@ -375,7 +375,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<TOuter, TInner, TOuter>> updateSelector,
             Expression<Func<TOuter, TInner, bool>> condition,
             out UpdateExpression updateExpression,
-            out QueryGenerationContext<TOuter> queryRewritingContext)
+            out QueryRewritingContext queryRewritingContext)
         {
             var queryable = outer
                 .Join(inner, outerKeySelector, innerKeySelector, (outer, inner) => new { outer, inner })
@@ -392,7 +392,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         }
 
 
-        public class Result<T>
+        private class Result<T>
         {
             public T Insert { get; set; }
 
