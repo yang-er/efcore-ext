@@ -177,7 +177,15 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TOuter : class
             where TInner : class
         {
-            throw new NotSupportedException("Default batch operation provider doesn't support UPDATE JOIN.");
+            QueryRewriter.ParseUpdateJoinList(
+                context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition,
+                out var updateExpression, out var queryRewritingContext);
+
+            if (updateExpression == null)
+                return ("SELECT 0", Array.Empty<object>());
+
+            var (command, parameters) = queryRewritingContext.Generate(updateExpression);
+            return (command.CommandText, parameters);
         }
 
         #endregion

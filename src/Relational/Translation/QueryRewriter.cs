@@ -392,6 +392,47 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         }
 
 
+        public static void ParseUpdateJoinList<TOuter, TInner, TKey>(
+            DbContext context,
+            DbSet<TOuter> outer,
+            IReadOnlyList<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition,
+            out UpdateExpression updateExpression,
+            out QueryRewritingContext queryRewritingContext)
+            where TOuter : class
+            where TInner : class
+        {
+            updateExpression = null;
+            queryRewritingContext = null;
+
+            if (!DetectSourceTable(outer, inner, out var innerQ, out var callback))
+                return;
+
+            var queryable = outer
+                .Join(innerQ, outerKeySelector, innerKeySelector, (outer, inner) => new { outer, inner })
+                .WhereIf(condition.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner))
+                .Select(updateSelector.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner));
+
+            var entityType = context.Model.FindEntityType(typeof(TOuter));
+            queryRewritingContext = TranslationStrategy.Go(context, queryable);
+            var queryContext = queryRewritingContext.QueryContext;
+
+            updateExpression = UpdateExpression.CreateFromSelect(
+                queryRewritingContext.SelectExpression,
+                entityType,
+                queryRewritingContext.InternalExpression);
+
+            if (!(updateExpression.Tables[updateExpression.Tables.Count - 1] is InnerJoinExpression innerJoin)
+                || !(innerJoin.Table is SelectExpression fakeSelectExpression))
+                throw new NotImplementedException("Translation failed.");
+
+            FakeSelectReplacingVisitor.Process(ref updateExpression, fakeSelectExpression, queryContext, callback);
+        }
+
+
         private class Result<T>
         {
             public T Insert { get; set; }
