@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Cacheable;
 using System;
 using System.Threading.Tasks;
 using Xunit;
