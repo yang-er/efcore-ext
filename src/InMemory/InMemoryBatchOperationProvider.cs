@@ -315,8 +315,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             IEntityType innerType,
             ParameterExpression outerParam, IReadOnlyList<MemberBinding> outerBindings)
         {
-            var keys = innerType.FindPrimaryKey();
-            if (keys == null) throw new NotSupportedException($"No primary key configured for {innerType}.");
+            if (!innerType.TryGuessKey(outerBindings, out var keys))
+                throw new NotSupportedException($"No corresponding upsert equality key found for {innerType}.");
 
             var innerParam = Expression.Parameter(typeof(TTarget), "<>_t");
             var inner = new Expression[keys.Properties.Count];
@@ -326,11 +326,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 var prop = keys.Properties[i];
                 var member = (MemberInfo)prop.PropertyInfo ?? prop.FieldInfo;
                 if (prop.IsShadowProperty())
-                    throw new NotSupportedException("Shadow property in primary key is not supported yet.");
+                    throw new NotSupportedException("Shadow property in this key is not supported yet.");
 
                 var binding = outerBindings.OfType<MemberAssignment>().FirstOrDefault(m => m.Member == member);
                 if (binding == null)
-                    throw new ArgumentException("The outer member binding doesn't contains the property in primary key.");
+                    throw new ArgumentException("The outer member binding doesn't contains the property in this key.");
 
                 inner[i] = Expression.MakeMemberAccess(innerParam, member);
                 outer[i] = binding.Expression;

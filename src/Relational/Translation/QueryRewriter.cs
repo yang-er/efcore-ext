@@ -160,6 +160,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .Join(targetTable.IgnoreQueryFilters(), a => 998244853, a => 100000007, (a, t0) => new { a.t, a.s, t0 });
 
             var entityType = context.Model.FindEntityType(typeof(TTarget));
+            if (!entityType.TryGuessKey(keyBody.Bindings, out var key))
+                throw new NotSupportedException($"No corresponding key found for {entityType}.");
+
             queryRewritingContext = TranslationStrategy.Go(context, MergeResult(query, updateExpression, insertExpression));
             var selectExpression = queryRewritingContext.SelectExpression;
             var queryContext = queryRewritingContext.QueryContext;
@@ -192,7 +195,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             upsertExpression = new UpsertExpression(
                 table, innerJoin.Table, inserts,
                 updateExpression == null ? null : updates,
-                entityType.FindPrimaryKey().GetName());
+                key.GetName());
 
             FakeSelectReplacingVisitor.Process(ref upsertExpression, innerJoin.Table, queryContext, callback, tableAgain);
 

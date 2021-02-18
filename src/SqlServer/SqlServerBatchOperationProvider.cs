@@ -21,10 +21,14 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 keyBody.NewExpression.Constructor.GetParameters().Length != 0)
                 throw new InvalidOperationException("Insert expression must be empty constructor and contain member initialization.");
 
+            var entityType = context.Model.FindEntityType(typeof(TTarget));
+            if (!entityType.TryGuessKey(keyBody.Bindings, out var key))
+                throw new NotSupportedException($"No corresponding key found for {entityType}.");
+
             var updateExpression = UpsertTttToTstVisitor.Parse(insertExpression, updateExpression2);
 
             AnonymousObjectExpressionFactory.GetTransparentIdentifier(
-                Expression.Parameter(typeof(TTarget), "t"), context.Model.FindEntityType(typeof(TTarget)),
+                Expression.Parameter(typeof(TTarget), "t"), key,
                 insertExpression.Parameters[0], keyBody.Bindings,
                 out var tJoinKey, out var targetKey, out var sourceKey);
 

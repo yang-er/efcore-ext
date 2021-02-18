@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using System;
@@ -169,6 +170,30 @@ internal static class NetStandardCompatibilityExtensions
     private static QueryContextDependencies AccessDependencies(IQueryProvider queryProvider)
         => GetQueryContextFactory(queryProvider)
             .Private<QueryContextDependencies>("_dependencies");
+
+    public static bool TryGuessKey(this IEntityType entityType, IReadOnlyList<MemberBinding> bindings, out IKey key)
+    {
+        var assignments = bindings.OfType<MemberAssignment>().Select(a => a.Member).ToHashSet();
+        foreach (var ikey in entityType.GetKeys())
+        {
+            bool fulfill = true;
+            foreach (var prop in ikey.Properties)
+            {
+                var member = (MemberInfo)prop.PropertyInfo ?? prop.FieldInfo;
+                if (!assignments.Contains(member)) fulfill = false;
+                if (prop.ValueGenerated != ValueGenerated.Never) fulfill = false;
+            }
+
+            if (fulfill)
+            {
+                key = ikey;
+                return true;
+            }
+        }
+
+        key = null;
+        return false;
+    }
 
     public static DbContext GetDbContext<T>(this IQueryable<T> query) where T : class
     {

@@ -17,22 +17,19 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         }
 
         public static void GetTransparentIdentifier(
-            ParameterExpression targetParam, IEntityType targetType,
+            ParameterExpression targetParam, IKey keys,
             ParameterExpression sourceParam, IReadOnlyList<MemberBinding> sourceBindings,
             out Type transparentIdentifierType,
             out LambdaExpression targetKeySelector,
             out LambdaExpression sourceKeySelector)
         {
-            var keys = targetType.FindPrimaryKey();
-            if (keys == null) throw new NotSupportedException($"No primary key configured for {targetType}.");
-
             transparentIdentifierType = keys.Properties.Count switch
             {
                 1 => typeof(TransparentIdentifier<>),
                 2 => typeof(TransparentIdentifier<,>),
                 3 => typeof(TransparentIdentifier<,,>),
                 4 => typeof(TransparentIdentifier<,,,>),
-                _ => throw new NotSupportedException($"Primary key with {keys.Properties} properties is not supported yet."),
+                _ => throw new NotSupportedException($"Key with {keys.Properties} properties is not supported yet."),
             };
 
             var inner = new Expression[keys.Properties.Count];
@@ -105,6 +102,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         }
 
         #region struct TransparentIdentifier
+#pragma warning disable IDE0060
 
         struct TransparentIdentifier<T>
         {
@@ -142,6 +140,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             public override int GetHashCode() => 0;
         }
 
+#pragma warning restore IDE0060
         #endregion
     }
 }
