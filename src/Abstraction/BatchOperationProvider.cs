@@ -1,4 +1,5 @@
 ﻿#nullable enable
+#pragma warning disable CS1591
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;

@@ -185,7 +185,6 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="innerKeySelector">The inner key selector.</param>
         /// <param name="updateSelector">The update expression.</param>
         /// <param name="condition">The condition.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The affected rows.</returns>
         public static int BatchUpdateJoin<TOuter, TInner, TKey>(
             this DbSet<TOuter> outer,
@@ -256,7 +255,6 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="innerKeySelector">The inner key selector.</param>
         /// <param name="updateSelector">The update expression.</param>
         /// <param name="condition">The condition.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The affected rows.</returns>
         public static int BatchUpdateJoin<TOuter, TInner, TKey>(
             this DbSet<TOuter> outer,
@@ -322,7 +320,7 @@ namespace Microsoft.EntityFrameworkCore
         /// </summary>
         /// <typeparam name="T">The entity type.</typeparam>
         /// <param name="query">The entity query.</param>
-        /// <param name="_">The target table.</param>
+        /// <param name="to">The target table.</param>
         /// <returns>The affected rows.</returns>
         public static int BatchInsertInto<T>(
             this IQueryable<T> query,
