@@ -207,7 +207,8 @@ namespace Microsoft.EntityFrameworkCore.Query
         private static readonly Func<Expression, ExpressionVisitor, Expression> s_VisitChildren
             = typeof(Expression)
                 .GetMethod("VisitChildren", Internals.FindPrivate)
-                .CreateDelegate(typeof(Func<Expression, ExpressionVisitor, Expression>)) as dynamic;
+                .CreateDelegate(typeof(Func<Expression, ExpressionVisitor, Expression>))
+              as Func<Expression, ExpressionVisitor, Expression>;
 
         private Expression BaseVisitExtension(Expression expression) => s_VisitChildren.Invoke(expression, this);
 
