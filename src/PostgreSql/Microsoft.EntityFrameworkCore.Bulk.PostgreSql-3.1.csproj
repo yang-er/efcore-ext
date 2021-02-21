@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EntityFrameworkCoreVersion)" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(EFCoreNpgsqlCoreVersion)" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(EFCoreNpgsqlCoreVersion)" Condition=" $(EFCorePgSourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCorePgSourceDirectory)\src\EFCore.PG\EFCore.PG.csproj" Condition=" $(EFCorePgSourceDirectory) != '' " />
     <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-$(DotNetCoreVersion).csproj" />
   </ItemGroup>
 

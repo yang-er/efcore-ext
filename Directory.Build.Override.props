@@ -1,0 +1,17 @@
+<Project>
+
+  <PropertyGroup>
+    <UseSourceDebugging>False</UseSourceDebugging>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(DotNetCoreVersion) == '5.0' AND $(UseSourceDebugging) == 'True' ">
+    <EFCoreSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore-5</EFCoreSourceDirectory>
+    <EFCorePgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg-5</EFCorePgSourceDirectory>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(DotNetCoreVersion) == '3.1' AND $(UseSourceDebugging) == 'True' ">
+    <EFCoreSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore</EFCoreSourceDirectory>
+    <EFCorePgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg</EFCorePgSourceDirectory>
+  </PropertyGroup>
+
+</Project>

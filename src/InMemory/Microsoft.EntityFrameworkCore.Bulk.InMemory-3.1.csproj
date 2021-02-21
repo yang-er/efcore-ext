@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCoreVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EntityFrameworkCoreVersion)" Condition=" $(EFCoreSourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCoreSourceDirectory)\src\EFCore.InMemory\EFCore.InMemory.csproj" Condition=" $(EFCoreSourceDirectory) != '' " />
     <ProjectReference Include="..\Abstraction\Microsoft.EntityFrameworkCore.Bulk-$(DotNetCoreVersion).csproj" />
   </ItemGroup>
 
