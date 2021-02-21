@@ -6,10 +6,7 @@ before_build:
 - cmd: nuget restore
 
 build:
-  publish_nuget: true
-  publish_nuget_symbols: true
+  project: EFCore.BulkExtensions.sln
+  publish_nuget: false
+  publish_nuget_symbols: false
   verbosity: minimal
-  
-artifacts:
-- path: src/**/*.nupkg
-  name: NuGet Packages
