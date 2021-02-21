@@ -28,8 +28,6 @@
     <IsUnitTest Condition=" $(MSBuildProjectName.StartsWith('BulkTest')) ">True</IsUnitTest>
   </PropertyGroup>
 
-
-
   <!-- Project Defaults Bootstrapping -->
   <PropertyGroup Condition=" $(DotNetCoreVersion) == '5.0' ">
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -65,8 +63,6 @@
     <TargetFramework>ERROR</TargetFramework>
   </PropertyGroup>
 
-
-
   <!-- Assembly Information -->
   <PropertyGroup>
     <RootNamespace>$(AssemblyName)</RootNamespace>
@@ -77,5 +73,8 @@
     <AssemblyVersion>$(DotNetCoreVersion).0.0</AssemblyVersion>
     <FileVersion>$(DotNetCoreVersion).0.0</FileVersion>
   </PropertyGroup>
+
+  <!-- Source Code Debugging for EFCore -->
+  <Import Project="Directory.Build.Override.props" />
 
 </Project>

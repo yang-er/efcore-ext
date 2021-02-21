@@ -5,7 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="$(EntityFrameworkCoreVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="$(EntityFrameworkCoreVersion)" Condition=" $(EFCoreSourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCoreSourceDirectory)\src\EFCore\EFCore.csproj" Condition=" $(EFCoreSourceDirectory) != '' " />
   </ItemGroup>
 
   <ItemGroup>

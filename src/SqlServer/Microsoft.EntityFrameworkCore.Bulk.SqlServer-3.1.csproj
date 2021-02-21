@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EntityFrameworkCoreVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EntityFrameworkCoreVersion)" Condition=" $(EFCoreSourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCoreSourceDirectory)\src\EFCore.SqlServer\EFCore.SqlServer.csproj" Condition=" $(EFCoreSourceDirectory) != '' " />
     <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-$(DotNetCoreVersion).csproj" />
   </ItemGroup>
 
