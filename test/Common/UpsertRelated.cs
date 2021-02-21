@@ -225,8 +225,8 @@ namespace Testcase_Upsert
             Assert.Equal(3, context.RankCache.Count());
         }
 
-        [Fact(Skip = "Future"), TestPriority(5)]
-        public void Upsert_Bug202102102024()
+        [Fact, TestPriority(5)]
+        public void Translation_Parameterize()
         {
             using var context = contextFactory();
 

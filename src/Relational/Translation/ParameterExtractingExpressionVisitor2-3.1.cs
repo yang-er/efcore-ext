@@ -114,7 +114,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
         //************* TODO: MODIFIED SECTION
         private bool PreserveInitializationConstant(Expression expression, bool generateParameter)
             => (expression is NewExpression || expression is MemberInitExpression)
-            && (expression.Type.IsAnonymousType() || _model.FindEntityType(expression.Type) != null || !generateParameter);
+            && (expression.Type.IsAnonymousType() || expression.Type.IsTransparentIdentifier() || _model.FindEntityType(expression.Type) != null || !generateParameter);
         //************* TODO: MODIFIED SECTION
 
         private bool PreserveConvertNode(Expression expression)
