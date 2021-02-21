@@ -9,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
@@ -69,6 +71,20 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return factory.Function(name, arguments, returnType, typeMapping);
         }
 #endif
+
+        private static readonly MethodInfo s_CreateCommonTable_IQueryable_List
+            = new Func<IQueryable<object>, List<object>, IQueryable<object>>(CreateCommonTable).GetMethodInfo().GetGenericMethodDefinition();
+
+        internal static IQueryable<TTarget> CreateCommonTable<TSource, TTarget>(
+            this IQueryable<TSource> queryable,
+            List<TTarget> data)
+        {
+            return queryable.Provider.CreateQuery<TTarget>(
+                Expression.Call(
+                    s_CreateCommonTable_IQueryable_List.MakeGenericMethod(typeof(TSource), typeof(TTarget)),
+                    queryable.Expression,
+                    Expression.Constant(data)));
+        }
     }
 
     internal class RelationalBatchDbContextOptionsExtension<TNewFactory, TOldFactory, TProvider> :
@@ -100,6 +116,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             services[services.IndexOf(sd)] = ServiceDescriptor.Singleton(sd.ServiceType, typeof(TNewFactory));
 
             services.AddSingleton<IBatchOperationProvider, TProvider>();
+            XysQueryTranslationPreprocessorFactory.TryReplace(services);
             _configureServices.Invoke(services);
         }
 
