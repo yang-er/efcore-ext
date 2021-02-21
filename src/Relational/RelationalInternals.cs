@@ -153,29 +153,34 @@ internal static partial class RelationalInternals
     public static readonly Func<ITableBase, TableExpression> CreateTableExpression
         = typeof(TableExpression)
             .GetConstructors(bindingFlags)[0]
-            .CreateFactory() as dynamic;
+            .CreateFactory()
+          as Func<ITableBase, TableExpression>;
 #elif EFCORE31
     public static readonly Func<string, string, string, TableExpression> CreateTableExpression
         = typeof(TableExpression)
             .GetConstructors(bindingFlags)[0]
-            .CreateFactory() as dynamic;
+            .CreateFactory()
+          as Func<string, string, string, TableExpression>;
 #endif
 
     public static readonly Func<ParameterExpression, RelationalTypeMapping, SqlParameterExpression> CreateSqlParameterExpression
         = typeof(SqlParameterExpression)
             .GetConstructors(bindingFlags)[0]
-            .CreateFactory() as dynamic;
+            .CreateFactory()
+          as Func<ParameterExpression, RelationalTypeMapping, SqlParameterExpression>;
 
     public static readonly Func<SqlExpression, string, ProjectionExpression> CreateProjectionExpression
         = typeof(ProjectionExpression)
             .GetConstructors(bindingFlags)[0]
-            .CreateFactory() as dynamic;
+            .CreateFactory()
+          as Func<SqlExpression, string, ProjectionExpression>;
 
     public static readonly Func<string, TableExpressionBase, Type, RelationalTypeMapping, bool, ColumnExpression> CreateColumnExpression
         = typeof(ColumnExpression)
             .GetConstructors(bindingFlags)
             .Single(c => c.GetParameters().Length == 5)
-            .CreateFactory() as dynamic;
+            .CreateFactory()
+          as Func<string, TableExpressionBase, Type, RelationalTypeMapping, bool, ColumnExpression>;
 
     public static readonly Func<TypeMappedRelationalParameter, RelationalTypeMapping> AccessRelationalTypeMapping
         = Internals.CreateLambda<TypeMappedRelationalParameter, RelationalTypeMapping>(
