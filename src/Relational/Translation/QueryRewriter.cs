@@ -51,7 +51,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var selector = Expression.Lambda<Func<TTarget, TSource>>(
                 body: AnonymousObjectExpressionFactory.Create(typeof(TSource)),
                 Expression.Parameter(typeof(TTarget), "t"));
-            sourceQuery = targetTable.Select(selector).Distinct();
+            sourceQuery = targetTable.Select(selector).Distinct().CreateCommonTable(sourceTable);
 
             callback = (subquery, queryContext) =>
             {
