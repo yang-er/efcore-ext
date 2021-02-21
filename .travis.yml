@@ -3,9 +3,9 @@ mono: none
 dotnet: 5.0.101
 
 script:
-  - dotnet restore
-  - dotnet build
-  - dotnet pack -c Release -o packages
+  - dotnet restore EFCore.BulkExtensions.sln
+  - dotnet build EFCore.BulkExtensions.sln
+  - dotnet pack EFCore.BulkExtensions.sln -c Release -o packages
 
 deploy:
   skip_cleanup: true
