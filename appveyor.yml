@@ -3,7 +3,7 @@ configuration: Release
 services: postgresql12
 
 before_build:
-- cmd: nuget restore
+- cmd: nuget restore EFCore.BulkExtensions.sln
 
 build:
   project: EFCore.BulkExtensions.sln
