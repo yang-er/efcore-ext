@@ -303,14 +303,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return await context.SaveChangesAsync(cancellationToken);
         }
 
-        public (string, IEnumerable<object>) ToParametrizedSql<TEntity>(
-            DbContext context,
-            IQueryable<TEntity> query)
-            where TEntity : class
-        {
-            throw new NotSupportedException();
-        }
-
         private static Func<TTarget, TSource, bool> GetPredicates<TTarget, TSource>(
             IEntityType innerType,
             ParameterExpression outerParam, IReadOnlyList<MemberBinding> outerBindings)

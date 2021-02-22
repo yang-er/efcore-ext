@@ -1,4 +1,8 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
+using Microsoft.EntityFrameworkCore.Storage;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -8,7 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class SqlServerBatchOperationProvider : RelationalBatchOperationProvider
     {
-        protected override (string, IEnumerable<object>) GetSqlUpsert<TTarget, TSource>(
+        protected override INonQueryExecutor GetSqlUpsert<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
@@ -38,14 +42,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 updateExpression, insertExpression, false,
                 out var mergeExpression, out var queryRewritingContext);
 
-            if (mergeExpression == null)
-                return ("SELECT 0", Array.Empty<object>());
-
-            var (command, parameters) = queryRewritingContext.Generate(mergeExpression);
-            return (command.CommandText, parameters);
+            if (mergeExpression == null) return new NullNonQueryExecutor();
+            return queryRewritingContext.Generate(mergeExpression);
         }
 
-        protected override (string, IEnumerable<object>) GetSqlMerge<TTarget, TSource>(
+        protected override INonQueryExecutor GetSqlMerge<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable2,
@@ -65,12 +66,23 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 out var mergeExpression, out var queryRewritingContext);
 
             if (mergeExpression == null)
-                return (delete
-                    ? $"TRUNCATE TABLE [{context.Model.FindEntityType(typeof(TTarget)).GetTableName()}]"
-                    : $"SELECT 0", Array.Empty<object>());
+            {
+                if (delete)
+                {
+                    var builder = context.GetService<IRawSqlCommandBuilder>();
+                    var queryContext = (RelationalQueryContext)context.GetService<IQueryContextFactory>().Create();
 
-            var (command, parameters) = queryRewritingContext.Generate(mergeExpression);
-            return (command.CommandText, parameters);
+                    return new RelationalNonQueryExecutor(
+                        queryContext,
+                        builder.Build($"TRUNCATE TABLE [{context.Model.FindEntityType(typeof(TTarget)).GetTableName()}]"));
+                }
+                else
+                {
+                    return new NullNonQueryExecutor();
+                }
+            }
+
+            return queryRewritingContext.Generate(mergeExpression);
         }
 
         private class UpsertTttToTstVisitor : ExpressionVisitor

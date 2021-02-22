@@ -50,6 +50,15 @@ internal static partial class ContextUtil
         }
     }
 
+    public static string ToSQL<TSource>(this IQueryable<TSource> queryable) where TSource : class
+    {
+        var enumerable = queryable.Provider.Execute<IEnumerable<TSource>>(queryable.Expression);
+        var type = enumerable.GetType().GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var queryContext = (RelationalQueryContext)type.Single(e => e.Name == "_relationalQueryContext").GetValue(enumerable);
+        var commandCache = (RelationalCommandCache)type.Single(e => e.Name == "_relationalCommandCache").GetValue(enumerable);
+        return commandCache.GetRelationalCommand(queryContext.ParameterValues).CommandText;
+    }
+
 #if EFCORE31
     public static PropertyBuilder<TProperty> HasComputedColumnSql<TProperty>(this PropertyBuilder<TProperty> _, string __, bool ___)
     {

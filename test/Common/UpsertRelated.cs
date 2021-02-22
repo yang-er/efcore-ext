@@ -186,7 +186,7 @@ namespace Testcase_Upsert
             EnsureRank();
 
             using var context = contextFactory();
-            var query = context.RankSource.ToParametrizedSql().Item1;
+            var query = context.RankSource.ToSQL();
 
             var e = context.RankCache.Upsert(
                 context.RankSource.FromSqlRaw(query.Trim()),

@@ -192,7 +192,7 @@ namespace Check_UseLessJoinsRemoval
         public void Owned()
         {
             using var context = contextFactory();
-            var (sql, _) = context.ChangeLogs.ToParametrizedSql();
+            var sql = context.ChangeLogs.ToSQL();
             Assert.DoesNotContain("JOIN", sql);
             context.ChangeLogs.Load();
         }
@@ -203,7 +203,7 @@ namespace Check_UseLessJoinsRemoval
             using var context = contextFactory();
             var query = context.MiniInfos.Include(e => e.Full);
 
-            var (sql, _) = query.ToParametrizedSql();
+            var sql = query.ToSQL();
             Assert.DoesNotContain("JOIN", sql);
             query.Load();
         }
@@ -212,7 +212,7 @@ namespace Check_UseLessJoinsRemoval
         public void SuperOwned()
         {
             using var context = contextFactory();
-            var (sql, _) = context.OwnedThrees.ToParametrizedSql();
+            var sql = context.OwnedThrees.ToSQL();
             Assert.DoesNotContain("JOIN", sql);
             context.OwnedThrees.Load();
         }
@@ -224,7 +224,7 @@ namespace Check_UseLessJoinsRemoval
             var query = context.OwnedThrees
                 .Join(context.ChangeLogs, o => o.Id, o => o.ChangeLogId, (o, p) => new { o, p });
 
-            var (sql, _) = query.ToParametrizedSql();
+            var sql = query.ToSQL();
             Assert.DoesNotContain("LEFT JOIN", sql);
             query.Load();
         }
@@ -236,7 +236,7 @@ namespace Check_UseLessJoinsRemoval
             var query = context.ChangeLogs
                 .Join(context.OwnedThrees, o => o.ChangeLogId, o => o.Id, (o, p) => new { o, p });
 
-            var (sql, _) = query.ToParametrizedSql();
+            var sql = query.ToSQL();
             Assert.DoesNotContain("LEFT JOIN", sql);
             query.Load();
         }
@@ -249,7 +249,7 @@ namespace Check_UseLessJoinsRemoval
                 .GroupJoin(context.ChangeLogs, o => o.Id, o => o.ChangeLogId, (o, p) => new { o, p })
                 .SelectMany(a => a.p.DefaultIfEmpty(), (a, p) => new { a.o, p });
 
-            var (sql, _) = query.ToParametrizedSql();
+            var sql = query.ToSQL();
             Assert.DoesNotContain("INNER JOIN", sql);
             query.Load();
         }
@@ -262,7 +262,7 @@ namespace Check_UseLessJoinsRemoval
                 .GroupJoin(context.OwnedThrees, o => o.ChangeLogId, o => o.Id, (o, p) => new { o, p })
                 .SelectMany(a => a.p.DefaultIfEmpty(), (a, p) => new { a.o, p });
 
-            var (sql, _) = query.ToParametrizedSql();
+            var sql = query.ToSQL();
             Assert.DoesNotContain("INNER JOIN", sql);
             query.Load();
         }
@@ -277,7 +277,7 @@ namespace Check_UseLessJoinsRemoval
                 .Join(context.OwnedThrees, o => o.o.Id, o => o.Other, (a, o) => new { a.o, a.p, o2 = o })
                 .Where(o => o.o.Other != 3);
 
-            var (sql, _) = query.ToParametrizedSql();
+            var sql = query.ToSQL();
             Assert.Equal(4, sql.Trim().Count(c => c == '\n'));
             query.Load();
         }
