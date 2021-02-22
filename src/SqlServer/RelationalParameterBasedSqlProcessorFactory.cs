@@ -104,34 +104,6 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
     }
 
-    public class ValuesExpressionExpansionVisitor : SqlExpressionVisitorV2
-    {
-        private readonly ValuesExpression[] _toReplace, _replacement;
-
-        public ValuesExpressionExpansionVisitor(ValuesExpression[] toReplace, ValuesExpression[] replacement)
-        {
-            Check.NotNull(toReplace, nameof(toReplace));
-            Check.NotNull(replacement, nameof(replacement));
-            Check.DebugAssert(toReplace.Length == replacement.Length, "Should be equal length.");
-
-            _toReplace = toReplace;
-            _replacement = replacement;
-        }
-
-        protected override Expression VisitValues(ValuesExpression valuesExpression)
-        {
-            for (int i = 0; i < _toReplace.Length; i++)
-            {
-                if (valuesExpression == _toReplace[i])
-                {
-                    return _replacement[i];
-                }
-            }
-
-            return base.VisitValues(valuesExpression);
-        }
-    }
-
     public class XysParameterBasedSqlProcessorFactory : IRelationalParameterBasedSqlProcessorFactory
     {
         private readonly RelationalParameterBasedSqlProcessorDependencies _dependencies;

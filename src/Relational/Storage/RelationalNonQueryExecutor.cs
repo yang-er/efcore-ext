@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.EntityFrameworkCore.Query.Internal
+namespace Microsoft.EntityFrameworkCore.Query
 {
     public class RelationalNonQueryExecutor : INonQueryExecutor
     {
@@ -38,7 +39,9 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
         {
             using (_queryContext.ConcurrencyDetector.EnterCriticalSection())
             {
+#if EFCORE50
                 EntityFrameworkEventSource.Log.QueryExecuting();
+#endif
 
                 return RelationalCommand.ExecuteNonQuery(
                     new RelationalCommandParameterObject(
@@ -81,7 +84,9 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
             using (_queryContext.ConcurrencyDetector.EnterCriticalSection())
             {
+#if EFCORE50
                 EntityFrameworkEventSource.Log.QueryExecuting();
+#endif
 
                 return await RelationalCommand.ExecuteNonQueryAsync(
                     new RelationalCommandParameterObject(
