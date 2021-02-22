@@ -32,6 +32,18 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             Values = vals;
         }
 
+        public ValuesExpression(
+            ParameterExpression parameterExpression)
+            : base("cte")
+        {
+            RuntimeParameter = parameterExpression;
+        }
+
+        /// <summary>
+        /// The runtime parameter expression.
+        /// </summary>
+        public ParameterExpression RuntimeParameter { get; }
+
         /// <summary>
         /// The values table column name.
         /// </summary>
