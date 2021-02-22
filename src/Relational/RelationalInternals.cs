@@ -189,11 +189,24 @@ internal static partial class RelationalInternals
             .CreateFactory()
           as Func<string, TableExpressionBase, Type, RelationalTypeMapping, bool, ColumnExpression>;
 
-    public static readonly Action<SelectExpression> CleanSelectIdentifier
-        = Internals.CreateAction<SelectExpression>(param => param
-            .AccessField("_identifier")
-            .AccessMethod("Clear"))
-        .Compile();
+    public delegate SelectExpression SelectExpressionConstructor(
+        string alias,
+        List<ProjectionExpression> projections,
+        List<TableExpressionBase> tables,
+        List<SqlExpression> groupBy,
+        List<OrderingExpression> orderings);
+
+    public static readonly SelectExpressionConstructor CreateSelectExpression
+        = new Func<Expression<SelectExpressionConstructor>>(() =>
+        {
+            var ctor = typeof(SelectExpression).GetConstructors(bindingFlags)
+                .Where(c => c.GetParameters().Length == 5)
+                .Single();
+
+            var param = ctor.GetParameters().Select(a => Expression.Parameter(a.ParameterType, a.Name)).ToList();
+            return Expression.Lambda<SelectExpressionConstructor>(Expression.New(ctor, param), param);
+        })
+        .Invoke().Compile();
 
     public static readonly Func<TypeMappedRelationalParameter, RelationalTypeMapping> AccessRelationalTypeMapping
         = Internals.CreateLambda<TypeMappedRelationalParameter, RelationalTypeMapping>(
