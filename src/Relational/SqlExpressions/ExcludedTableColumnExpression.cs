@@ -38,6 +38,9 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         protected override Expression VisitChildren(ExpressionVisitor visitor) => this;
 
         /// <inheritdoc />
+        public override string ToString() => "excluded." + Name;
+
+        /// <inheritdoc />
 #if EFCORE50
         protected override void Print(ExpressionPrinter expressionPrinter)
 #elif EFCORE31
