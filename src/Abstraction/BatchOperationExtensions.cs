@@ -468,22 +468,5 @@ namespace Microsoft.EntityFrameworkCore
             var provider = context.GetService<IBatchOperationProvider>();
             return provider.UpsertAsync(context, set, new[] { source }, insertExpression, updateExpression, cancellationToken);
         }
-
-        /// <summary>
-        /// Translate the <see cref="IQueryable{T}"/> to parametrized SQL.
-        /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
-        /// <param name="query">The query expression.</param>
-        /// <returns>The query command text and parameters.</returns>
-        public static (string, IEnumerable<object>) ToParametrizedSql<T>(
-            this IQueryable<T> query)
-            where T : class
-        {
-            Check.NotNull(query, nameof(query));
-
-            var context = query.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.ToParametrizedSql(context, query);
-        }
     }
 }

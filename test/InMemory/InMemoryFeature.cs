@@ -46,4 +46,9 @@ internal static partial class ContextUtil
     {
         throw new NotSupportedException("Non-relational doesn't support form sql.");
     }
+
+    public static string ToSQL<TSource>(this IQueryable<TSource> _) where TSource : class
+    {
+        throw new NotSupportedException("Non-relational doesn't support to sql.");
+    }
 }

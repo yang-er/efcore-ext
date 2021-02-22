@@ -191,7 +191,7 @@ namespace Testcase_MergeInto
         {
             using var context = contextFactory();
 
-            var (fromSql, _) = context.RankSource.ToParametrizedSql();
+            var fromSql = context.RankSource.ToSQL();
 
             var ans = context.RankCache.Merge(
                 sourceTable: context.RankSource.FromSqlRaw(fromSql),

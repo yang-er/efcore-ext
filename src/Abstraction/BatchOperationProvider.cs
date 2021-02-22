@@ -144,10 +144,5 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             CancellationToken cancellationToken)
             where TTarget : class
             where TSource : class;
-
-        (string, IEnumerable<object>) ToParametrizedSql<TEntity>(
-            DbContext context,
-            IQueryable<TEntity> query)
-            where TEntity : class;
     }
 }

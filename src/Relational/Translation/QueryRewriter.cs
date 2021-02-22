@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using System;
 using System.Collections.Generic;
@@ -23,68 +22,23 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         private static bool DetectSourceTable<TTarget, TSource>(
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceEnumerable,
-            out IQueryable<TSource> sourceQuery,
-            out Func<SelectExpression, QueryContext, (ValuesExpression, IReadOnlyDictionary<string, string>)?> callback)
+            out IQueryable<TSource> sourceQuery)
             where TTarget : class
             where TSource : class
         {
             sourceQuery = sourceEnumerable as IQueryable<TSource>;
             List<TSource> sourceTable = null;
 
-            if (sourceQuery != null)
-            {
-                // normal subquery or table
-                callback = (_, __) => null;
-                return true;
-            }
+            // normal subquery or table
+            if (sourceQuery != null) return true;
 
             if (!typeof(TSource).IsAnonymousType())
                 throw new InvalidOperationException($"The source entity for upsert/merge must be anonymous objects.");
 
             sourceTable = sourceEnumerable.ToList();
-            if (sourceTable.Count == 0)
-            {
-                callback = (_, __) => null;
-                return false;
-            }
+            if (sourceTable.Count == 0) return false;
 
-            var selector = Expression.Lambda<Func<TTarget, TSource>>(
-                body: AnonymousObjectExpressionFactory.Create(typeof(TSource)),
-                Expression.Parameter(typeof(TTarget), "t"));
             sourceQuery = targetTable.CreateCommonTable(sourceTable);
-            // callback should be removed
-
-            callback = (subquery, queryContext) =>
-            {
-                if (subquery == null)
-                    throw new InvalidOperationException("Translate failed.");
-                var props = typeof(TSource).GetProperties();
-
-                var projects =
-                    (from p in subquery.Projection
-                     let c = (SqlConstantExpression)p.Expression
-                     let i = c.ReadBack()
-                     select new { p, c.TypeMapping, i, a = props[i] }).ToList();
-                projects.Sort((a, b) => a.i.CompareTo(b.i));
-                if (projects.Last().i + 1 != projects.Count)
-                    throw new InvalidOperationException("Translate failed.");
-                var items = new SqlParameterExpression[sourceTable.Count, props.Length];
-
-                for (int i = 0; i < sourceTable.Count; i++)
-                {
-                    for (int j = 0; j < props.Length; j++)
-                    {
-                        var paraName = $"__ap_{queryContext.ParameterValues.Count}";
-                        queryContext.AddParameter(paraName, props[j].GetValue(sourceTable[i]));
-                        items[i, j] = Expression.Parameter(props[j].PropertyType, paraName).ToSql(projects[j].TypeMapping);
-                    }
-                }
-
-                return (
-                    new ValuesExpression(items, projects.Select(a => a.a.Name), subquery.Alias),
-                    projects.ToDictionary(a => a.p.Alias, a => a.a.Name));
-            };
-
             return true;
         }
 
@@ -152,7 +106,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             upsertExpression = null;
             queryRewritingContext = null;
 
-            if (!DetectSourceTable(targetTable, sourceTable, out var sourceQuery, out var callback))
+            if (!DetectSourceTable(targetTable, sourceTable, out var sourceQuery))
                 return;
 
             var query = targetTable
@@ -197,8 +151,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 table, innerJoin.Table, inserts,
                 updateExpression == null ? null : updates,
                 key.GetName());
-
-            FakeSelectReplacingVisitor.Process(ref upsertExpression, innerJoin.Table, queryContext, callback, tableAgain);
 
             static IQueryable<Result<T1>> MergeResult<T0, T1, T2>(
                 IQueryable<T0> query,
@@ -262,7 +214,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             mergeExpression = null;
             queryRewritingContext = null;
 
-            var e = DetectSourceTable(targetTable, sourceTable2, out var sourceQuery, out var callback);
+            var e = DetectSourceTable(targetTable, sourceTable2, out var sourceQuery);
             if (!e && delete) return;
 
             var query = targetTable
@@ -289,8 +241,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 updateExpression == null ? null : updates,
                 insertExpression == null ? null : inserts,
                 delete);
-
-            FakeSelectReplacingVisitor.Process(ref mergeExpression, innerJoin.Table, queryContext, callback);
 
             static Expression<Func<T1, T2, Result<T1>>> MergeResult<T1, T2>(
                 Expression<Func<T1, T2, T1>> updateExpression,
@@ -412,7 +362,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             updateExpression = null;
             queryRewritingContext = null;
 
-            if (!DetectSourceTable(outer, inner, out var innerQ, out var callback))
+            if (!DetectSourceTable(outer, inner, out var innerQ))
                 return;
 
             var queryable = outer
@@ -430,10 +380,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 queryRewritingContext.InternalExpression);
 
             if (!(updateExpression.Tables[updateExpression.Tables.Count - 1] is InnerJoinExpression innerJoin)
-                || !(innerJoin.Table is SelectExpression fakeSelectExpression))
+                || !(innerJoin.Table is SelectExpression || innerJoin.Table is ValuesExpression))
                 throw new NotImplementedException("Translation failed.");
-
-            FakeSelectReplacingVisitor.Process(ref updateExpression, fakeSelectExpression, queryContext, callback);
         }
 
 

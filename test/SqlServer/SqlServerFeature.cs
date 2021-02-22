@@ -1,7 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 internal static partial class ContextUtil
 {
@@ -46,6 +50,15 @@ internal static partial class ContextUtil
             if (tableName != null)
                 context.Database.ExecuteSqlRaw($"DROP TABLE IF EXISTS [{tableName}]");
         }
+    }
+
+    public static string ToSQL<TSource>(this IQueryable<TSource> queryable) where TSource : class
+    {
+        var enumerable = queryable.Provider.Execute<IEnumerable<TSource>>(queryable.Expression);
+        var type = enumerable.GetType().GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var queryContext = (RelationalQueryContext)type.Single(e => e.Name == "_relationalQueryContext").GetValue(enumerable);
+        var commandCache = (RelationalCommandCache)type.Single(e => e.Name == "_relationalCommandCache").GetValue(enumerable);
+        return commandCache.GetRelationalCommand(queryContext.ParameterValues).CommandText;
     }
 
 #if EFCORE31
