@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal;
 
@@ -13,6 +14,7 @@ namespace Microsoft.EntityFrameworkCore
         {
             services.AddSingleton<IMethodCallTranslatorPlugin, DateTimeOffsetTranslation>();
             services.AddSingleton<IMemberTranslatorPlugin, DateTimeOffsetTranslation>();
+            services.Replace(ServiceDescriptor.Singleton<IRelationalParameterBasedSqlProcessorFactory, XysParameterBasedSqlProcessorFactory>());
         }
 
         public static NpgsqlDbContextOptionsBuilder UseBulk(this NpgsqlDbContextOptionsBuilder builder)

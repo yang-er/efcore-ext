@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using System;
 using System.Collections.Generic;
@@ -139,13 +140,23 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 || !(selectExpression.Tables[2] is InnerJoinExpression selfJoin)
                 || !CheckJoinPredicate(innerJoin.JoinPredicate, 998244353, 1000000007)
                 || !CheckJoinPredicate(selfJoin.JoinPredicate, 998244853, 100000007)
-                || !(selfJoin.Table is TableExpression tableAgain)
-                || tableAgain.Name != table.Name)
+                || !(selfJoin.Table is TableExpression excludedTable)
+                || excludedTable.Name != table.Name)
                 throw new NotSupportedException("Unknown entity configured.");
 
             ParseInsertOrUpdateFields(
                 entityType, selectExpression,
                 out var inserts, out var updates);
+
+            if (updateExpression != null)
+            {
+                var processor = new FakeSelectReplacingVisitor(excludedTable);
+                var updateFields = (List<ProjectionExpression>)updates;
+                for (int i = 0; i < updateFields.Count; i++)
+                {
+                    updateFields[i] = processor.VisitAndConvert(updateFields[i], null);
+                }
+            }
 
             upsertExpression = new UpsertExpression(
                 table, innerJoin.Table, inserts,
