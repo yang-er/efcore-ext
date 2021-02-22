@@ -12,7 +12,9 @@ namespace Microsoft.EntityFrameworkCore
         private static void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<IMethodCallTranslatorPlugin, MathTranslation>();
+#if EFCORE50
             services.Replace(ServiceDescriptor.Singleton<IRelationalParameterBasedSqlProcessorFactory, XysParameterBasedSqlProcessorFactory>());
+#endif
         }
 
         public static SqlServerDbContextOptionsBuilder UseBulk(this SqlServerDbContextOptionsBuilder builder)

@@ -14,7 +14,9 @@ namespace Microsoft.EntityFrameworkCore
         {
             services.AddSingleton<IMethodCallTranslatorPlugin, DateTimeOffsetTranslation>();
             services.AddSingleton<IMemberTranslatorPlugin, DateTimeOffsetTranslation>();
+#if EFCORE50
             services.Replace(ServiceDescriptor.Singleton<IRelationalParameterBasedSqlProcessorFactory, XysParameterBasedSqlProcessorFactory>());
+#endif
         }
 
         public static NpgsqlDbContextOptionsBuilder UseBulk(this NpgsqlDbContextOptionsBuilder builder)
