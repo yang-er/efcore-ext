@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -116,6 +117,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             services[services.IndexOf(sd)] = ServiceDescriptor.Singleton(sd.ServiceType, typeof(TNewFactory));
 
             services.AddSingleton<IBatchOperationProvider, TProvider>();
+            services.AddSingleton<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
             XysQueryTranslationPreprocessorFactory.TryReplace(services);
             XysQueryableMethodTranslatingExpressionVisitorFactory.TryReplace(services);
             _configureServices.Invoke(services);

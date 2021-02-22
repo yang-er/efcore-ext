@@ -38,6 +38,11 @@ internal static partial class Internals
         return Expression.Call(expression, method);
     }
 
+    public static BinaryExpression SetDefault(this MemberExpression expression)
+    {
+        return Expression.Assign(expression, Expression.Default(expression.Type));
+    }
+
     public static MemberExpression AccessProperty(this Expression expression, string name)
     {
         var member = expression.Type.GetProperty(name, bindingFlags);

@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
@@ -20,14 +20,17 @@ namespace Microsoft.EntityFrameworkCore.Query
     public class XysQueryableMethodTranslatingExpressionVisitor : RelationalQueryableMethodTranslatingExpressionVisitor
     {
         private readonly ISqlExpressionFactory _sqlExpressionFactory;
+        private readonly IAnonymousExpressionFactory _anonymousExpressionFactory;
 
         public XysQueryableMethodTranslatingExpressionVisitor(
             QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
             RelationalQueryableMethodTranslatingExpressionVisitorDependencies relationalDependencies,
-            ThirdParameter thirdParameter)
+            ThirdParameter thirdParameter,
+            IAnonymousExpressionFactory anonymousExpressionFactory)
             : base(dependencies, relationalDependencies, thirdParameter)
         {
             _sqlExpressionFactory = relationalDependencies.SqlExpressionFactory;
+            _anonymousExpressionFactory = anonymousExpressionFactory;
         }
 
         public XysQueryableMethodTranslatingExpressionVisitor(
@@ -35,21 +38,11 @@ namespace Microsoft.EntityFrameworkCore.Query
             : base(parentVisitor)
         {
             _sqlExpressionFactory = parentVisitor._sqlExpressionFactory;
+            _anonymousExpressionFactory = parentVisitor._anonymousExpressionFactory;
         }
 
         protected override QueryableMethodTranslatingExpressionVisitor CreateSubqueryVisitor()
             => new XysQueryableMethodTranslatingExpressionVisitor(this);
-
-        private static ShapedQueryExpression CreateShapedQueryExpression(IEntityType entityType, SelectExpression selectExpression)
-            => new ShapedQueryExpression(
-                selectExpression,
-                new EntityShaperExpression(
-                    entityType,
-                    new ProjectionBindingExpression(
-                        selectExpression,
-                        new ProjectionMember(),
-                        typeof(ValueBuffer)),
-                    false));
 
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
@@ -59,43 +52,31 @@ namespace Microsoft.EntityFrameworkCore.Query
                 if (method.Name == nameof(Bulk.RelationalExtensions.CreateCommonTable)
                     && methodCallExpression.Arguments[1] is ParameterExpression param)
                 {
-                    var values = new ValuesExpression(param);
-                    var shaped = (ShapedQueryExpression)Visit(methodCallExpression.Arguments[0]);
-                    var newExpr = (NewExpression)shaped.ShaperExpression;
-                    var select = (SelectExpression)shaped.QueryExpression;
-                    ((List<TableExpressionBase>)select.Tables)[0] = values;
-                    RelationalInternals.CleanSelectIdentifier(select);
-                    var mapping = RelationalInternals.AccessProjectionMapping(select);
+                    var entityType = _anonymousExpressionFactory.GetType(param.Type.GetGenericArguments()[0]);
+                    var values = new ValuesExpression(param, entityType.Fields.Select(a => a.Name).ToArray());
 
-                    if (mapping.Count != newExpr.Arguments.Count)
+                    var select = RelationalInternals.CreateSelectExpression(
+                        alias: null,
+                        projections: new List<ProjectionExpression>(),
+                        tables: new List<TableExpressionBase> { values },
+                        groupBy: new List<SqlExpression>(),
+                        orderings: new List<OrderingExpression>());
+
+                    var mapping = new Dictionary<ProjectionMember, Expression>();
+                    var rootMember = new ProjectionMember();
+                    var shaperArguments = new List<Expression>(entityType.Fields.Count);
+
+                    foreach (var field in entityType.Fields)
                     {
-                        throw new NotImplementedException();
+                        var projectionMember = rootMember.Append(field.PropertyInfo);
+                        mapping[projectionMember] = field.CreateColumn(values);
+                        shaperArguments.Add(field.CreateProjectionBinding(select, projectionMember));
                     }
 
-                    var constructorParams = newExpr.Constructor.GetParameters();
-                    for (int i = 0; i < mapping.Count; i++)
-                    {
-                        var currentArg = newExpr.Arguments[i];
-                        if (currentArg is UnaryExpression unary && unary.NodeType == ExpressionType.Convert) currentArg = unary.Operand;
-                        if (currentArg is ProjectionBindingExpression projectionBinding)
-                        {
-                            var member = projectionBinding.ProjectionMember;
-                            if (!(mapping[member] is SqlConstantExpression origin))
-                            {
-                                throw new NotImplementedException();
-                            }
-
-                            var paramName = constructorParams[i].Name;
-                            mapping[member] = RelationalInternals.CreateColumnExpression(
-                                paramName, values,
-                                origin.Type, origin.TypeMapping,
-                                constructorParams[i].ParameterType.IsNullableType());
-                        }
-                    }
-
-                    return shaped;
+                    select.ReplaceProjectionMapping(mapping);
+                    var shaper = entityType.CreateShaper(shaperArguments);
+                    return new ShapedQueryExpression(select, shaper);
                 }
-
             }
 
             return base.VisitMethodCall(methodCallExpression);
@@ -106,13 +87,16 @@ namespace Microsoft.EntityFrameworkCore.Query
     {
         private readonly QueryableMethodTranslatingExpressionVisitorDependencies _dependencies;
         private readonly RelationalQueryableMethodTranslatingExpressionVisitorDependencies _relationalDependencies;
+        private readonly IAnonymousExpressionFactory _anonymousExpressionFactory;
 
         public XysQueryableMethodTranslatingExpressionVisitorFactory(
             QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
-            RelationalQueryableMethodTranslatingExpressionVisitorDependencies relationalDependencies)
+            RelationalQueryableMethodTranslatingExpressionVisitorDependencies relationalDependencies,
+            IAnonymousExpressionFactory anonymousExpressionFactory)
         {
             _dependencies = dependencies;
             _relationalDependencies = relationalDependencies;
+            _anonymousExpressionFactory = anonymousExpressionFactory;
         }
 
         public QueryableMethodTranslatingExpressionVisitor Create(ThirdParameter thirdParameter)
@@ -120,7 +104,8 @@ namespace Microsoft.EntityFrameworkCore.Query
             return new XysQueryableMethodTranslatingExpressionVisitor(
                 _dependencies,
                 _relationalDependencies,
-                thirdParameter);
+                thirdParameter,
+                _anonymousExpressionFactory);
         }
 
         private static readonly Type _parentPreprocessorType = typeof(RelationalQueryableMethodTranslatingExpressionVisitorFactory);

@@ -33,10 +33,12 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         }
 
         public ValuesExpression(
-            ParameterExpression parameterExpression)
+            ParameterExpression parameterExpression,
+            IReadOnlyList<string> columnNames)
             : base("cte")
         {
             RuntimeParameter = parameterExpression;
+            ColumnNames = columnNames;
         }
 
         /// <summary>
@@ -57,6 +59,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         /// <inheritdoc cref="Expression.VisitChildren(ExpressionVisitor)" />
         public ValuesExpression VisitInner(ExpressionVisitor visitor)
         {
+            if (Values == null) return this;
             List<IReadOnlyList<SqlParameterExpression>> values = null;
             for (int i = 0; i < Values.Count; i++)
             {
