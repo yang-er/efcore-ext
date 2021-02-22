@@ -32,6 +32,12 @@ internal static partial class Internals
         return Expression.MakeMemberAccess(expression, member);
     }
 
+    public static MethodCallExpression AccessMethod(this Expression expression, string name)
+    {
+        var method = expression.Type.GetMethod(name, bindingFlags);
+        return Expression.Call(expression, method);
+    }
+
     public static MemberExpression AccessProperty(this Expression expression, string name)
     {
         var member = expression.Type.GetProperty(name, bindingFlags);
@@ -48,6 +54,13 @@ internal static partial class Internals
     {
         var param = Expression.Parameter(typeof(TIn), "arg1");
         return Expression.Lambda<Func<TIn, TOut>>(bodyBuilder(param), param);
+    }
+
+    public static Expression<Action<TIn>> CreateAction<TIn>(
+        Func<ParameterExpression, Expression> bodyBuilder)
+    {
+        var param = Expression.Parameter(typeof(TIn), "arg1");
+        return Expression.Lambda<Action<TIn>>(bodyBuilder(param), param);
     }
 
     public static Delegate CreateFactory(this ConstructorInfo ctor)

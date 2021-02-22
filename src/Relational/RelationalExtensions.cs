@@ -117,6 +117,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             services.AddSingleton<IBatchOperationProvider, TProvider>();
             XysQueryTranslationPreprocessorFactory.TryReplace(services);
+            XysQueryableMethodTranslatingExpressionVisitorFactory.TryReplace(services);
             _configureServices.Invoke(services);
         }
 
