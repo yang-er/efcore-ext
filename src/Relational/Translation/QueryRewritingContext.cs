@@ -40,6 +40,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             (selectExpression, _) = commandCache
                 .Private<ParameterValueBasedSelectExpressionOptimizer>("_parameterValueBasedSelectExpressionOptimizer")
                 .Optimize(selectExpression, queryContext.ParameterValues);
+
+            selectExpression = new WorkAroudEFCore31ValuesExpressionExpansionVisitor(queryContext)
+                .VisitAndConvert(selectExpression, null);
 #endif
 
             return new QueryRewritingContext(expression, queryContext, commandCache, selectExpression);
