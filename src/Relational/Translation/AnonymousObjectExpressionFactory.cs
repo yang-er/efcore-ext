@@ -64,7 +64,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var ctor = t.GetConstructors().Single();
             return Expression.New(
                 constructor: ctor,
-                arguments: ctor.GetParameters().Select((p, i) => GetConstant(p.ParameterType, i)),
+                arguments: ctor.GetParameters().Select((p, i) => Expression.Default(p.ParameterType.UnwrapNullableType())),
                 members: t.GetProperties());
         }
 
