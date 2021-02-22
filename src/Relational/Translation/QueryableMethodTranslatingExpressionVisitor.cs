@@ -53,7 +53,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     && methodCallExpression.Arguments[1] is ParameterExpression param)
                 {
                     var entityType = _anonymousExpressionFactory.GetType(param.Type.GetGenericArguments()[0]);
-                    var values = new ValuesExpression(param, entityType.Fields.Select(a => a.Name).ToArray());
+                    var values = new ValuesExpression(param, entityType.Fields.Select(a => a.Name).ToArray(), entityType);
 
                     var select = RelationalInternals.CreateSelectExpression(
                         alias: null,
