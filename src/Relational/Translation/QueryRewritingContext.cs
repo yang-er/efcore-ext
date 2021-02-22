@@ -80,7 +80,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                     foreach (var smallPar in compo.RelationalParameters)
                         AddParameter(smallPar);
                 else
-                    throw new NotSupportedException(parInfo.GetType().Name + " not supported yet.");
+                    ;// throw new NotSupportedException(parInfo.GetType().Name + " not supported yet.");
             }
 
             foreach (var para in command.Parameters)

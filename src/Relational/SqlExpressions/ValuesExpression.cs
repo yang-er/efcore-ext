@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Storage.Internal;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -33,13 +35,36 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         }
 
         public ValuesExpression(
-            ParameterExpression parameterExpression,
-            IReadOnlyList<string> columnNames)
-            : base("cte")
+            string alias,
+            IList values,
+            IReadOnlyList<string> columnNames,
+            AnonymousExpressionType anonymousExpressionType,
+            ParameterExpression parameterExpression)
+            : base(alias)
         {
             RuntimeParameter = parameterExpression;
+            ParameterValue = values;
             ColumnNames = columnNames;
+            AnonymousType = anonymousExpressionType;
         }
+
+        public ValuesExpression(
+            ParameterExpression param,
+            IReadOnlyList<string> columns,
+            AnonymousExpressionType type)
+            : this("cte", null, columns, type, param)
+        {
+        }
+
+        /// <summary>
+        /// The applied parameter value.
+        /// </summary>
+        public IList ParameterValue { get; }
+
+        /// <summary>
+        /// The anonymous expression type.
+        /// </summary>
+        public AnonymousExpressionType AnonymousType { get; }
 
         /// <summary>
         /// The runtime parameter expression.
