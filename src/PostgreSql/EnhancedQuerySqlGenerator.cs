@@ -62,13 +62,29 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             if (tableExpression.Alias != null)
                 Sql.Append("(").IncrementIndent();
             
-            Sql.Append("VALUES")
-                .AppendLine();
+            Sql.AppendLine()
+                .AppendLine("VALUES");
 
-            Sql.GenerateList(
-                tableExpression.Values,
-                a => Sql.Append("(").GenerateList(a, e => Visit(e)).Append(")"),
-                sql => sql.Append(",").AppendLine());
+            var paramName = tableExpression.RuntimeParameter.Name;
+            Sql.AddParameter(
+                new ValuesRelationalParameter(
+                    tableExpression.AnonymousType,
+                    Helper.GenerateParameterName(paramName),
+                    paramName));
+
+            for (int i = 0; i < tableExpression.ParameterValue.Count; i++)
+            {
+                if (i != 0) Sql.Append(",").AppendLine();
+                Sql.Append("(");
+
+                for (int j = 0; j < tableExpression.ColumnNames.Count; j++)
+                {
+                    if (j != 0) Sql.Append(", ");
+                    Sql.Append(Helper.GenerateParameterNamePlaceholder($"{paramName}_{i}_{j}"));
+                }
+
+                Sql.Append(")");
+            }
 
             if (tableExpression.Alias != null)
             {

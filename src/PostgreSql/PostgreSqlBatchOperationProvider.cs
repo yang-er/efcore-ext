@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Query;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -6,7 +7,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class PostgreSqlBatchOperationProvider : RelationalBatchOperationProvider
     {
-        protected override (string, IEnumerable<object>) GetSqlUpsert<TTarget, TSource>(
+        protected override INonQueryExecutor GetSqlUpsert<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
@@ -20,11 +21,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 insertExpression, updateExpression,
                 out var upsertExpression, out var queryRewritingContext);
 
-            if (upsertExpression == null)
-                return ("SELECT 0", Array.Empty<object>());
-
-            var (command, parameters) = queryRewritingContext.Generate(upsertExpression);
-            return (command.CommandText, parameters);
+            if (upsertExpression == null) return new NullNonQueryExecutor();
+            return queryRewritingContext.Generate(upsertExpression);
         }
     }
 }
