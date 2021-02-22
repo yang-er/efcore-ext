@@ -1,8 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Storage.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -55,7 +53,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public SelectExpression SelectExpression { get; }
 
-        public (IRelationalCommand, List<object>) Generate(Expression expression)
+        public RelationalNonQueryExecutor Generate(Expression expression)
         {
             var generator = CreateGenerator();
             var command = expression switch
@@ -69,23 +67,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 _ => throw new ArgumentNullException(nameof(expression)),
             };
 
-            var @params = new List<object>();
-            var queryContext = QueryContext;
-
-            void AddParameter(IRelationalParameter parInfo)
-            {
-                if (parInfo is TypeMappedRelationalParameter parInfo1)
-                    @params.Add(generator.CreateParameter(queryContext, parInfo1));
-                else if (parInfo is CompositeRelationalParameter compo)
-                    foreach (var smallPar in compo.RelationalParameters)
-                        AddParameter(smallPar);
-                else
-                    ;// throw new NotSupportedException(parInfo.GetType().Name + " not supported yet.");
-            }
-
-            foreach (var para in command.Parameters)
-                AddParameter(para);
-            return (command, @params);
+            return new RelationalNonQueryExecutor(QueryContext, command);
         }
 
         public IEnhancedQuerySqlGenerator CreateGenerator()

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Query;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -9,17 +10,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class RelationalBatchOperationProvider : IBatchOperationProvider
     {
-        public (string, IEnumerable<object>) ToParametrizedSql<TEntity>(
-            DbContext context,
-            IQueryable<TEntity> query)
-            where TEntity : class
-        {
-            var queryRewritingContext = TranslationStrategy.System(query);
-            var selectExpression = queryRewritingContext.SelectExpression;
-            var (command, parameters) = queryRewritingContext.Generate(selectExpression);
-            return (command.CommandText, parameters);
-        }
-
         #region IQueryable<>.BatchDelete()
 
         public int BatchDelete<T>(
@@ -27,8 +17,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             IQueryable<T> query)
             where T : class
         {
-            var (sql, sqlParameters) = GetSqlDelete(context, query);
-            return context.Database.ExecuteSqlRaw(sql, sqlParameters);
+            var executor = GetSqlDelete(context, query);
+            return executor.Execute();
         }
 
         public Task<int> BatchDeleteAsync<T>(
@@ -37,11 +27,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             CancellationToken cancellationToken)
             where T : class
         {
-            var (sql, sqlParameters) = GetSqlDelete(context, query);
-            return context.Database.ExecuteSqlRawAsync(sql, sqlParameters, cancellationToken);
+            var executor = GetSqlDelete(context, query);
+            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual (string, IEnumerable<object>) GetSqlDelete<T>(
+        protected virtual INonQueryExecutor GetSqlDelete<T>(
             DbContext context,
             IQueryable<T> query)
             where T : class
@@ -50,8 +40,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 context, query,
                 out var deleteExpression, out var queryRewritingContext);
 
-            var (command, parameters) = queryRewritingContext.Generate(deleteExpression);
-            return (command.CommandText, parameters);
+            return queryRewritingContext.Generate(deleteExpression);
         }
 
         #endregion
@@ -64,8 +53,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             Expression<Func<T, T>> updateExpression)
             where T : class
         {
-            var (sql, sqlParameters) = GetSqlUpdate(context, query, updateExpression);
-            return context.Database.ExecuteSqlRaw(sql, sqlParameters);
+            var executor = GetSqlUpdate(context, query, updateExpression);
+            return executor.Execute();
         }
 
         public Task<int> BatchUpdateAsync<T>(
@@ -75,11 +64,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             CancellationToken cancellationToken)
             where T : class
         {
-            var (sql, sqlParameters) = GetSqlUpdate(context, query, updateExpression);
-            return context.Database.ExecuteSqlRawAsync(sql, sqlParameters, cancellationToken);
+            var executor = GetSqlUpdate(context, query, updateExpression);
+            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual (string, IEnumerable<object>) GetSqlUpdate<T>(
+        protected virtual INonQueryExecutor GetSqlUpdate<T>(
             DbContext context,
             IQueryable<T> query,
             Expression<Func<T, T>> updateSelector)
@@ -89,8 +78,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 context, query, updateSelector,
                 out var updateExpression, out var queryRewritingContext);
 
-            var (command, parameters) = queryRewritingContext.Generate(updateExpression);
-            return (command.CommandText, parameters);
+            return queryRewritingContext.Generate(updateExpression);
         }
 
         #endregion
@@ -103,8 +91,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             DbSet<T> to)
             where T : class
         {
-            var (sql, parameters) = GetSqlSelectInto(context, query);
-            return context.Database.ExecuteSqlRaw(sql, parameters);
+            var executor = GetSqlSelectInto(context, query);
+            return executor.Execute();
         }
 
         public Task<int> BatchInsertIntoAsync<T>(
@@ -114,11 +102,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             CancellationToken cancellationToken)
             where T : class
         {
-            var (sql, parameters) = GetSqlSelectInto(context, query);
-            return context.Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
+            var executor = GetSqlSelectInto(context, query);
+            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual (string, IEnumerable<object>) GetSqlSelectInto<T>(
+        protected virtual INonQueryExecutor GetSqlSelectInto<T>(
             DbContext context,
             IQueryable<T> query)
             where T : class
@@ -127,8 +115,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 context, query,
                 out var updateExpression, out var queryRewritingContext);
 
-            var (command, parameters) = queryRewritingContext.Generate(updateExpression);
-            return (command.CommandText, parameters);
+            return queryRewritingContext.Generate(updateExpression);
         }
 
         #endregion
@@ -146,8 +133,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TOuter : class
             where TInner : class
         {
-            var (sql, sqlParameters) = GetSqlUpdateJoinList(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
-            return context.Database.ExecuteSqlRaw(sql, sqlParameters);
+            var executor = GetSqlUpdateJoinList(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
+            return executor.Execute();
         }
 
         public Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
@@ -162,11 +149,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TOuter : class
             where TInner : class
         {
-            var (sql, sqlParameters) = GetSqlUpdateJoinList(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
-            return context.Database.ExecuteSqlRawAsync(sql, sqlParameters, cancellationToken);
+            var executor = GetSqlUpdateJoinList(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
+            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual (string, IEnumerable<object>) GetSqlUpdateJoinList<TOuter, TInner, TKey>(
+        protected virtual INonQueryExecutor GetSqlUpdateJoinList<TOuter, TInner, TKey>(
             DbContext context,
             DbSet<TOuter> outer,
             IReadOnlyList<TInner> inner,
@@ -181,11 +168,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition,
                 out var updateExpression, out var queryRewritingContext);
 
-            if (updateExpression == null)
-                return ("SELECT 0", Array.Empty<object>());
-
-            var (command, parameters) = queryRewritingContext.Generate(updateExpression);
-            return (command.CommandText, parameters);
+            if (updateExpression == null) return new NullNonQueryExecutor();
+            return queryRewritingContext.Generate(updateExpression);
         }
 
         #endregion
@@ -203,8 +187,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TOuter : class
             where TInner : class
         {
-            var (sql, sqlParameters) = GetSqlUpdateJoinQueryable(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
-            return context.Database.ExecuteSqlRaw(sql, sqlParameters);
+            var executor = GetSqlUpdateJoinQueryable(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
+            return executor.Execute();
         }
 
         public Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
@@ -219,11 +203,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TOuter : class
             where TInner : class
         {
-            var (sql, sqlParameters) = GetSqlUpdateJoinQueryable(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
-            return context.Database.ExecuteSqlRawAsync(sql, sqlParameters, cancellationToken);
+            var executor = GetSqlUpdateJoinQueryable(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
+            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual (string, IEnumerable<object>) GetSqlUpdateJoinQueryable<TOuter, TInner, TKey>(
+        protected virtual INonQueryExecutor GetSqlUpdateJoinQueryable<TOuter, TInner, TKey>(
             DbContext context,
             DbSet<TOuter> outer,
             IQueryable<TInner> inner,
@@ -238,8 +222,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition,
                 out var updateExpression, out var queryRewritingContext);
 
-            var (command, parameters) = queryRewritingContext.Generate(updateExpression);
-            return (command.CommandText, parameters);
+            return queryRewritingContext.Generate(updateExpression);
         }
 
         #endregion
@@ -258,8 +241,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TTarget : class
             where TSource : class
         {
-            var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, typeof(TJoinKey), targetKey, sourceKey, updateExpression, insertExpression, delete);
-            return context.Database.ExecuteSqlRaw(sql, parameters);
+            var executor = GetSqlMerge(context, targetTable, sourceTable, typeof(TJoinKey), targetKey, sourceKey, updateExpression, insertExpression, delete);
+            return executor.Execute();
         }
 
         public Task<int> MergeAsync<TTarget, TSource, TJoinKey>(
@@ -275,11 +258,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TTarget : class
             where TSource : class
         {
-            var (sql, parameters) = GetSqlMerge(context, targetTable, sourceTable, typeof(TJoinKey), targetKey, sourceKey, updateExpression, insertExpression, delete);
-            return context.Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
+            var executor = GetSqlMerge(context, targetTable, sourceTable, typeof(TJoinKey), targetKey, sourceKey, updateExpression, insertExpression, delete);
+            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual (string, IEnumerable<object>) GetSqlMerge<TTarget, TSource>(
+        protected virtual INonQueryExecutor GetSqlMerge<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable2,
@@ -308,8 +291,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TTarget : class
             where TSource : class
         {
-            var (sql, parameters) = GetSqlUpsert(context, set, sources, insertExpression, updateExpression);
-            return context.Database.ExecuteSqlRaw(sql, parameters);
+            var executor = GetSqlUpsert(context, set, sources, insertExpression, updateExpression);
+            return executor.Execute();
         }
 
         public Task<int> UpsertAsync<TTarget, TSource>(
@@ -322,11 +305,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TTarget : class
             where TSource : class
         {
-            var (sql, parameters) = GetSqlUpsert(context, set, sources, insertExpression, updateExpression);
-            return context.Database.ExecuteSqlRawAsync(sql, parameters, cancellationToken);
+            var executor = GetSqlUpsert(context, set, sources, insertExpression, updateExpression);
+            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual (string, IEnumerable<object>) GetSqlUpsert<TTarget, TSource>(
+        protected virtual INonQueryExecutor GetSqlUpsert<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
