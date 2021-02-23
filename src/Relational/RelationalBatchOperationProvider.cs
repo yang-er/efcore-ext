@@ -31,7 +31,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual INonQueryExecutor GetSqlDelete<T>(
+        protected virtual IBulkQueryExecutor GetSqlDelete<T>(
             DbContext context,
             IQueryable<T> query)
             where T : class
@@ -68,7 +68,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual INonQueryExecutor GetSqlUpdate<T>(
+        protected virtual IBulkQueryExecutor GetSqlUpdate<T>(
             DbContext context,
             IQueryable<T> query,
             Expression<Func<T, T>> updateSelector)
@@ -106,7 +106,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual INonQueryExecutor GetSqlSelectInto<T>(
+        protected virtual IBulkQueryExecutor GetSqlSelectInto<T>(
             DbContext context,
             IQueryable<T> query)
             where T : class
@@ -153,7 +153,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual INonQueryExecutor GetSqlUpdateJoinList<TOuter, TInner, TKey>(
+        protected virtual IBulkQueryExecutor GetSqlUpdateJoinList<TOuter, TInner, TKey>(
             DbContext context,
             DbSet<TOuter> outer,
             IReadOnlyList<TInner> inner,
@@ -168,7 +168,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition,
                 out var updateExpression, out var queryRewritingContext);
 
-            if (updateExpression == null) return new NullNonQueryExecutor();
+            if (updateExpression == null) return new NullBulkQueryExecutor();
             return queryRewritingContext.Generate(updateExpression);
         }
 
@@ -207,7 +207,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual INonQueryExecutor GetSqlUpdateJoinQueryable<TOuter, TInner, TKey>(
+        protected virtual IBulkQueryExecutor GetSqlUpdateJoinQueryable<TOuter, TInner, TKey>(
             DbContext context,
             DbSet<TOuter> outer,
             IQueryable<TInner> inner,
@@ -262,7 +262,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual INonQueryExecutor GetSqlMerge<TTarget, TSource>(
+        protected virtual IBulkQueryExecutor GetSqlMerge<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable2,
@@ -309,7 +309,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
         }
 
-        protected virtual INonQueryExecutor GetSqlUpsert<TTarget, TSource>(
+        protected virtual IBulkQueryExecutor GetSqlUpsert<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,

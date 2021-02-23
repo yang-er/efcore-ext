@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.Bulk.BatchOperationMethods;
 
 namespace Microsoft.EntityFrameworkCore
 {
@@ -16,6 +18,61 @@ namespace Microsoft.EntityFrameworkCore
     /// </summary>
     public static class BatchOperationExtensions
     {
+        /// <summary>
+        /// Convert the source local table to a fake subquery or real-query itself.
+        /// </summary>
+        /// <typeparam name="TTarget">Any real queryable type.</typeparam>
+        /// <typeparam name="TSource">The source entity type.</typeparam>
+        /// <param name="targetTable">The target table.</param>
+        /// <param name="sourceEnumerable">The source table.</param>
+        /// <returns>The source query created for join or other usages.</returns>
+        private static IQueryable<TSource> CreateSourceTable<TTarget, TSource>(
+            DbSet<TTarget> targetTable,
+            IEnumerable<TSource> sourceEnumerable)
+            where TTarget : class
+            where TSource : class
+        {
+            Check.NotNull(targetTable, nameof(targetTable));
+            Check.NotNull(sourceEnumerable, nameof(sourceEnumerable));
+
+            // normal subquery or table
+            if (sourceEnumerable is IQueryable<TSource> sourceQuery)
+            {
+                return sourceQuery;
+            }
+
+            if (!typeof(TSource).IsAnonymousType())
+            {
+                throw new InvalidOperationException(
+                    $"The source entity for upsert/merge must be anonymous objects.");
+            }
+
+            return CreateCommonTable(targetTable, sourceEnumerable.ToList());
+        }
+
+        /// <summary>
+        /// Creates a temporary values table from local variables.
+        /// </summary>
+        /// <typeparam name="TSource">The source entity type.</typeparam>
+        /// <typeparam name="TTarget">The target entity type.</typeparam>
+        /// <param name="source">The source queryable.</param>
+        /// <param name="targets">The actual data.</param>
+        /// <returns>The common table as an IQueryable.</returns>
+        internal static IQueryable<TTarget> CreateCommonTable<TSource, TTarget>(
+            this IQueryable<TSource> source,
+            List<TTarget> targets)
+        {
+            Check.NotNull(source, nameof(source));
+            Check.NotNull(targets, nameof(targets));
+
+            return source.Provider.CreateQuery<TTarget>(
+                Expression.Call(
+                    s_CreateCommonTable_TSource_TTarget.MakeGenericMethod(typeof(TSource), typeof(TTarget)),
+                    source.Expression,
+                    Expression.Constant(targets)));
+        }
+
+
         /// <summary>
         /// Perform merge as <c>MERGE INTO</c> operations.
         /// </summary>
@@ -37,7 +94,7 @@ namespace Microsoft.EntityFrameworkCore
             Expression<Func<TSource, TJoinKey>> sourceKey,
             Expression<Func<TTarget, TSource, TTarget>>? updateExpression = null,
             Expression<Func<TSource, TTarget>>? insertExpression = null,
-            bool delete = false)
+            [NotParameterized] bool delete = false)
             where TTarget : class
             where TSource : class
         {
@@ -98,12 +155,12 @@ namespace Microsoft.EntityFrameworkCore
         /// <summary>
         /// Perform batch delete as <c>DELETE FROM</c> operations.
         /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
+        /// <typeparam name="TSource">The entity type.</typeparam>
         /// <param name="query">The entity query.</param>
         /// <returns>The affected rows.</returns>
-        public static int BatchDelete<T>(
-            this IQueryable<T> query)
-            where T : class
+        public static int BatchDelete<TSource>(
+            this IQueryable<TSource> query)
+            where TSource : class
         {
             Check.NotNull(query, nameof(query));
 

@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using static Microsoft.EntityFrameworkCore.Bulk.BatchOperationMethods;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -98,17 +99,20 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
             var method = methodCallExpression.Method;
-            if (method.DeclaringType == typeof(Bulk.RelationalExtensions))
+            if (method.DeclaringType == typeof(BatchOperationExtensions))
             {
-                if (method.Name == nameof(Bulk.RelationalExtensions.CreateCommonTable)
-                    && methodCallExpression.Arguments[1] is ParameterExpression param)
+                var genericMethod = method.GetGenericMethodDefinition();
+                switch (method.Name)
                 {
-                    var entity = Expression.Call(
-                        param,
-                        param.Type.GetMethod("get_Item"),
-                        Expression.Constant(0));
-
-                    return NavigationExpansionExpressionFactory(methodCallExpression, entity);
+                    case nameof(BatchOperationExtensions.CreateCommonTable)
+                        when genericMethod == s_CreateCommonTable_TSource_TTarget
+                          && methodCallExpression.Arguments[1] is ParameterExpression param:
+                        return NavigationExpansionExpressionFactory(
+                            methodCallExpression,
+                            Expression.Call(
+                                param,
+                                param.Type.GetMethod("get_Item"),
+                                Expression.Constant(0)));
                 }
 
                 throw new InvalidOperationException(CoreStrings.QueryFailed(methodCallExpression.Print(), GetType().Name));

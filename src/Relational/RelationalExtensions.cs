@@ -1,11 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -72,20 +74,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return factory.Function(name, arguments, returnType, typeMapping);
         }
 #endif
-
-        private static readonly MethodInfo s_CreateCommonTable_IQueryable_List
-            = new Func<IQueryable<object>, List<object>, IQueryable<object>>(CreateCommonTable).GetMethodInfo().GetGenericMethodDefinition();
-
-        internal static IQueryable<TTarget> CreateCommonTable<TSource, TTarget>(
-            this IQueryable<TSource> queryable,
-            List<TTarget> data)
-        {
-            return queryable.Provider.CreateQuery<TTarget>(
-                Expression.Call(
-                    s_CreateCommonTable_IQueryable_List.MakeGenericMethod(typeof(TSource), typeof(TTarget)),
-                    queryable.Expression,
-                    Expression.Constant(data)));
-        }
     }
 
     internal class RelationalBatchDbContextOptionsExtension<TNewFactory, TOldFactory, TProvider> :
@@ -118,6 +106,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             services.AddSingleton<IBatchOperationProvider, TProvider>();
             services.AddSingleton<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
+            services.Replace(ServiceDescriptor.Scoped<IQueryCompiler, BulkQueryCompiler>());
             XysQueryTranslationPreprocessorFactory.TryReplace(services);
             XysQueryableMethodTranslatingExpressionVisitorFactory.TryReplace(services);
             _configureServices.Invoke(services);
