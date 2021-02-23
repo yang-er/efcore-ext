@@ -135,6 +135,10 @@ namespace Microsoft.EntityFrameworkCore.Query
                     throw new InvalidOperationException(
                         CoreStrings.QueryFailed(methodCallExpression.Print(), GetType().Name));
                 }
+                else
+                {
+                    return result;
+                }
             }
 
             return base.VisitMethodCall(methodCallExpression);

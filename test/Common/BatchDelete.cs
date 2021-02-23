@@ -97,13 +97,13 @@ namespace Testcase_BatchDelete
         {
             using var context = contextFactory();
 
-            Assert.Throws<NotSupportedException>(
+            Assert.Throws<InvalidOperationException>(
                 () => context.Items
                     .Where(a => a.ItemId > 500)
                     .Take(10)
                     .BatchDelete());
 
-            Assert.Throws<NotSupportedException>(
+            Assert.Throws<InvalidOperationException>(
                 () => context.Items
                     .Where(a => a.ItemId > 500)
                     .Skip(10)
@@ -144,6 +144,9 @@ namespace Testcase_BatchDelete
             using var context = contextFactory();
             var descriptionsToDelete = new List<string> { "info" };
             var nameToDelete = "N4";
+            context.Items
+                .Where(a => descriptionsToDelete.Contains(a.Description) || a.Name == nameToDelete)
+                .ToQueryString();
             context.Items
                 .Where(a => descriptionsToDelete.Contains(a.Description) || a.Name == nameToDelete)
                 .BatchDelete();

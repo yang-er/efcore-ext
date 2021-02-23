@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -32,12 +33,60 @@ namespace Microsoft.EntityFrameworkCore.Query
                     _valuesExpressions.Add(values);
                     return values;
 
-                case WrappedExpression wrapped:
-                    return wrapped;
+                case DeleteExpression delete:
+                    return Visit(delete);
             }
 
             return base.Visit(tableExpressionBase);
         }
+
+        protected virtual DeleteExpression Visit(DeleteExpression deleteExpression)
+        {
+            var mainTable = Visit(deleteExpression.Table) as TableExpression;
+            bool changed = mainTable == deleteExpression.Table;
+
+            var tables = (List<TableExpressionBase>)deleteExpression.JoinedTables;
+            for (var i = 0; i < deleteExpression.JoinedTables.Count; i++)
+            {
+                var item = deleteExpression.JoinedTables[i];
+                var table = Visit(item);
+                if (table != item
+                    && tables == deleteExpression.JoinedTables)
+                {
+                    tables = new List<TableExpressionBase>();
+                    for (var j = 0; j < i; j++)
+                    {
+                        tables.Add(deleteExpression.JoinedTables[j]);
+                    }
+
+                    changed = true;
+                }
+
+                if (tables != deleteExpression.JoinedTables)
+                {
+                    tables.Add(table);
+                }
+            }
+
+            var predicate = Visit(deleteExpression.Predicate, allowOptimizedExpansion: true, out _);
+            changed |= predicate != deleteExpression.Predicate;
+
+            if (TryGetBoolConstantValue(predicate) == true)
+            {
+                predicate = null;
+                changed = true;
+            }
+
+            return changed
+                ? new DeleteExpression(mainTable, predicate, tables)
+                : deleteExpression;
+        }
+
+        private static bool? TryGetBoolConstantValue(SqlExpression expression)
+            => expression is SqlConstantExpression constantExpression
+                && constantExpression.Value is bool boolValue
+                    ? boolValue
+                    : (bool?)null;
 
         protected override SqlExpression VisitCustomSqlExpression(
             SqlExpression sqlExpression,
