@@ -32,8 +32,8 @@
   <PropertyGroup Condition=" $(DotNetCoreVersion) == '5.0' ">
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>$(MSBuildProjectName.Replace('-5.0', ''))</AssemblyName>
-    <EntityFrameworkCoreVersion>[5.0.1,6.0.0)</EntityFrameworkCoreVersion>
-    <EFCoreNpgsqlCoreVersion>[5.0.1,6.0.0)</EFCoreNpgsqlCoreVersion>
+    <EntityFrameworkCoreVersion>[5.0.2,6.0.0)</EntityFrameworkCoreVersion>
+    <EFCoreNpgsqlCoreVersion>[5.0.2,6.0.0)</EFCoreNpgsqlCoreVersion>
     <DefineConstants>$(DefineConstants);EFCORE50</DefineConstants>
     <XysMinorVersion>$(XysMinorVersion)-preview</XysMinorVersion>
   </PropertyGroup>
@@ -41,8 +41,8 @@
   <PropertyGroup Condition=" $(DotNetCoreVersion) == '3.1' ">
     <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>$(MSBuildProjectName.Replace('-3.1', ''))</AssemblyName>
-    <EntityFrameworkCoreVersion>[3.1.10,5.0.0)</EntityFrameworkCoreVersion>
-    <EFCoreNpgsqlCoreVersion>[3.1.4,5.0.0)</EFCoreNpgsqlCoreVersion>
+    <EntityFrameworkCoreVersion>[3.1.11,5.0.0)</EntityFrameworkCoreVersion>
+    <EFCoreNpgsqlCoreVersion>[3.1.11,5.0.0)</EFCoreNpgsqlCoreVersion>
     <DefineConstants>$(DefineConstants);EFCORE31</DefineConstants>
   </PropertyGroup>
 

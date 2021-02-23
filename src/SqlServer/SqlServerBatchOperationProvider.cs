@@ -31,7 +31,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             var updateExpression = UpsertTttToTstVisitor.Parse(insertExpression, updateExpression2);
 
-            AnonymousObjectExpressionFactory.GetTransparentIdentifier(
+            GenericUtility.CreateJoinKey(
                 Expression.Parameter(typeof(TTarget), "t"), key,
                 insertExpression.Parameters[0], keyBody.Bindings,
                 out var tJoinKey, out var targetKey, out var sourceKey);
