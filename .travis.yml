@@ -12,5 +12,5 @@ deploy:
   provider: script
   script: ./deploy.sh $NUGET_KEY
   on:
-    branch: master
+    branch: LKG
     tags: true
