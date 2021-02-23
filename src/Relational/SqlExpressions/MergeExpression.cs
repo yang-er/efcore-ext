@@ -8,7 +8,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
     /// <summary>
     /// An expression that represents a MERGE in a SQL tree.
     /// </summary>
-    public sealed class MergeExpression : Expression, IPrintableExpression
+    public sealed class MergeExpression : WrappedExpression
     {
         public MergeExpression(
             TableExpression targetTable,
@@ -102,7 +102,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         }
 
         /// <inheritdoc />
-        public void Print(ExpressionPrinter expressionPrinter)
+        protected override void Prints(ExpressionPrinter expressionPrinter)
         {
             expressionPrinter.Append("MERGE INTO ").Visit(TargetTable);
             expressionPrinter.AppendLine().Append("USING ").Visit(SourceTable);

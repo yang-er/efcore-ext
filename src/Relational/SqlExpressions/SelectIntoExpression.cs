@@ -10,7 +10,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
     /// <summary>
     /// An expression that represents a SELECT INTO in a SQL tree.
     /// </summary>
-    public sealed class SelectIntoExpression : Expression, IPrintableExpression
+    public sealed class SelectIntoExpression : WrappedExpression
     {
         public SelectIntoExpression(
             string tableName,
@@ -46,7 +46,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         }
 
         /// <inheritdoc />
-        public void Print(ExpressionPrinter expressionPrinter)
+        protected override void Prints(ExpressionPrinter expressionPrinter)
         {
             expressionPrinter.Append("INSERT INTO ").AppendLine(TableName);
             expressionPrinter.Visit(Expression);

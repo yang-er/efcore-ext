@@ -10,18 +10,16 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
     /// <summary>
     /// An expression that represents a DELETE in a SQL tree.
     /// </summary>
-    public sealed class DeleteExpression : Expression, IPrintableExpression
+    public sealed class DeleteExpression : WrappedExpression
     {
         public DeleteExpression(
             TableExpression table,
             SqlExpression? predicate,
-            IReadOnlyList<TableExpressionBase> joinedTables,
-            ISet<string>? tags)
+            IReadOnlyList<TableExpressionBase> joinedTables)
         {
             Table = Check.NotNull(table, nameof(table));
-            JoinedTables = Check.HasNoNulls(joinedTables, nameof(joinedTables));
+            JoinedTables = Check.HasNoNulls(joinedTables, nameof(joinedTables)).ToList();
             Predicate = predicate;
-            Tags = tags ?? new HashSet<string>();
         }
 
         /// <summary>
@@ -43,13 +41,8 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             if ((selectExpression.GroupBy?.Count ?? 0) != 0 || selectExpression.Having != null)
                 throw new NotSupportedException("The query can't be aggregated.");
 
-            return new DeleteExpression(table, selectExpression.Predicate, selectExpression.Tables, selectExpression.Tags);
+            return new DeleteExpression(table, selectExpression.Predicate, selectExpression.Tables);
         }
-
-        /// <summary>
-        /// The list of tags applied to this <see cref="DeleteExpression"/>.
-        /// </summary>
-        public ISet<string> Tags { get; }
 
         /// <summary>
         /// The primary table to operate on.
@@ -71,25 +64,33 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         {
             const string CallerName = "VisitDelete";
 
-            var table = visitor.VisitAndConvert(Table, CallerName);
-            bool changed = table != Table;
-
-            var predicate = visitor.VisitAndConvert(Predicate, CallerName);
-            changed = changed || predicate != Predicate;
-
-            var joinedTables = JoinedTables.ToList();
-            for (int i = 0; i < joinedTables.Count; i++)
+            using (SearchConditionBooleanGuard.With(visitor, false))
             {
-                joinedTables[i] = visitor.VisitAndConvert(JoinedTables[i], CallerName);
-                changed = changed || joinedTables[i] != JoinedTables[i];
-            }
+                var table = visitor.VisitAndConvert(Table, CallerName);
+                bool changed = table != Table;
 
-            if (!changed) return this;
-            return new DeleteExpression(table, predicate, joinedTables, Tags);
+                SqlExpression? predicate;
+
+                using (SearchConditionBooleanGuard.With(visitor, true, false))
+                {
+                    predicate = visitor.VisitAndConvert(Predicate, CallerName);
+                    changed = changed || predicate != Predicate;
+                }
+
+                var joinedTables = JoinedTables.ToList();
+                for (int i = 0; i < joinedTables.Count; i++)
+                {
+                    joinedTables[i] = visitor.VisitAndConvert(JoinedTables[i], CallerName);
+                    changed = changed || joinedTables[i] != JoinedTables[i];
+                }
+
+                if (!changed) return this;
+                return new DeleteExpression(table, predicate, joinedTables);
+            }
         }
 
         /// <inheritdoc />
-        public void Print(ExpressionPrinter expressionPrinter)
+        protected override void Prints(ExpressionPrinter expressionPrinter)
         {
             Check.NotNull(expressionPrinter, nameof(expressionPrinter));
 

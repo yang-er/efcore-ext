@@ -11,7 +11,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
     /// <summary>
     /// An expression that represents an UPDATE in a SQL tree.
     /// </summary>
-    public sealed class UpdateExpression : Expression, IPrintableExpression
+    public sealed class UpdateExpression : WrappedExpression
     {
         public UpdateExpression(
             bool expanded,
@@ -136,7 +136,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         }
 
         /// <inheritdoc />
-        public void Print(ExpressionPrinter expressionPrinter)
+        protected override void Prints(ExpressionPrinter expressionPrinter)
         {
             expressionPrinter.Append("UPDATE SET");
 

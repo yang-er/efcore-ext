@@ -12,6 +12,7 @@ namespace Microsoft.EntityFrameworkCore
         private static void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<IMethodCallTranslatorPlugin, MathTranslation>();
+            SearchConditionBooleanGuard.AddTypeField(typeof(SearchConditionConvertingExpressionVisitor), "_isSearchCondition");
 #if EFCORE50
             services.Replace(ServiceDescriptor.Singleton<IRelationalParameterBasedSqlProcessorFactory, XysParameterBasedSqlProcessorFactory>());
 #endif

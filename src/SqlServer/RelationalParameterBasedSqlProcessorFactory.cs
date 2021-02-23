@@ -4,7 +4,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -26,14 +25,35 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         protected override TableExpressionBase Visit(TableExpressionBase tableExpressionBase)
         {
-            if (tableExpressionBase is ValuesExpression values)
+            switch (tableExpressionBase)
             {
-                DoNotCache();
-                _valuesExpressions.Add(values);
-                return values;
+                case ValuesExpression values:
+                    DoNotCache();
+                    _valuesExpressions.Add(values);
+                    return values;
+
+                case WrappedExpression wrapped:
+                    return wrapped;
             }
 
             return base.Visit(tableExpressionBase);
+        }
+
+        protected override SqlExpression VisitCustomSqlExpression(
+            SqlExpression sqlExpression,
+            bool allowOptimizedExpansion,
+            out bool nullable)
+        {
+            if (sqlExpression is AffectedRowsExpression)
+            {
+                nullable = false;
+                return sqlExpression;
+            }
+
+            return base.VisitCustomSqlExpression(
+                sqlExpression,
+                allowOptimizedExpansion,
+                out nullable);
         }
     }
 

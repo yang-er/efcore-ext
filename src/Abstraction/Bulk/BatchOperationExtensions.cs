@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -164,28 +165,31 @@ namespace Microsoft.EntityFrameworkCore
         {
             Check.NotNull(query, nameof(query));
 
-            var context = query.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchDelete(context, query);
+            return query.Provider.Execute<int>(
+                Expression.Call(
+                    s_BatchDelete_TSource.MakeGenericMethod(typeof(TSource)),
+                    query.Expression));
         }
 
         /// <summary>
         /// Perform batch delete as <c>DELETE FROM</c> async operations.
         /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
+        /// <typeparam name="TSource">The entity type.</typeparam>
         /// <param name="query">The entity query.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task for affected rows.</returns>
-        public static Task<int> BatchDeleteAsync<T>(
-            this IQueryable<T> query,
+        public static Task<int> BatchDeleteAsync<TSource>(
+            this IQueryable<TSource> query,
             CancellationToken cancellationToken = default)
-            where T : class
+            where TSource : class
         {
             Check.NotNull(query, nameof(query));
 
-            var context = query.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchDeleteAsync(context, query, cancellationToken);
+            return ((IAsyncQueryProvider)query.Provider).ExecuteAsync<Task<int>>(
+                Expression.Call(
+                    s_BatchDelete_TSource.MakeGenericMethod(typeof(TSource)),
+                    query.Expression),
+                cancellationToken);
         }
 
         /// <summary>
