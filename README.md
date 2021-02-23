@@ -1,6 +1,6 @@
 # EFCore.BulkExtensions
 
-[![AppVeyor status](https://ci.appveyor.com/api/projects/status/8damo2nfqc2sbc2g?svg=true)](https://ci.appveyor.com/project/yang-er/efcore-bulkext) [![Travis CI status](https://travis-ci.com/yang-er/efcore-ext.svg?branch=master&status=started)](https://travis-ci.com/github/yang-er/efcore-ext)
+[![AppVeyor status](https://ci.appveyor.com/api/projects/status/8damo2nfqc2sbc2g?svg=true)](https://ci.appveyor.com/project/yang-er/efcore-bulkext) [![Travis CI status](https://travis-ci.com/yang-er/efcore-ext.svg?branch=dev&status=started)](https://travis-ci.com/github/yang-er/efcore-ext)
 
 Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, Merge Into, Upsert**).
 
@@ -117,3 +117,9 @@ options.UseCahce();
 
 await context.Items.CachedCountAsync("tag", TimeSpan.FromSeconds(10));
 ```
+
+## Developing this project
+
+For release codes, please refer to branch **LKG**.
+
+The branch **dev** may not work properly.
