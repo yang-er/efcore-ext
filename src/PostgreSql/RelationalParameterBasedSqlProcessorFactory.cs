@@ -72,15 +72,10 @@ namespace Microsoft.EntityFrameworkCore.Query
             for (int i = 0; i < toReplace.Length; i++)
             {
                 var target = toReplace[i];
-                if (parametersValues.TryGetValue(target.RuntimeParameter.Name, out var param)
+                if (parametersValues.TryGetValue(target.RuntimeParameter, out var param)
                     && param is IList lists)
                 {
-                    replacement[i] = new ValuesExpression(
-                        target.Alias,
-                        lists,
-                        target.ColumnNames,
-                        target.AnonymousType,
-                        target.RuntimeParameter);
+                    replacement[i] = new ValuesExpression(target, lists.Count);
                 }
                 else
                 {

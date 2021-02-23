@@ -36,26 +36,16 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .AppendLine()
                 .AppendLine("VALUES");
 
-            var paramName = tableExpression.RuntimeParameter.Name;
+            var paramName = tableExpression.RuntimeParameter;
             Sql.AddParameter(
                 new ValuesRelationalParameter(
                     tableExpression.AnonymousType,
                     Helper.GenerateParameterName(paramName),
                     paramName));
 
-            for (int i = 0; i < tableExpression.ParameterValue.Count; i++)
-            {
-                if (i != 0) Sql.Append(",").AppendLine();
-                Sql.Append("(");
-
-                for (int j = 0; j < tableExpression.ColumnNames.Count; j++)
-                {
-                    if (j != 0) Sql.Append(", ");
-                    Sql.Append(Helper.GenerateParameterNamePlaceholder($"{paramName}_{i}_{j}"));
-                }
-
-                Sql.Append(")");
-            }
+            tableExpression.Generate(
+                Sql,
+                Helper.GenerateParameterNamePlaceholder(paramName));
 
             Sql.DecrementIndent()
                 .AppendLine()
