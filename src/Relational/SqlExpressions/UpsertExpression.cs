@@ -8,7 +8,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
     /// <summary>
     /// An expression that represents an UPSERT in a SQL tree.
     /// </summary>
-    public class UpsertExpression : Expression, IPrintableExpression
+    public class UpsertExpression : WrappedExpression
     {
         public UpsertExpression(
             TableExpression targetTable,
@@ -50,7 +50,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         public string ConflictConstraintName { get; }
 
         /// <inheritdoc />
-        public void Print(ExpressionPrinter expressionPrinter)
+        protected override void Prints(ExpressionPrinter expressionPrinter)
         {
             expressionPrinter.Append("Upsert Entity");
         }

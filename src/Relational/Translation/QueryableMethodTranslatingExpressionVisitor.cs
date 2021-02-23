@@ -45,6 +45,14 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override QueryableMethodTranslatingExpressionVisitor CreateSubqueryVisitor()
             => new XysQueryableMethodTranslatingExpressionVisitor(this);
 
+        public Expression TranslationFailed(string message)
+        {
+#if EFCORE50
+            AddTranslationErrorDetails(message);
+#endif
+            return null;
+        }
+
         protected virtual Expression TranslateCommonTable(ParameterExpression param)
         {
             var entityType = _anonymousExpressionFactory.GetType(param.Type.GetGenericArguments()[0]);
@@ -73,6 +81,63 @@ namespace Microsoft.EntityFrameworkCore.Query
             return new ShapedQueryExpression(select, shaper);
         }
 
+        protected virtual ShapedQueryExpression TranslateWrapped(WrappedExpression wrappedExpression)
+        {
+            var selectExpression = RelationalInternals.CreateSelectExpression(
+                alias: null,
+                projections: new List<ProjectionExpression>(),
+                tables: new List<TableExpressionBase> { wrappedExpression },
+                groupBy: new List<SqlExpression>(),
+                orderings: new List<OrderingExpression>());
+
+            selectExpression.ReplaceProjectionMapping(
+                new Dictionary<ProjectionMember, Expression>
+                {
+                    [new ProjectionMember()] = new AffectedRowsExpression(),
+                });
+
+            var newShaped = new ShapedQueryExpression(
+                selectExpression,
+                Expression.Convert(
+                    new ProjectionBindingExpression(selectExpression, new ProjectionMember(), typeof(int?)),
+                    typeof(int)));
+
+#if EFCORE50
+            newShaped = newShaped.UpdateResultCardinality(VisitorHelper.AffectedRows);
+#elif EFCORE31
+            newShaped.ResultCardinality = VisitorHelper.AffectedRows;
+#endif
+
+            return newShaped;
+        }
+
+        protected virtual Expression TranslateDelete(Expression shaped)
+        {
+            if (!(shaped is ShapedQueryExpression shapedQueryExpression)
+                || !(shapedQueryExpression.QueryExpression is SelectExpression selectExpression))
+            {
+                return null;
+            }
+
+            if (selectExpression.Offset != null || selectExpression.Limit != null
+                || (selectExpression.GroupBy?.Count ?? 0) != 0 || selectExpression.Having != null)
+            {
+                return TranslationFailed("The query can't be aggregated or be with .Take() or .Skip() filters.");
+            }
+
+            if (!(selectExpression?.Tables?[0] is TableExpression table))
+            {
+                return TranslationFailed("The query root should be main entity.");
+            }
+
+            var delete = new DeleteExpression(
+                table: table,
+                predicate: selectExpression.Predicate,
+                joinedTables: selectExpression.Tables);
+
+            return TranslateWrapped(delete);
+        }
+
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
             var method = methodCallExpression.Method;
@@ -85,6 +150,10 @@ namespace Microsoft.EntityFrameworkCore.Query
                          when genericMethod == s_CreateCommonTable_TSource_TTarget &&
                               methodCallExpression.Arguments[1] is ParameterExpression param:
                         return TranslateCommonTable(param);
+
+                    case nameof(BatchOperationExtensions.BatchDelete)
+                        when genericMethod == s_BatchDelete_TSource:
+                        return TranslateDelete(Visit(methodCallExpression.Arguments[0]));
                 }
             }
 

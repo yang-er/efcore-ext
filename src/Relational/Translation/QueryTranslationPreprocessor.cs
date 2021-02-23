@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+﻿using Microsoft.EntityFrameworkCore.Bulk;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
@@ -102,46 +103,47 @@ namespace Microsoft.EntityFrameworkCore.Query
             if (method.DeclaringType == typeof(BatchOperationExtensions))
             {
                 var genericMethod = method.GetGenericMethodDefinition();
+                Expression result = null;
+
                 switch (method.Name)
                 {
                     case nameof(BatchOperationExtensions.CreateCommonTable)
-                        when genericMethod == s_CreateCommonTable_TSource_TTarget
-                          && methodCallExpression.Arguments[1] is ParameterExpression param:
-                        return NavigationExpansionExpressionFactory(
+                        when genericMethod == s_CreateCommonTable_TSource_TTarget &&
+                             methodCallExpression.Arguments[1] is ParameterExpression parameter:
+
+                        result = VisitorHelper.CreateCommonTable(
                             methodCallExpression,
                             Expression.Call(
-                                param,
-                                param.Type.GetMethod("get_Item"),
-                                Expression.Constant(0)));
+                                parameter,
+                                parameter.Type.GetMethod("get_Item"),
+                                Expression.Constant(0))); ;
+                        break;
+
+
+                    case nameof(BatchOperationExtensions.BatchDelete)
+                        when genericMethod == s_BatchDelete_TSource:
+
+                        // TODO: Check
+                        var visited = Visit(methodCallExpression.Arguments[0]);
+                        if (VisitorHelper.GetEntityTypeWithinEntityReference(visited) is Type type)
+                            result = Expression.Call(genericMethod.MakeGenericMethod(type), visited);
+                        break;
                 }
 
-                throw new InvalidOperationException(CoreStrings.QueryFailed(methodCallExpression.Print(), GetType().Name));
+                if (result == null)
+                {
+                    throw new InvalidOperationException(
+                        CoreStrings.QueryFailed(methodCallExpression.Print(), GetType().Name));
+                }
             }
 
             return base.VisitMethodCall(methodCallExpression);
         }
-
-        private static Expression<Func<Expression, Expression, Expression>> CreateNavigationExpansion()
-        {
-            var origin = Expression.Parameter(typeof(Expression), "origin");
-            var entity = Expression.Parameter(typeof(Expression), "entity");
-            var treeExp = typeof(NavigationExpandingExpressionVisitor).GetNestedType("NavigationTreeExpression", BindingFlags.NonPublic);
-            var navExp = typeof(NavigationExpandingExpressionVisitor).GetNestedType("NavigationExpansionExpression", BindingFlags.NonPublic);
-
-            var node = Expression.Variable(treeExp, "node");
-            var treeLeaf = Expression.New(treeExp.GetConstructors()[0], entity);
-            var nodeAssign = Expression.Assign(node, treeLeaf);
-
-            var exp = Expression.New(navExp.GetConstructors()[0], origin, node, node, Expression.Constant("cte", typeof(string)));
-            var block = Expression.Block(new[] { node }, nodeAssign, exp);
-            return Expression.Lambda<Func<Expression, Expression, Expression>>(block, origin, entity);
-        }
-
-        private static readonly Func<Expression, Expression, Expression> NavigationExpansionExpressionFactory
-            = CreateNavigationExpansion().Compile();
     }
 
-    public class XysQueryTranslationPreprocessorFactory : IQueryTranslationPreprocessorFactory
+    public class XysQueryTranslationPreprocessorFactory :
+        IQueryTranslationPreprocessorFactory,
+        IServiceAnnotation<IQueryTranslationPreprocessorFactory, RelationalQueryTranslationPreprocessorFactory>
     {
         private readonly QueryTranslationPreprocessorDependencies _dependencies;
         private readonly RelationalQueryTranslationPreprocessorDependencies _relationalDependencies;
