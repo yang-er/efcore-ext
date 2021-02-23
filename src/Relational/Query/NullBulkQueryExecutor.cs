@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
-    public class NullNonQueryExecutor : INonQueryExecutor
+    public class NullBulkQueryExecutor : IBulkQueryExecutor
     {
         public int Execute()
         {
@@ -15,7 +15,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             return Task.FromResult(0);
         }
 
-        public INonQueryExecutor WithCancellationToken(CancellationToken cancellationToken)
+        public IBulkQueryExecutor WithCancellationToken(CancellationToken cancellationToken)
         {
             return this;
         }

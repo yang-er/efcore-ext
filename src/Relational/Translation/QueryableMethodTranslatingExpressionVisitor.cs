@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using static Microsoft.EntityFrameworkCore.Bulk.BatchOperationMethods;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -44,38 +45,46 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override QueryableMethodTranslatingExpressionVisitor CreateSubqueryVisitor()
             => new XysQueryableMethodTranslatingExpressionVisitor(this);
 
+        protected virtual Expression TranslateCommonTable(ParameterExpression param)
+        {
+            var entityType = _anonymousExpressionFactory.GetType(param.Type.GetGenericArguments()[0]);
+            var values = new ValuesExpression(param, entityType.Fields.Select(a => a.Name).ToArray(), entityType);
+
+            var select = RelationalInternals.CreateSelectExpression(
+                alias: null,
+                projections: new List<ProjectionExpression>(),
+                tables: new List<TableExpressionBase> { values },
+                groupBy: new List<SqlExpression>(),
+                orderings: new List<OrderingExpression>());
+
+            var mapping = new Dictionary<ProjectionMember, Expression>();
+            var rootMember = new ProjectionMember();
+            var shaperArguments = new List<Expression>(entityType.Fields.Count);
+
+            foreach (var field in entityType.Fields)
+            {
+                var projectionMember = rootMember.Append(field.PropertyInfo);
+                mapping[projectionMember] = field.CreateColumn(values);
+                shaperArguments.Add(field.CreateProjectionBinding(select, projectionMember));
+            }
+
+            select.ReplaceProjectionMapping(mapping);
+            var shaper = entityType.CreateShaper(shaperArguments);
+            return new ShapedQueryExpression(select, shaper);
+        }
+
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
             var method = methodCallExpression.Method;
-            if (method.DeclaringType == typeof(Bulk.RelationalExtensions))
+            if (method.DeclaringType == typeof(BatchOperationExtensions))
             {
-                if (method.Name == nameof(Bulk.RelationalExtensions.CreateCommonTable)
-                    && methodCallExpression.Arguments[1] is ParameterExpression param)
+                var genericMethod = method.GetGenericMethodDefinition();
+                switch (method.Name)
                 {
-                    var entityType = _anonymousExpressionFactory.GetType(param.Type.GetGenericArguments()[0]);
-                    var values = new ValuesExpression(param, entityType.Fields.Select(a => a.Name).ToArray(), entityType);
-
-                    var select = RelationalInternals.CreateSelectExpression(
-                        alias: null,
-                        projections: new List<ProjectionExpression>(),
-                        tables: new List<TableExpressionBase> { values },
-                        groupBy: new List<SqlExpression>(),
-                        orderings: new List<OrderingExpression>());
-
-                    var mapping = new Dictionary<ProjectionMember, Expression>();
-                    var rootMember = new ProjectionMember();
-                    var shaperArguments = new List<Expression>(entityType.Fields.Count);
-
-                    foreach (var field in entityType.Fields)
-                    {
-                        var projectionMember = rootMember.Append(field.PropertyInfo);
-                        mapping[projectionMember] = field.CreateColumn(values);
-                        shaperArguments.Add(field.CreateProjectionBinding(select, projectionMember));
-                    }
-
-                    select.ReplaceProjectionMapping(mapping);
-                    var shaper = entityType.CreateShaper(shaperArguments);
-                    return new ShapedQueryExpression(select, shaper);
+                    case nameof(BatchOperationExtensions.CreateCommonTable)
+                         when genericMethod == s_CreateCommonTable_TSource_TTarget &&
+                              methodCallExpression.Arguments[1] is ParameterExpression param:
+                        return TranslateCommonTable(param);
                 }
             }
 

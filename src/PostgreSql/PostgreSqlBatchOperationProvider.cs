@@ -7,7 +7,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class PostgreSqlBatchOperationProvider : RelationalBatchOperationProvider
     {
-        protected override INonQueryExecutor GetSqlUpsert<TTarget, TSource>(
+        protected override IBulkQueryExecutor GetSqlUpsert<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
@@ -21,7 +21,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 insertExpression, updateExpression,
                 out var upsertExpression, out var queryRewritingContext);
 
-            if (upsertExpression == null) return new NullNonQueryExecutor();
+            if (upsertExpression == null) return new NullBulkQueryExecutor();
             return queryRewritingContext.Generate(upsertExpression);
         }
     }

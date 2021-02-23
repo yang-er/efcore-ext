@@ -12,7 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class SqlServerBatchOperationProvider : RelationalBatchOperationProvider
     {
-        protected override INonQueryExecutor GetSqlUpsert<TTarget, TSource>(
+        protected override IBulkQueryExecutor GetSqlUpsert<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable,
@@ -42,11 +42,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 updateExpression, insertExpression, false,
                 out var mergeExpression, out var queryRewritingContext);
 
-            if (mergeExpression == null) return new NullNonQueryExecutor();
+            if (mergeExpression == null) return new NullBulkQueryExecutor();
             return queryRewritingContext.Generate(mergeExpression);
         }
 
-        protected override INonQueryExecutor GetSqlMerge<TTarget, TSource>(
+        protected override IBulkQueryExecutor GetSqlMerge<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceTable2,
@@ -72,13 +72,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                     var builder = context.GetService<IRawSqlCommandBuilder>();
                     var queryContext = (RelationalQueryContext)context.GetService<IQueryContextFactory>().Create();
 
-                    return new RelationalNonQueryExecutor(
+                    return new RelationalBulkQueryExecutor(
                         queryContext,
                         builder.Build($"TRUNCATE TABLE [{context.Model.FindEntityType(typeof(TTarget)).GetTableName()}]"));
                 }
                 else
                 {
-                    return new NullNonQueryExecutor();
+                    return new NullBulkQueryExecutor();
                 }
             }
 

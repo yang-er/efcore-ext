@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
-    public class RelationalNonQueryExecutor : INonQueryExecutor
+    public class RelationalBulkQueryExecutor : IBulkQueryExecutor
     {
         private readonly RelationalCommandCache _relationalCommandCache;
         private readonly RelationalQueryContext _queryContext;
         private readonly IRelationalCommand _relationalCommand;
         private CancellationToken? _externalCancellationToken;
 
-        public RelationalNonQueryExecutor(
+        public RelationalBulkQueryExecutor(
             RelationalQueryContext relationalQueryContext,
             RelationalCommandCache relationalCommandCache)
         {
@@ -22,7 +22,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             _queryContext = relationalQueryContext;
         }
 
-        public RelationalNonQueryExecutor(
+        public RelationalBulkQueryExecutor(
             RelationalQueryContext relationalQueryContext,
             IRelationalCommand relationalCommand)
         {
@@ -53,7 +53,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
-        public INonQueryExecutor WithCancellationToken(CancellationToken cancellationToken)
+        public IBulkQueryExecutor WithCancellationToken(CancellationToken cancellationToken)
         {
             _externalCancellationToken = cancellationToken;
             return this;

@@ -56,7 +56,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public SelectExpression SelectExpression { get; }
 
-        public RelationalNonQueryExecutor Generate(Expression expression)
+        public RelationalBulkQueryExecutor Generate(Expression expression)
         {
             var generator = CreateGenerator();
             var command = expression switch
@@ -70,7 +70,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 _ => throw new ArgumentNullException(nameof(expression)),
             };
 
-            return new RelationalNonQueryExecutor(QueryContext, command);
+            return new RelationalBulkQueryExecutor(QueryContext, command);
         }
 
         public IEnhancedQuerySqlGenerator CreateGenerator()
