@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
+﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
@@ -45,7 +47,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override QueryableMethodTranslatingExpressionVisitor CreateSubqueryVisitor()
             => new XysQueryableMethodTranslatingExpressionVisitor(this);
 
-        public Expression TranslationFailed(string message)
+        protected virtual ShapedQueryExpression Fail(string message)
         {
 #if EFCORE50
             AddTranslationErrorDetails(message);
@@ -53,7 +55,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             return null;
         }
 
-        protected virtual Expression TranslateCommonTable(ParameterExpression param)
+        protected virtual ShapedQueryExpression TranslateCommonTable(ParameterExpression param)
         {
             var entityType = _anonymousExpressionFactory.GetType(param.Type.GetGenericArguments()[0]);
             var values = new ValuesExpression(param, entityType.Fields.Select(a => a.Name).ToArray(), entityType);
@@ -111,7 +113,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             return newShaped;
         }
 
-        protected virtual Expression TranslateDelete(Expression shaped)
+        protected virtual ShapedQueryExpression TranslateDelete(Expression shaped)
         {
             if (!(shaped is ShapedQueryExpression shapedQueryExpression)
                 || !(shapedQueryExpression.QueryExpression is SelectExpression selectExpression))
@@ -122,12 +124,12 @@ namespace Microsoft.EntityFrameworkCore.Query
             if (selectExpression.Offset != null || selectExpression.Limit != null
                 || (selectExpression.GroupBy?.Count ?? 0) != 0 || selectExpression.Having != null)
             {
-                return TranslationFailed("The query can't be aggregated or be with .Take() or .Skip() filters.");
+                return Fail("The query can't be aggregated or be with .Take() or .Skip() filters.");
             }
 
             if (!(selectExpression?.Tables?[0] is TableExpression table))
             {
-                return TranslationFailed("The query root should be main entity.");
+                return Fail("The query root should be main entity.");
             }
 
             var delete = new DeleteExpression(
@@ -149,15 +151,39 @@ namespace Microsoft.EntityFrameworkCore.Query
                     case nameof(BatchOperationExtensions.CreateCommonTable)
                          when genericMethod == s_CreateCommonTable_TSource_TTarget &&
                               methodCallExpression.Arguments[1] is ParameterExpression param:
-                        return TranslateCommonTable(param);
+                        return CheckTranslated(TranslateCommonTable(param));
 
                     case nameof(BatchOperationExtensions.BatchDelete)
                         when genericMethod == s_BatchDelete_TSource:
-                        return TranslateDelete(Visit(methodCallExpression.Arguments[0]));
+                        return CheckTranslated(TranslateDelete(Visit(methodCallExpression.Arguments[0])));
                 }
             }
 
             return base.VisitMethodCall(methodCallExpression);
+
+#if EFCORE31
+            ShapedQueryExpression CheckTranslated(ShapedQueryExpression translated)
+            {
+                if (translated == null)
+                {
+                    throw new InvalidOperationException(
+                        CoreStrings.TranslationFailed(methodCallExpression.Print()));
+                }
+
+                return translated;
+            }
+#elif EFCORE50
+            ShapedQueryExpression CheckTranslated(ShapedQueryExpression translated)
+            {
+                return translated
+                    ?? throw new InvalidOperationException(
+                        TranslationErrorDetails == null
+                            ? CoreStrings.TranslationFailed(methodCallExpression.Print())
+                            : CoreStrings.TranslationFailedWithDetails(
+                                methodCallExpression.Print(),
+                                TranslationErrorDetails));
+            }
+#endif
         }
     }
 
