@@ -163,7 +163,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 updateExpression == null ? null : updates,
                 key.GetName());
 
-            static IQueryable<Result<T1>> MergeResult<T0, T1, T2>(
+            static IQueryable<GenericUtility.Result<T1>> MergeResult<T0, T1, T2>(
                 IQueryable<T0> query,
                 Expression<Func<T1, T1, T1>> updateExpression,
                 Expression<Func<T2, T1>> insertExpression)
@@ -172,12 +172,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 var t = Expression.Property(tst0, "t");
                 var s = Expression.Property(tst0, "s");
                 var t0 = Expression.Property(tst0, "t0");
-                var res = Expression.New(typeof(Result<T1>));
+                var res = Expression.New(typeof(GenericUtility.Result<T1>));
                 var binding = Array.Empty<MemberBinding>().AsEnumerable();
 
                 if (updateExpression != null)
                     binding = binding.Append(Expression.Bind(
-                        member: typeof(Result<T1>).GetProperty("Update"),
+                        member: typeof(GenericUtility.Result<T1>).GetProperty("Update"),
                         expression: new ParameterReplaceVisitor(
                             (updateExpression.Parameters[0], t),
                             (updateExpression.Parameters[1], t0))
@@ -185,13 +185,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
                 if (insertExpression != null)
                     binding = binding.Append(Expression.Bind(
-                        member: typeof(Result<T1>).GetProperty("Insert"),
+                        member: typeof(GenericUtility.Result<T1>).GetProperty("Insert"),
                         expression: new ParameterReplaceVisitor(
                             (insertExpression.Parameters[0], s))
                         .Visit(insertExpression.Body)));
 
                 var body = Expression.MemberInit(res, binding);
-                var selector = Expression.Lambda<Func<T0, Result<T1>>>(body, tst0);
+                var selector = Expression.Lambda<Func<T0, GenericUtility.Result<T1>>>(body, tst0);
                 return query.Select(selector);
             }
         }
@@ -253,18 +253,18 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 insertExpression == null ? null : inserts,
                 delete);
 
-            static Expression<Func<T1, T2, Result<T1>>> MergeResult<T1, T2>(
+            static Expression<Func<T1, T2, GenericUtility.Result<T1>>> MergeResult<T1, T2>(
                 Expression<Func<T1, T2, T1>> updateExpression,
                 Expression<Func<T2, T1>> insertExpression)
             {
                 var para1 = Expression.Parameter(typeof(T1), "t");
                 var para2 = Expression.Parameter(typeof(T2), "s");
-                var res = Expression.New(typeof(Result<T1>));
+                var res = Expression.New(typeof(GenericUtility.Result<T1>));
                 var binding = Array.Empty<MemberBinding>().AsEnumerable();
 
                 if (updateExpression != null)
                     binding = binding.Append(Expression.Bind(
-                        member: typeof(Result<T1>).GetProperty("Update"),
+                        member: typeof(GenericUtility.Result<T1>).GetProperty("Update"),
                         expression: new ParameterReplaceVisitor(
                             (updateExpression.Parameters[0], para1),
                             (updateExpression.Parameters[1], para2))
@@ -272,13 +272,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
                 if (insertExpression != null)
                     binding = binding.Append(Expression.Bind(
-                        member: typeof(Result<T1>).GetProperty("Insert"),
+                        member: typeof(GenericUtility.Result<T1>).GetProperty("Insert"),
                         expression: new ParameterReplaceVisitor(
                             (insertExpression.Parameters[0], para2))
                         .Visit(insertExpression.Body)));
 
                 var body = Expression.MemberInit(res, binding);
-                return Expression.Lambda<Func<T1, T2, Result<T1>>>(body, para1, para2);
+                return Expression.Lambda<Func<T1, T2, GenericUtility.Result<T1>>>(body, para1, para2);
             }
         }
 
@@ -393,14 +393,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             if (!(updateExpression.Tables[updateExpression.Tables.Count - 1] is InnerJoinExpression innerJoin)
                 || !(innerJoin.Table is SelectExpression || innerJoin.Table is ValuesExpression))
                 throw new NotImplementedException("Translation failed.");
-        }
-
-
-        private class Result<T>
-        {
-            public T Insert { get; set; }
-
-            public T Update { get; set; }
         }
     }
 }

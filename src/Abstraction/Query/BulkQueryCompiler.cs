@@ -50,16 +50,29 @@ namespace Microsoft.EntityFrameworkCore.Query
             bool parameterize = true,
             bool generateContextAccessors = false)
         {
-            var visitor = new ParameterExtractingExpressionVisitor(
-                _evaluatableExpressionFilter,
-                parameterValues,
-                _contextType,
-                _model,
-                logger,
-                parameterize,
-                generateContextAccessors);
+            if (query is MethodCallExpression methodCallExpression
+                && methodCallExpression.Method.DeclaringType == typeof(BatchOperationMethods))
+            {
+                var visitor = new ParameterExtractingExpressionVisitorV2(
+                    _evaluatableExpressionFilter,
+                    parameterValues,
+                    _contextType,
+                    _model,
+                    logger,
+                    parameterize,
+                    generateContextAccessors);
 
-            return visitor.ExtractParameters(query);
+                return visitor.ExtractParameters(query);
+            }
+            else
+            {
+                return base.ExtractParameters(
+                    query,
+                    parameterValues,
+                    logger,
+                    parameterize,
+                    generateContextAccessors);
+            }
         }
     }
 }

@@ -12,9 +12,4 @@
     <None Remove="obj\**" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="Translation\ParameterExtractingExpressionVisitor2-*.cs" />
-    <Compile Include="Translation\ParameterExtractingExpressionVisitor2-$(DotNetCoreVersion).cs" Link="Translation\ParameterExtractingExpressionVisitor2.cs" />
-  </ItemGroup>
-
 </Project>

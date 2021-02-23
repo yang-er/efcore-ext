@@ -22,13 +22,6 @@ internal static partial class RelationalInternals
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
-    public static bool IsTransparentIdentifier(this Type type)
-        => type.FullName.StartsWith("Microsoft.EntityFrameworkCore.Bulk.") && type.IsNested &&
-            (type.DeclaringType == typeof(Microsoft.EntityFrameworkCore.Bulk.AnonymousObjectExpressionFactory) //+TransparentIdentifier`1~4
-            || type.DeclaringType == typeof(Microsoft.EntityFrameworkCore.Bulk.QueryRewriter)); //+Result`1
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [DebuggerStepThrough]
     public static IRelationalCommandBuilder GenerateList<T>(
         this IRelationalCommandBuilder sql,
         IReadOnlyList<T> items,

@@ -110,7 +110,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             bool parameterize = true,
             bool generateContextAccessors = false)
         {
-            var visitor = new ParameterExtractingExpressionVisitor2(
+            var visitor = new ParameterExtractingExpressionVisitorV2(
                 evaluatableExpressionFilter,
                 parameterValues,
                 contextType,
