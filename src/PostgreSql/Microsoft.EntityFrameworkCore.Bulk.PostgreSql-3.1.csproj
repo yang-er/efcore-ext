@@ -1,5 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);RELATIONAL;POSTGRE_SQL</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(EFCoreNpgsqlCoreVersion)" Condition=" $(EFCorePgSourceDirectory) == '' " />
     <ProjectReference Include="$(EFCorePgSourceDirectory)\src\EFCore.PG\EFCore.PG.csproj" Condition=" $(EFCorePgSourceDirectory) != '' " />
@@ -10,6 +14,7 @@
     <Compile Remove="obj\**" />
     <EmbeddedResource Remove="obj\**" />
     <None Remove="obj\**" />
+    <Compile Include="..\RelationalSpecified\**" />
   </ItemGroup>
 
 </Project>

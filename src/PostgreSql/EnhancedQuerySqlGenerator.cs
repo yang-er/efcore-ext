@@ -57,6 +57,29 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             };
         }
 
+        protected virtual Expression VisitWrapped(WrappedExpression wrappedExpression)
+        {
+            return wrappedExpression switch
+            {
+                DeleteExpression deleteExpression => VisitDelete(deleteExpression),
+                _ => throw new NotImplementedException(),
+            };
+        }
+
+        protected override Expression VisitSelect(SelectExpression selectExpression)
+        {
+            if (selectExpression.Projection.Count == 1
+                && selectExpression.Tables.Count == 1
+                && selectExpression.Tables[0] is WrappedExpression wrappedExpression
+                && selectExpression.Projection[0].Expression is AffectedRowsExpression)
+            {
+                VisitWrapped(wrappedExpression);
+                return selectExpression;
+            }
+
+            return base.VisitSelect(selectExpression);
+        }
+
         protected virtual Expression VisitValues(ValuesExpression tableExpression)
         {
             if (tableExpression.Alias != null)
@@ -163,6 +186,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         public virtual IRelationalCommand GetCommand(DeleteExpression deleteExpression)
         {
             RelationalInternals.InitQuerySqlGenerator(this);
+            VisitDelete(deleteExpression);
+            return Sql.Build();
+        }
+
+        protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
+        {
             Sql.Append("DELETE ");
 
             if (deleteExpression.JoinedTables.Any())
@@ -180,7 +209,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 Visit(deleteExpression.Predicate);
             }
 
-            return Sql.Build();
+            return deleteExpression;
         }
 
         public virtual IRelationalCommand GetCommand(UpsertExpression insertExpression)
