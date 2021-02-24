@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -12,6 +11,7 @@ namespace Microsoft.EntityFrameworkCore.Query
     {
         private readonly bool _useRelationalNulls;
         private readonly ISet<string> _tags;
+        private readonly QueryCompilationContext _queryCompilationContext;
 
         public XysShapedQueryCompilingExpressionVisitor(
             ShapedQueryCompilingExpressionVisitorDependencies dependencies,
@@ -21,7 +21,40 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             _tags = queryCompilationContext.Tags;
             _useRelationalNulls = RelationalOptionsExtension.Extract(queryCompilationContext.ContextOptions).UseRelationalNulls;
+            _queryCompilationContext = queryCompilationContext;
         }
+
+#if EFCORE31
+
+        private void VerifyNoClientConstant(Expression expression)
+        {
+        }
+
+        private RelationalCommandCache CreateCommandCache(SelectExpression selectExpression)
+        {
+            return new RelationalCommandCache(
+                Dependencies.MemoryCache,
+                RelationalDependencies.SqlExpressionFactory,
+                RelationalDependencies.ParameterNameGeneratorFactory,
+                RelationalDependencies.QuerySqlGeneratorFactory,
+                _useRelationalNulls,
+                selectExpression);
+        }
+
+#elif EFCORE50
+
+        private RelationalCommandCache CreateCommandCache(SelectExpression selectExpression)
+        {
+            return new RelationalCommandCache(
+                Dependencies.MemoryCache,
+                RelationalDependencies.QuerySqlGeneratorFactory,
+                RelationalDependencies.RelationalParameterBasedSqlProcessorFactory,
+                selectExpression,
+                readerColumns: null,
+                _useRelationalNulls);
+        }
+
+#endif
 
         protected override Expression VisitExtension(Expression extensionExpression)
         {
@@ -31,22 +64,14 @@ namespace Microsoft.EntityFrameworkCore.Query
                 var selectExpression = (SelectExpression)shapedQueryExpression.QueryExpression;
                 VerifyNoClientConstant(shapedQueryExpression.ShaperExpression);
                 selectExpression.ApplyTags(_tags);
-
-                var relationalCommandCache =
-                    new RelationalCommandCache(
-                        Dependencies.MemoryCache,
-                        RelationalDependencies.QuerySqlGeneratorFactory,
-                        RelationalDependencies.RelationalParameterBasedSqlProcessorFactory,
-                        selectExpression,
-                        readerColumns: null,
-                        _useRelationalNulls);
+                var relationalCommandCache = CreateCommandCache(selectExpression);
 
                 return Expression.Call(
                     instance: Expression.New(
                         typeof(RelationalBulkQueryExecutor).GetConstructor(new[] { typeof(RelationalQueryContext), typeof(RelationalCommandCache) }),
                         Expression.Convert(QueryCompilationContext.QueryContextParameter, typeof(RelationalQueryContext)),
                         Expression.Constant(relationalCommandCache)),
-                    method: QueryCompilationContext.IsAsync
+                    method: _queryCompilationContext.IsAsync
                         ? typeof(RelationalBulkQueryExecutor).GetMethod(nameof(IBulkQueryExecutor.ExecuteAsync))
                         : typeof(RelationalBulkQueryExecutor).GetMethod(nameof(IBulkQueryExecutor.Execute)));
             }

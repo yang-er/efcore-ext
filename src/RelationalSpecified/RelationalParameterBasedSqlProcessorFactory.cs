@@ -1,17 +1,25 @@
-﻿using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
+﻿#if EFCORE50
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+    using Microsoft.EntityFrameworkCore.Bulk;
+    using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
-#if EFCORE50
+#if SQL_SERVER
+    using ThisSqlNullabilityProcessor = Microsoft.EntityFrameworkCore.Query.SqlNullabilityProcessor;
+    using ThisParameterBasedSqlProcessor = Microsoft.EntityFrameworkCore.SqlServer.Query.Internal.SqlServerParameterBasedSqlProcessor;
+    using ThisParameterBasedSqlProcessorFactory = Microsoft.EntityFrameworkCore.SqlServer.Query.Internal.SqlServerParameterBasedSqlProcessorFactory;
+#elif POSTGRE_SQL
+    using ThisSqlNullabilityProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlSqlNullabilityProcessor;
+    using ThisParameterBasedSqlProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessor;
+    using ThisParameterBasedSqlProcessorFactory = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessorFactory;
+#endif
 
-    public class XysSqlNullabilityProcessor : SqlNullabilityProcessor
+    public class XysSqlNullabilityProcessor : ThisSqlNullabilityProcessor
     {
         private readonly HashSet<ValuesExpression> _valuesExpressions;
 
@@ -106,7 +114,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
     }
 
-    public class XysParameterBasedSqlProcessor : SqlServerParameterBasedSqlProcessor
+    public class XysParameterBasedSqlProcessor : ThisParameterBasedSqlProcessor
     {
         private readonly HashSet<ValuesExpression> _valuesTables;
 
@@ -168,7 +176,9 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
     }
 
-    public class XysParameterBasedSqlProcessorFactory : IRelationalParameterBasedSqlProcessorFactory
+    public class XysParameterBasedSqlProcessorFactory :
+        IRelationalParameterBasedSqlProcessorFactory,
+        IServiceAnnotation<IRelationalParameterBasedSqlProcessorFactory, ThisParameterBasedSqlProcessorFactory>
     {
         private readonly RelationalParameterBasedSqlProcessorDependencies _dependencies;
 
@@ -183,7 +193,6 @@ namespace Microsoft.EntityFrameworkCore.Query
         public virtual RelationalParameterBasedSqlProcessor Create(bool useRelationalNulls)
             => new XysParameterBasedSqlProcessor(_dependencies, useRelationalNulls);
     }
+}
 
 #endif
-
-}

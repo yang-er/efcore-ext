@@ -120,6 +120,12 @@ namespace Testcase_BatchDelete
                 .BatchDelete();
             Assert.Equal(it2.Count, count);
             it2.ForEach(a => items.Remove(a));
+
+            var compiledQuery = EF.CompileQuery<DeleteContext, int>(
+                (ctx) => ctx.Items.Where(a => a.ItemId > 500 && a.Price == 3).BatchDelete());
+
+            compiledQuery.Invoke(context);
+            compiledQuery.Invoke(context);
         }
 
         [Fact, TestPriority(2)]
@@ -128,6 +134,12 @@ namespace Testcase_BatchDelete
             using var context = contextFactory();
             var nameToDelete = "N4";
             context.Items.Where(a => a.Name == nameToDelete).BatchDelete();
+
+            var compiledQuery = EF.CompileQuery<DeleteContext, string, int>(
+                (ctx, nameToDelete) => ctx.Items.Where(a => a.Name == nameToDelete).BatchDelete());
+
+            compiledQuery.Invoke(context, nameToDelete);
+            compiledQuery.Invoke(context, nameToDelete);
         }
 
         [Fact, TestPriority(3)]
@@ -136,6 +148,12 @@ namespace Testcase_BatchDelete
             using var context = contextFactory();
             var descriptionsToDelete = new List<string> { "info", "aaa" };
             context.Items.Where(a => descriptionsToDelete.Contains(a.Description)).BatchDelete();
+
+            var compiledQuery = EF.CompileQuery<DeleteContext, List<string>, int>(
+                (ctx, descriptionsToDelete) => ctx.Items.Where(a => descriptionsToDelete.Contains(a.Name)).BatchDelete());
+
+            compiledQuery.Invoke(context, new List<string> { "info", "aaa" });
+            compiledQuery.Invoke(context, new List<string> { "jyntnytjyntjntnytnt", "aaa" });
         }
 
         [Fact, TestPriority(4)]
@@ -144,9 +162,6 @@ namespace Testcase_BatchDelete
             using var context = contextFactory();
             var descriptionsToDelete = new List<string> { "info" };
             var nameToDelete = "N4";
-            context.Items
-                .Where(a => descriptionsToDelete.Contains(a.Description) || a.Name == nameToDelete)
-                .ToQueryString();
             context.Items
                 .Where(a => descriptionsToDelete.Contains(a.Description) || a.Name == nameToDelete)
                 .BatchDelete();
