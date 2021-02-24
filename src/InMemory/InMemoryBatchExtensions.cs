@@ -1,6 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -27,6 +30,7 @@ namespace Microsoft.EntityFrameworkCore
             public void ApplyServices(IServiceCollection services)
             {
                 services.AddSingleton<IBatchOperationProvider, InMemoryBatchOperationProvider>();
+                services.Replace(ServiceDescriptor.Scoped<IQueryCompiler, ExplicitQueryCompiler>());
             }
 
             public void Validate(IDbContextOptions options)
