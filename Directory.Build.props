@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Packaging Options -->
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
     <Authors>borisdj;yang-er</Authors>
     <Description>Entity Framework Core Batch Extensions for Insert Update Delete and Read (CRUD) operations</Description>
     <PackageProjectUrl>https://github.com/yang-er/efcore-ext</PackageProjectUrl>

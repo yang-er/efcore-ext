@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.Bulk.BatchOperationMethods;
 
 namespace Microsoft.EntityFrameworkCore.Query
@@ -57,48 +58,129 @@ namespace Microsoft.EntityFrameworkCore.Query
                 var genericMethod = methodCallExpression.Method.GetGenericMethodDefinition();
                 var root = methodCallExpression.Arguments[0];
                 var rootType = methodCallExpression.Method.GetGenericArguments()[0];
+
                 switch (genericMethod.Name)
                 {
                     case nameof(BatchOperationExtensions.BatchDelete)
                     when genericMethod == s_BatchDelete_TSource:
                         EnsureQueryExpression(root);
-                        return (Func<QueryContext, TResult>)CompileDeleteCore(database, root, async, rootType);
+                        return CompileDeleteCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType);
+
+                    case nameof(BatchOperationExtensions.BatchUpdate)
+                    when genericMethod == s_BatchUpdate_TSource:
+                        EnsureQueryExpression(root);
+                        return CompileUpdateCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType, TranslateUpdateShaper(UnquoteLambda(methodCallExpression.Arguments[1])));
                 }
             }
 
             return base.CompileQueryCore<TResult>(database, query, model, async);
+
+            InvocationExpression TranslateQueryingEnumerable(Expression innerQuery, Type sourceEntityType)
+            {
+                var innerEnumerableType = async
+                    ? typeof(IAsyncEnumerable<>).MakeGenericType(sourceEntityType)
+                    : typeof(IEnumerable<>).MakeGenericType(sourceEntityType);
+
+                Delegate queryExecutor;
+
+                try
+                {
+                    queryExecutor = (Delegate)database_CompileQuery
+                        .MakeGenericMethod(innerEnumerableType)
+                        .Invoke(database, new object[] { innerQuery, async });
+                }
+                catch (TargetInvocationException ex)
+                {
+                    throw ex?.InnerException ?? ex;
+                }
+
+                return Expression.Invoke(
+                    Expression.Constant(queryExecutor),
+                    QueryCompilationContext.QueryContextParameter);
+            }
+
+            LambdaExpression UnquoteLambda(Expression expression)
+            {
+                return (expression as UnaryExpression)?.Operand as LambdaExpression;
+            }
         }
 
-        private Delegate CompileDeleteCore(IDatabase database, Expression innerQuery, bool async, Type sourceEntityType)
+        private Func<QueryContext, TResult> CompileDeleteCore<TResult>(InvocationExpression queryingEnumerable, Type rootType)
         {
-            var innerEnumerableType = async
-                ? typeof(IAsyncEnumerable<>).MakeGenericType(sourceEntityType)
-                : typeof(IEnumerable<>).MakeGenericType(sourceEntityType);
+            return Expression.Lambda<Func<QueryContext, TResult>>(
+                Expression.Call(
+                    Expression.New(
+                        typeof(DeleteOperation<>).MakeGenericType(rootType).GetConstructors()[0],
+                        QueryCompilationContext.QueryContextParameter,
+                        queryingEnumerable),
+                    typeof(TResult) == typeof(Task<int>)
+                        ? bulkQueryExecutor_ExecuteAsync
+                        : bulkQueryExecutor_Execute),
+                QueryCompilationContext.QueryContextParameter)
+                .Compile();
+        }
 
-            Delegate queryExecutor;
+        private static LambdaExpression TranslateUpdateShaper(LambdaExpression expression)
+        {
+            var param = expression.Parameters[0];
+            NewExpression newExpression;
+            IEnumerable<MemberBinding> bindings;
+            var sentences = new List<Expression>();
 
-            try
+            switch (expression.Body)
             {
-                queryExecutor = (Delegate)database_CompileQuery
-                    .MakeGenericMethod(innerEnumerableType)
-                    .Invoke(database, new object[] { innerQuery, async });
+                case MemberInitExpression memberInit:
+                    newExpression = memberInit.NewExpression;
+                    bindings = memberInit.Bindings;
+                    break;
+
+                case NewExpression @new:
+                    newExpression = @new;
+                    bindings = Enumerable.Empty<MemberBinding>();
+                    break;
+
+                default:
+                    throw new NotImplementedException(
+                        $"Type of {expression.Body.NodeType} is not supported in InMemory update yet.");
             }
-            catch (TargetInvocationException ex)
+
+            if (newExpression.Constructor.GetParameters().Length > 0)
             {
-                throw ex?.InnerException ?? ex;
+                throw new InvalidOperationException("Non-simple constructor is not supported.");
             }
 
-            var queryingEnumerable = Expression.Invoke(
-                Expression.Constant(queryExecutor),
-                QueryCompilationContext.QueryContextParameter);
+            foreach (var item in bindings)
+            {
+                if (item is not MemberAssignment assignment)
+                {
+                    throw new InvalidOperationException("Non-assignment binding is not supported.");
+                }
 
-            var ctor = typeof(DeleteOperation<,>)
-                .MakeGenericType(sourceEntityType, innerEnumerableType)
-                .GetConstructors()[0];
+                var member = Expression.MakeMemberAccess(param, assignment.Member);
+                var result = InMemoryParameterAccessVisitor.Process(assignment.Expression);
+                sentences.Add(Expression.Assign(member, result));
+            }
 
-            var newer = Expression.New(ctor, QueryCompilationContext.QueryContextParameter, queryingEnumerable);
-            var result = Expression.Call(newer, async ? bulkQueryExecutor_ExecuteAsync : bulkQueryExecutor_Execute);
-            return Expression.Lambda(result, QueryCompilationContext.QueryContextParameter).Compile();
+            return Expression.Lambda(
+                Expression.Block(typeof(void), sentences),
+                QueryCompilationContext.QueryContextParameter,
+                param);
+        }
+
+        private Func<QueryContext, TResult> CompileUpdateCore<TResult>(InvocationExpression queryingEnumerable, Type rootType, LambdaExpression updateShaper)
+        {
+            return Expression.Lambda<Func<QueryContext, TResult>>(
+                Expression.Call(
+                    Expression.New(
+                        typeof(UpdateOperation<>).MakeGenericType(rootType).GetConstructors()[0],
+                        QueryCompilationContext.QueryContextParameter,
+                        queryingEnumerable,
+                        Expression.Constant(updateShaper.Compile())),
+                    typeof(TResult) == typeof(Task<int>)
+                        ? bulkQueryExecutor_ExecuteAsync
+                        : bulkQueryExecutor_Execute),
+                QueryCompilationContext.QueryContextParameter)
+                .Compile();
         }
 
         private static void EnsureQueryExpression(Expression expression)
