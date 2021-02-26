@@ -1,6 +1,4 @@
 ﻿#nullable enable
-using Microsoft.EntityFrameworkCore.Metadata;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -20,28 +18,6 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             Table = Check.NotNull(table, nameof(table));
             JoinedTables = Check.HasNoNulls(joinedTables, nameof(joinedTables)).ToList();
             Predicate = predicate;
-        }
-
-        /// <summary>
-        /// Create a DELETE expression from a SELECT expression.
-        /// </summary>
-        /// <param name="selectExpression">The SELECT expression.</param>
-        /// <param name="entityType">The entity type.</param>
-        /// <returns>The created DELETE expression.</returns>
-        public static DeleteExpression CreateFromSelect(
-            SelectExpression selectExpression,
-            IEntityType entityType)
-        {
-            if (!(selectExpression?.Tables?[0] is TableExpression table))
-                throw new NotSupportedException("The query root should be main entity.");
-            if (table.Name != entityType.GetTableName())
-                throw new NotSupportedException("The query root type mismatch.");
-            if (selectExpression.Offset != null || selectExpression.Limit != null)
-                throw new NotSupportedException("The query can't have .Take() or .Skip() filters.");
-            if ((selectExpression.GroupBy?.Count ?? 0) != 0 || selectExpression.Having != null)
-                throw new NotSupportedException("The query can't be aggregated.");
-
-            return new DeleteExpression(table, selectExpression.Predicate, selectExpression.Tables);
         }
 
         /// <summary>

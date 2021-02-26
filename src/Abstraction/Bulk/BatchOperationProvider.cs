@@ -43,30 +43,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TTarget : class
             where TSource : class;
 
-        int BatchDelete<T>(
-            DbContext context,
-            IQueryable<T> query)
-            where T : class;
-
-        Task<int> BatchDeleteAsync<T>(
-            DbContext context,
-            IQueryable<T> query,
-            CancellationToken cancellationToken)
-            where T : class;
-
-        int BatchUpdate<T>(
-            DbContext context,
-            IQueryable<T> query,
-            Expression<Func<T, T>> updateExpression)
-            where T : class;
-
-        Task<int> BatchUpdateAsync<T>(
-            DbContext context,
-            IQueryable<T> query,
-            Expression<Func<T, T>> updateExpression,
-            CancellationToken cancellationToken)
-            where T : class;
-
         int BatchUpdateJoin<TOuter, TInner, TKey>(
             DbContext context,
             DbSet<TOuter> outer,

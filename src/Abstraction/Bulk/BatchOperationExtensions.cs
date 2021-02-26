@@ -29,6 +29,30 @@ namespace Microsoft.EntityFrameworkCore
         }
 
         /// <summary>
+        /// Expression type for query generation.
+        /// </summary>
+        internal static int BatchUpdateJoin<TOuter, TInner, TKey>(
+            this IQueryable<TOuter> outer,
+            IQueryable<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
+            Expression<Func<TOuter, TInner, bool>> condition)
+            where TOuter : class
+            where TInner : class
+        {
+            throw new InvalidOperationException();
+        }
+
+        /// <summary>
+        /// Expression type for query generation.
+        /// </summary>
+        internal static int BatchInsertInto<TSource>(this IQueryable<TSource> query)
+        {
+            throw new InvalidOperationException();
+        }
+
+        /// <summary>
         /// Convert the source local table to a fake subquery or real-query itself.
         /// </summary>
         private static IQueryable<TSource> CreateSourceTable<TTarget, TSource>(

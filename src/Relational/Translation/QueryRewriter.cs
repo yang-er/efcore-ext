@@ -283,21 +283,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         }
 
 
-        public static void ParseDelete<T>(
-            DbContext context,
-            IQueryable<T> queryable,
-            out DeleteExpression deleteExpression,
-            out QueryRewritingContext queryRewritingContext)
-        {
-            var entityType = context.Model.FindEntityType(typeof(T));
-            queryRewritingContext = TranslationStrategy.Go(context, queryable);
-
-            deleteExpression = DeleteExpression.CreateFromSelect(
-                queryRewritingContext.SelectExpression,
-                entityType);
-        }
-
-
         public static void ParseSelectInto<T>(
             DbContext context,
             IQueryable<T> queryable,
@@ -310,24 +295,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             selectIntoExpression = SelectIntoExpression.CreateFromSelect(
                 queryRewritingContext.SelectExpression,
                 entityType);
-        }
-
-
-        public static void ParseUpdate<T>(
-            DbContext context,
-            IQueryable<T> query,
-            Expression<Func<T, T>> updateSelector,
-            out UpdateExpression updateExpression,
-            out QueryRewritingContext queryRewritingContext)
-        {
-            var queryable = query.Select(updateSelector);
-            var entityType = context.Model.FindEntityType(typeof(T));
-            queryRewritingContext = TranslationStrategy.Go(context, queryable);
-
-            updateExpression = UpdateExpression.CreateFromSelect(
-                queryRewritingContext.SelectExpression,
-                entityType,
-                queryRewritingContext.InternalExpression);
         }
 
 

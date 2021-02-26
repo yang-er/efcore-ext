@@ -57,7 +57,20 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             .GetGenericMethodDefinition();
 
 
-        public static MethodInfo s_BatchUpdateJoinQueryable_TOuter_TInner_TKey
+        public static MethodInfo BatchUpdateJoin { get; }
+            = new Func<IQueryable<object>,
+                       IQueryable<object>,
+                       Expression<Func<object, object>>,
+                       Expression<Func<object, object>>,
+                       Expression<Func<object, object, object>>,
+                       Expression<Func<object, object, bool>>,
+                       int>(
+                BatchOperationExtensions.BatchUpdateJoin)
+            .GetMethodInfo()
+            .GetGenericMethodDefinition();
+
+
+        public static MethodInfo BatchUpdateJoinQueryable { get; }
             = new Func<DbSet<object>,
                        IQueryable<object>,
                        Expression<Func<object, object>>,
@@ -70,7 +83,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             .GetGenericMethodDefinition();
 
 
-        public static MethodInfo s_BatchUpdateJoinReadOnlyList_TOuter_TInner_TKey
+        public static MethodInfo BatchUpdateJoinReadOnlyList { get; }
             = new Func<DbSet<object>,
                        IReadOnlyList<object>,
                        Expression<Func<object, object>>,
@@ -83,9 +96,17 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             .GetGenericMethodDefinition();
 
 
-        public static MethodInfo s_BatchInsertInto_TSource
+        public static MethodInfo BatchInsertInto { get; }
             = new Func<IQueryable<object>,
                        DbSet<object>,
+                       int>(
+                BatchOperationExtensions.BatchInsertInto)
+            .GetMethodInfo()
+            .GetGenericMethodDefinition();
+
+
+        public static MethodInfo BatchInsertIntoCollapsed { get; }
+            = new Func<IQueryable<object>,
                        int>(
                 BatchOperationExtensions.BatchInsertInto)
             .GetMethodInfo()
