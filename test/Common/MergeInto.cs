@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.TestUtilities.Xunit;
 using System;
 using System.Linq;
 using Xunit;
@@ -101,6 +102,7 @@ namespace Testcase_MergeInto
     }
 
     [Collection("DatabaseCollection")]
+    [DatabaseProviderSkipCondition(DatabaseProvider.PostgreSQL)]
     public sealed class MergeIntoSql : IClassFixture<NameFixture>
     {
         readonly Func<MergeContext> contextFactory;
@@ -184,9 +186,8 @@ namespace Testcase_MergeInto
             Assert.Equal(100, contents[1].TotalTimeRestricted);
         }
 
-#if !IN_MEMORY
         [ConditionalFact, TestPriority(2)]
-#endif
+        [DatabaseProviderSkipCondition(DatabaseProvider.InMemory)]
         public void SourceFromSql()
         {
             using var context = contextFactory();

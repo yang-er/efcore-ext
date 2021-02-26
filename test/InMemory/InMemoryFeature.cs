@@ -51,4 +51,9 @@ internal static partial class ContextUtil
     {
         throw new NotSupportedException("Non-relational doesn't support to sql.");
     }
+
+    public static PropertyBuilder<T> HasColumnName<T>(this PropertyBuilder<T> propertyBuilder, string columnName)
+    {
+        return propertyBuilder;
+    }
 }
