@@ -1,6 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+﻿using Microsoft.EntityFrameworkCore.Bulk;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
@@ -10,7 +12,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using static Microsoft.EntityFrameworkCore.Bulk.BatchOperationMethods;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -22,8 +23,10 @@ namespace Microsoft.EntityFrameworkCore.Query
 
     public class XysQueryableMethodTranslatingExpressionVisitor : RelationalQueryableMethodTranslatingExpressionVisitor
     {
+        private const string OuterInner = "Microsoft.EntityFrameworkCore.Query.TransparentIdentifierFactory+TransparentIdentifier`2";
         private readonly ISqlExpressionFactory _sqlExpressionFactory;
         private readonly IAnonymousExpressionFactory _anonymousExpressionFactory;
+        private readonly IModel _model;
 
         public XysQueryableMethodTranslatingExpressionVisitor(
             QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
@@ -34,6 +37,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             _sqlExpressionFactory = relationalDependencies.SqlExpressionFactory;
             _anonymousExpressionFactory = anonymousExpressionFactory;
+            _model = AccessModel(thirdParameter);
         }
 
         public XysQueryableMethodTranslatingExpressionVisitor(
@@ -47,13 +51,35 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override QueryableMethodTranslatingExpressionVisitor CreateSubqueryVisitor()
             => new XysQueryableMethodTranslatingExpressionVisitor(this);
 
+#if EFCORE31
+
+        private IModel AccessModel(ThirdParameter thirdParameter) => thirdParameter;
+
+        private void UpdateAffectedRowsCardinality(ref ShapedQueryExpression newShaped)
+            => newShaped.ResultCardinality = VisitorHelper.AffectedRows;
+
+        private bool IsSameTable(IEntityType entityType, TableExpression tableExpression)
+            => entityType.GetTableName() == tableExpression.Name && entityType.GetSchema() == tableExpression.Schema;
+
+        protected virtual ShapedQueryExpression Fail(string message) => null;
+
+#elif EFCORE50
+
+        private IModel AccessModel(ThirdParameter thirdParameter) => thirdParameter.Model;
+
+        private void UpdateAffectedRowsCardinality(ref ShapedQueryExpression newShaped)
+            => newShaped = newShaped.UpdateResultCardinality(VisitorHelper.AffectedRows);
+
+        private bool IsSameTable(IEntityType entityType, TableExpression tableExpression)
+            => entityType.GetViewOrTableMappings().Single().Table == tableExpression.Table;
+
         protected virtual ShapedQueryExpression Fail(string message)
         {
-#if EFCORE50
             AddTranslationErrorDetails(message);
-#endif
             return null;
         }
+
+#endif
 
         protected virtual ShapedQueryExpression TranslateCommonTable(ParameterExpression param)
         {
@@ -104,30 +130,27 @@ namespace Microsoft.EntityFrameworkCore.Query
                     new ProjectionBindingExpression(selectExpression, new ProjectionMember(), typeof(int?)),
                     typeof(int)));
 
-#if EFCORE50
-            newShaped = newShaped.UpdateResultCardinality(VisitorHelper.AffectedRows);
-#elif EFCORE31
-            newShaped.ResultCardinality = VisitorHelper.AffectedRows;
-#endif
-
+            UpdateAffectedRowsCardinality(ref newShaped);
             return newShaped;
         }
 
         protected virtual ShapedQueryExpression TranslateDelete(Expression shaped)
         {
-            if (!(shaped is ShapedQueryExpression shapedQueryExpression)
-                || !(shapedQueryExpression.QueryExpression is SelectExpression selectExpression))
+            if (shaped is not ShapedQueryExpression shapedQueryExpression
+                || shapedQueryExpression.QueryExpression is not SelectExpression selectExpression)
             {
                 return null;
             }
 
-            if (selectExpression.Offset != null || selectExpression.Limit != null
-                || (selectExpression.GroupBy?.Count ?? 0) != 0 || selectExpression.Having != null)
+            if (selectExpression.Offset != null
+                || selectExpression.Limit != null
+                || (selectExpression.GroupBy?.Count ?? 0) != 0
+                || selectExpression.Having != null)
             {
                 return Fail("The query can't be aggregated or be with .Take() or .Skip() filters.");
             }
 
-            if (!(selectExpression?.Tables?[0] is TableExpression table))
+            if (selectExpression?.Tables?[0] is not TableExpression table)
             {
                 return Fail("The query root should be main entity.");
             }
@@ -140,6 +163,68 @@ namespace Microsoft.EntityFrameworkCore.Query
             return TranslateWrapped(delete);
         }
 
+        protected virtual ShapedQueryExpression TranslateUpdate(Expression shaped, LambdaExpression updateBody)
+        {
+            if (shaped is not ShapedQueryExpression shapedQueryExpression
+                || shapedQueryExpression.QueryExpression is not SelectExpression selectExpression
+                || selectExpression.Tables[0] is not TableExpression updateRoot)
+            {
+                return null;
+            }
+
+            if (updateBody.Body is not MemberInitExpression memberInitExpression
+                || memberInitExpression.NewExpression.Arguments.Count != 0)
+            {
+                return Fail("Invalid update body expression.");
+            }
+
+            var updateRootType = updateBody.Parameters[0].Type;
+            while (updateRootType.FullName.StartsWith(OuterInner))
+            {
+                updateRootType = updateRootType.GetGenericArguments()[0];
+            }
+
+            var entityType = _model.FindEntityType(updateRootType);
+            if (entityType == null)
+            {
+                return Fail("Query tree root type not found.");
+            }
+
+            if (!IsSameTable(entityType, updateRoot))
+            {
+                return Fail("Update query root type mismatch.");
+            }
+
+            shaped = TranslateSelect(shapedQueryExpression, updateBody);
+            //Check.DebugAssert(shaped == shapedQueryExpression, "Should be the same instance.");
+            Check.DebugAssert(selectExpression == shapedQueryExpression.QueryExpression, "Should be the same instance.");
+
+            // Get the concrete update field expression
+            var projectionMapping = RelationalInternals.AccessProjectionMapping(selectExpression);
+            var setFields = new List<ProjectionExpression>(projectionMapping.Count);
+            var columnNames = entityType.GetColumns();
+
+            foreach (var (member, projection) in projectionMapping)
+            {
+                if (projection is not SqlExpression sqlExpression
+                    || !columnNames.TryGetValue(member.ToString(), out var fieldName))
+                {
+                    throw new NotImplementedException("Unknown projection mapping failed.");
+                }
+
+                setFields.Add(RelationalInternals.CreateProjectionExpression(sqlExpression, fieldName));
+            }
+
+            var updateExpression = new UpdateExpression(
+                expanded: false,
+                expandedTable: null,
+                predicate: selectExpression.Predicate,
+                fields: setFields,
+                tables: selectExpression.Tables);
+
+            return TranslateWrapped(updateExpression);
+        }
+
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
             var method = methodCallExpression.Method;
@@ -149,13 +234,17 @@ namespace Microsoft.EntityFrameworkCore.Query
                 switch (method.Name)
                 {
                     case nameof(BatchOperationExtensions.CreateCommonTable)
-                         when genericMethod == s_CreateCommonTable_TSource_TTarget &&
+                         when genericMethod == BatchOperationMethods.CreateCommonTable &&
                               methodCallExpression.Arguments[1] is ParameterExpression param:
                         return CheckTranslated(TranslateCommonTable(param));
 
                     case nameof(BatchOperationExtensions.BatchDelete)
-                        when genericMethod == s_BatchDelete_TSource:
+                        when genericMethod == BatchOperationMethods.BatchDelete:
                         return CheckTranslated(TranslateDelete(Visit(methodCallExpression.Arguments[0])));
+
+                    case nameof(BatchOperationExtensions.BatchUpdate)
+                        when genericMethod == BatchOperationMethods.BatchUpdateExpanded:
+                        return CheckTranslated(TranslateUpdate(Visit(methodCallExpression.Arguments[0]), methodCallExpression.Arguments[1].UnwrapLambdaFromQuote()));
                 }
             }
 

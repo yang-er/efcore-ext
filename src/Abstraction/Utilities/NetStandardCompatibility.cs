@@ -20,6 +20,11 @@ internal static partial class Internals
     public const BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
     public const BindingFlags FindPrivate = BindingFlags.Instance | BindingFlags.NonPublic;
 
+    public static LambdaExpression UnwrapLambdaFromQuote(this Expression expression)
+        => (LambdaExpression)(expression is UnaryExpression unary && expression.NodeType == ExpressionType.Quote
+            ? unary.Operand
+            : expression);
+
     public static MemberExpression AccessPrivateMember(this Expression expression, string name)
     {
         var member = expression.Type.GetMember(name, bindingFlags).Single();

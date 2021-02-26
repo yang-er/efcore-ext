@@ -8,7 +8,6 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using static Microsoft.EntityFrameworkCore.Bulk.BatchOperationMethods;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -108,7 +107,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 switch (method.Name)
                 {
                     case nameof(BatchOperationExtensions.CreateCommonTable)
-                        when genericMethod == s_CreateCommonTable_TSource_TTarget &&
+                        when genericMethod == BatchOperationMethods.CreateCommonTable &&
                              methodCallExpression.Arguments[1] is ParameterExpression parameter:
 
                         result = VisitorHelper.CreateCommonTable(
@@ -117,16 +116,6 @@ namespace Microsoft.EntityFrameworkCore.Query
                                 parameter,
                                 parameter.Type.GetMethod("get_Item"),
                                 Expression.Constant(0))); ;
-                        break;
-
-
-                    case nameof(BatchOperationExtensions.BatchDelete)
-                        when genericMethod == s_BatchDelete_TSource:
-
-                        // TODO: Check
-                        var visited = Visit(methodCallExpression.Arguments[0]);
-                        if (VisitorHelper.GetEntityTypeWithinEntityReference(visited) is Type type)
-                            result = Expression.Call(genericMethod.MakeGenericMethod(type), visited);
                         break;
                 }
 
@@ -142,6 +131,62 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
 
             return base.VisitMethodCall(methodCallExpression);
+        }
+
+        public override Expression Expand(Expression query)
+        {
+            if (query is not MethodCallExpression methodCallExpression)
+            {
+                return base.Expand(query);
+            }
+
+            var method = methodCallExpression.Method;
+            if (method.DeclaringType != typeof(BatchOperationExtensions))
+            {
+                return base.Expand(query);
+            }
+
+            var genericMethod = method.GetGenericMethodDefinition();
+            switch (method.Name)
+            {
+                case nameof(BatchOperationExtensions.CreateCommonTable)
+                when genericMethod == BatchOperationMethods.CreateCommonTable:
+                    return methodCallExpression;
+
+
+                case nameof(BatchOperationExtensions.BatchDelete)
+                when genericMethod == BatchOperationMethods.BatchDelete:
+                    return Expression.Call(method, base.Expand(methodCallExpression.Arguments[0]));
+
+
+                case nameof(BatchOperationExtensions.BatchUpdate)
+                when genericMethod == BatchOperationMethods.BatchUpdate:
+                    var coreType = method.GetGenericArguments()[0];
+                    var expanded = base.Expand(
+                        Expression.Call(
+                            QueryableMethods.Select.MakeGenericMethod(coreType, coreType),
+                            methodCallExpression.Arguments));
+
+                    // TODO: Is type hierarchy affected?
+                    if (expanded is not MethodCallExpression fakeSelect ||
+                        fakeSelect.Method.GetGenericMethodDefinition() != QueryableMethods.Select)
+                        goto default;
+
+                    var newSelectTypes = fakeSelect.Method.GetGenericArguments();
+                    var updateBody = fakeSelect.Arguments[1].UnwrapLambdaFromQuote();
+                    return Expression.Call(
+                        BatchOperationMethods.BatchUpdateExpanded.MakeGenericMethod(newSelectTypes),
+                        Expression.Call(
+                            QueryableMethods.Select.MakeGenericMethod(newSelectTypes[0], newSelectTypes[0]),
+                            fakeSelect.Arguments[0],
+                            Expression.Lambda(updateBody.Parameters[0], updateBody.Parameters[0])),
+                        Expression.Quote(updateBody));
+
+
+                default:
+                    throw new InvalidOperationException(
+                        CoreStrings.QueryFailed(methodCallExpression.Print(), GetType().Name));
+            }
         }
     }
 

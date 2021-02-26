@@ -10,7 +10,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.Bulk.BatchOperationMethods;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -62,12 +61,12 @@ namespace Microsoft.EntityFrameworkCore.Query
                 switch (genericMethod.Name)
                 {
                     case nameof(BatchOperationExtensions.BatchDelete)
-                    when genericMethod == s_BatchDelete_TSource:
+                    when genericMethod == BatchOperationMethods.BatchDelete:
                         EnsureQueryExpression(root);
                         return CompileDeleteCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType);
 
                     case nameof(BatchOperationExtensions.BatchUpdate)
-                    when genericMethod == s_BatchUpdate_TSource:
+                    when genericMethod == BatchOperationMethods.BatchUpdate:
                         EnsureQueryExpression(root);
                         return CompileUpdateCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType, TranslateUpdateShaper(UnquoteLambda(methodCallExpression.Arguments[1])));
                 }
