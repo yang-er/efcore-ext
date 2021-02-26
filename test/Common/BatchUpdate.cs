@@ -49,11 +49,23 @@ namespace Testcase_BatchUpdate
         public int? TotalScore { get; set; }
     }
 
+    public class Detail
+    {
+        public int Id { get; set; }
+
+        public int Another { get; set; }
+
+        public Judging Judging { get; set; }
+
+        public int JudgingId { get; set; }
+    }
+
     public class UpdateContext : DbContext
     {
         public DbSet<Item> Items { get; set; }
         public DbSet<ChangeLog> ChangeLogs { get; set; }
         public DbSet<Judging> Judgings { get; set; }
+        public DbSet<Detail> Details { get; set; }
 
         public string DefaultSchema { get; }
 
@@ -73,6 +85,15 @@ namespace Testcase_BatchUpdate
             modelBuilder.Entity<Judging>(entity =>
             {
                 entity.ToTable(nameof(Judging) + "_" + DefaultSchema);
+            });
+
+            modelBuilder.Entity<Detail>(entity =>
+            {
+                entity.ToTable(nameof(Detail) + "_" + DefaultSchema);
+
+                entity.HasOne<Judging>(e => e.Judging)
+                    .WithMany()
+                    .HasForeignKey(e => e.JudgingId);
             });
 
             modelBuilder.Entity<Item>(entity =>
@@ -136,7 +157,7 @@ namespace Testcase_BatchUpdate
             items = nameFixture.Items;
         }
 
-        [Fact, TestPriority(-1)]
+        [ConditionalFact, TestPriority(-1)]
         public void ConstantUpdateBody()
         {
             using var context = contextFactory();
@@ -144,7 +165,7 @@ namespace Testcase_BatchUpdate
 
             var state = context.Items
                 .Where(a => a.ItemId <= 388 && a.Price >= price)
-                .BatchUpdate(a => new Item { Description = "Updated", Price = 1.5m }/*, updateColumns*/);
+                .BatchUpdate(a => new Item { Description = "Updated", Price = 1.5m });
 
             int t = 0;
 
@@ -156,9 +177,17 @@ namespace Testcase_BatchUpdate
             }
 
             Assert.Equal(t, state);
+
+            var compiledQuery = EF.CompileQuery(
+                (UpdateContext ctx, decimal price)
+                    => ctx.Items
+                        .Where(a => a.ItemId <= 388 && a.Price >= price)
+                        .BatchUpdate(a => new Item { Description = "Updated", Price = 1.5m }));
+            compiledQuery(context, price);
+            compiledQuery(context, price);
         }
 
-        [Fact, TestPriority(0)]
+        [ConditionalFact, TestPriority(0)]
         public void ParameterUpdateBody()
         {
             using var context = contextFactory();
@@ -180,28 +209,36 @@ namespace Testcase_BatchUpdate
             }
 
             Assert.Equal(t, state);
+
+            var compiledQuery = EF.CompileQuery(
+                (UpdateContext ctx, decimal price, string desc, decimal pri)
+                    => ctx.Items
+                        .Where(a => a.ItemId <= 388 && a.Price >= price)
+                        .BatchUpdate(a => new Item { Description = desc, Price = pri }));
+            compiledQuery(context, price, "Aaa", 3m);
+            compiledQuery(context, price, "bbb", 2m);
         }
 
-        [Fact, TestPriority(1)]
+        [ConditionalFact, TestPriority(1)]
         public void WithTakeTopSkip_MustFail()
         {
             using var context = contextFactory();
             decimal price = 0;
 
-            Assert.Throws<NotSupportedException>(
+            Assert.Throws<InvalidOperationException>(
                 () => context.Items
                     .Where(a => a.ItemId <= 388 && a.Price >= price)
                     .Take(10)
                     .BatchUpdate(a => new Item { Price = a.Price == 1.5m ? 3.0m : price, Description = a.Description + " TOP(10)" }));
 
-            Assert.Throws<NotSupportedException>(
+            Assert.Throws<InvalidOperationException>(
                 () => context.Items
                     .Where(a => a.ItemId <= 388 && a.Price >= price)
                     .Skip(10)
                     .BatchUpdate(a => new Item { Price = a.Price == 1.5m ? 3.0m : price, Description = a.Description + " TOP(10)" }));
         }
 
-        [Fact, TestPriority(2)]
+        [ConditionalFact, TestPriority(2)]
         public void HasOwnedType()
         {
             using var context = contextFactory();
@@ -215,7 +252,7 @@ namespace Testcase_BatchUpdate
             });
         }
 
-        [Fact, TestPriority(3)]
+        [ConditionalFact, TestPriority(3)]
         public void ConcatenateBody()
         {
             using var context = contextFactory();
@@ -239,7 +276,7 @@ namespace Testcase_BatchUpdate
             Assert.Equal(t, query);
         }
 
-        [Fact, TestPriority(4)]
+        [ConditionalFact, TestPriority(4)]
         public void SetNull()
         {
             using var context = contextFactory();
@@ -254,6 +291,41 @@ namespace Testcase_BatchUpdate
                     Server = null,
                     Status = Math.Max(a.Status, 8),
                 });
+        }
+
+        [ConditionalFact, TestPriority(5)]
+        public void NavigationWhere()
+        {
+            using var context = contextFactory();
+
+            int x = 10;
+            context.Details
+                .Where(a => a.Judging.PreviousJudgingId == x)
+                .BatchUpdate(a => new Detail { Another = a.Judging.SubmissionId, });
+
+            var compiledQuery = EF.CompileQuery(
+                (UpdateContext ctx, int x)
+                    => ctx.Details
+                        .Where(a => a.Judging.PreviousJudgingId == x)
+                        .BatchUpdate(a => new Detail { Another = a.Judging.SubmissionId }));
+            compiledQuery(context, 5);
+            compiledQuery(context, 7);
+        }
+
+        [ConditionalFact, TestPriority(6)]
+        public void NavigationSelect()
+        {
+            using var context = contextFactory();
+
+            int x = 10;
+            context.Details.BatchUpdate(a => new Detail { Another = a.Another + a.Judging.SubmissionId + x, });
+
+            var compiledQuery = EF.CompileQuery(
+                (UpdateContext ctx, int x)
+                    => ctx.Details
+                        .BatchUpdate(a => new Detail { Another = a.Another + a.Judging.SubmissionId + x, }));
+            compiledQuery(context, 5);
+            compiledQuery(context, 7);
         }
     }
 }

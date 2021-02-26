@@ -92,7 +92,7 @@ namespace Testcase_BatchDelete
             items = nameFixture.Items;
         }
 
-        [Fact]
+        [ConditionalFact, TestPriority(0)]
         public void WithTop_MustFail()
         {
             using var context = contextFactory();
@@ -110,7 +110,7 @@ namespace Testcase_BatchDelete
                     .BatchDelete());
         }
 
-        [Fact, TestPriority(1)]
+        [ConditionalFact, TestPriority(1)]
         public void ConstantCondition()
         {
             using var context = contextFactory();
@@ -128,7 +128,7 @@ namespace Testcase_BatchDelete
             compiledQuery.Invoke(context);
         }
 
-        [Fact, TestPriority(2)]
+        [ConditionalFact, TestPriority(2)]
         public void ParameteredCondition()
         {
             using var context = contextFactory();
@@ -142,7 +142,7 @@ namespace Testcase_BatchDelete
             compiledQuery.Invoke(context, nameToDelete);
         }
 
-        [Fact, TestPriority(3)]
+        [ConditionalFact, TestPriority(3)]
         public void ContainsSomething()
         {
             using var context = contextFactory();
@@ -156,7 +156,7 @@ namespace Testcase_BatchDelete
             compiledQuery.Invoke(context, new List<string> { "jyntnytjyntjntnytnt", "aaa" });
         }
 
-        [Fact, TestPriority(4)]
+        [ConditionalFact, TestPriority(4)]
         public void ContainsAndAlsoEqual()
         {
             using var context = contextFactory();
@@ -167,7 +167,7 @@ namespace Testcase_BatchDelete
                 .BatchDelete();
         }
 
-        [Fact, TestPriority(5)]
+        [ConditionalFact, TestPriority(5)]
         public void EmptyContains()
         {
             using var context = contextFactory();
@@ -175,7 +175,7 @@ namespace Testcase_BatchDelete
             context.Items.Where(a => descriptionsToDelete.Contains(a.Description)).BatchDelete();
         }
 
-        [Fact, TestPriority(6)]
+        [ConditionalFact, TestPriority(6)]
         public void ListAny()
         {
             using var context = contextFactory();

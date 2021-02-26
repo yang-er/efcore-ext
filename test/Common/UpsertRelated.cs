@@ -145,7 +145,7 @@ namespace Testcase_Upsert
             context.SaveChanges();
         }
 
-        [Fact, TestPriority(0)]
+        [ConditionalFact, TestPriority(0)]
         public void Upsert_NewAnonymousObject()
         {
             EnsureRank(Array.Empty<RankSource>());
@@ -163,7 +163,7 @@ namespace Testcase_Upsert
             Assert.Equal(3, context.RankCache.Count());
         }
 
-        [Fact, TestPriority(1)]
+        [ConditionalFact, TestPriority(1)]
         public void Upsert_AnotherTable()
         {
             EnsureRank();
@@ -179,7 +179,7 @@ namespace Testcase_Upsert
         }
 
 #if !IN_MEMORY
-        [Fact, TestPriority(2)]
+        [ConditionalFact, TestPriority(2)]
 #endif
         public void Upsert_FromSql()
         {
@@ -196,7 +196,7 @@ namespace Testcase_Upsert
             Assert.Equal(3, context.RankCache.Count());
         }
 
-        [Fact, TestPriority(3)]
+        [ConditionalFact, TestPriority(3)]
         public void Upsert_SubSelect()
         {
             EnsureRank();
@@ -211,7 +211,7 @@ namespace Testcase_Upsert
             Assert.Equal(3, context.RankCache.Count());
         }
 
-        [Fact, TestPriority(4)]
+        [ConditionalFact, TestPriority(4)]
         public void InsertIfNotExists_AnotherTable()
         {
             EnsureRank();
@@ -225,7 +225,7 @@ namespace Testcase_Upsert
             Assert.Equal(3, context.RankCache.Count());
         }
 
-        [Fact, TestPriority(5)]
+        [ConditionalFact, TestPriority(5)]
         public void Translation_Parameterize()
         {
             using var context = contextFactory();
@@ -240,7 +240,7 @@ namespace Testcase_Upsert
             Assert.Equal(1, context.TwoRelations.Count());
         }
 
-        [Fact, TestPriority(6)]
+        [ConditionalFact, TestPriority(6)]
         public void Upsert_AlternativeKey()
         {
             using var context = contextFactory();

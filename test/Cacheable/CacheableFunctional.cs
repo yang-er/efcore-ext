@@ -56,7 +56,7 @@ namespace Testcase_Cacheable
             _contextFactory = fixture.ContextFactory;
         }
 
-        [Fact]
+        [ConditionalFact]
         public async Task EnsureUseable()
         {
             using (var ctx = _contextFactory())
