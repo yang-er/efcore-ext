@@ -110,7 +110,7 @@ namespace Testcase_MergeInto
             contextFactory = nameFixture.ContextFactory;
         }
 
-        [Fact, TestPriority(0)]
+        [ConditionalFact, TestPriority(0)]
         public void Upsert()
         {
             using var context = contextFactory();
@@ -146,7 +146,7 @@ namespace Testcase_MergeInto
             Assert.Equal(3, context.RankCache.Count());
         }
 
-        [Fact, TestPriority(1)]
+        [ConditionalFact, TestPriority(1)]
         public void Synchronize()
         {
             using var context = contextFactory();
@@ -185,7 +185,7 @@ namespace Testcase_MergeInto
         }
 
 #if !IN_MEMORY
-        [Fact, TestPriority(2)]
+        [ConditionalFact, TestPriority(2)]
 #endif
         public void SourceFromSql()
         {

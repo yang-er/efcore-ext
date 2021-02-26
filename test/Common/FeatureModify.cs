@@ -188,7 +188,7 @@ namespace Check_UseLessJoinsRemoval
             contextFactory = nameFixture.ContextFactory;
         }
 
-        [Fact, TestPriority(0)]
+        [ConditionalFact, TestPriority(0)]
         public void Owned()
         {
             using var context = contextFactory();
@@ -197,7 +197,7 @@ namespace Check_UseLessJoinsRemoval
             context.ChangeLogs.Load();
         }
 
-        [Fact, TestPriority(1)]
+        [ConditionalFact, TestPriority(1)]
         public void HasOneWithOne_SharedTable()
         {
             using var context = contextFactory();
@@ -208,7 +208,7 @@ namespace Check_UseLessJoinsRemoval
             query.Load();
         }
 
-        [Fact, TestPriority(2)]
+        [ConditionalFact, TestPriority(2)]
         public void SuperOwned()
         {
             using var context = contextFactory();
@@ -217,7 +217,7 @@ namespace Check_UseLessJoinsRemoval
             context.OwnedThrees.Load();
         }
 
-        [Fact, TestPriority(3)]
+        [ConditionalFact, TestPriority(3)]
         public void InnerJoin_3_2()
         {
             using var context = contextFactory();
@@ -229,7 +229,7 @@ namespace Check_UseLessJoinsRemoval
             query.Load();
         }
 
-        [Fact, TestPriority(4)]
+        [ConditionalFact, TestPriority(4)]
         public void InnerJoin_2_3()
         {
             using var context = contextFactory();
@@ -241,7 +241,7 @@ namespace Check_UseLessJoinsRemoval
             query.Load();
         }
 
-        [Fact, TestPriority(5)]
+        [ConditionalFact, TestPriority(5)]
         public void GroupJoin_3_2()
         {
             using var context = contextFactory();
@@ -254,7 +254,7 @@ namespace Check_UseLessJoinsRemoval
             query.Load();
         }
 
-        [Fact, TestPriority(6)]
+        [ConditionalFact, TestPriority(6)]
         public void GroupJoin_2_3()
         {
             using var context = contextFactory();
@@ -267,7 +267,7 @@ namespace Check_UseLessJoinsRemoval
             query.Load();
         }
 
-        [Fact, TestPriority(7)]
+        [ConditionalFact, TestPriority(7)]
         public void ReallyJoin()
         {
             using var context = contextFactory();

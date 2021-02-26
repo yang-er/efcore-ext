@@ -75,6 +75,6 @@
   </PropertyGroup>
 
   <!-- Source Code Debugging for EFCore -->
-  <Import Project="Directory.Build.Override.props" />
+  <Import Project="..\Directory.Build.Override.props" />
 
 </Project>

@@ -1,0 +1,15 @@
+<Project>
+
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);EFCORE_TEST</DefineConstants>
+    <NoWarn>$(NoWarn);xUnit1013</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="Xunit.TestCaseOrdererAttribute">
+      <_Parameter1>Microsoft.EntityFrameworkCore.TestUtilities.Xunit</_Parameter1>
+      <_Parameter2>Microsoft.EntityFrameworkCore.TestUtilities</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

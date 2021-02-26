@@ -82,7 +82,7 @@ namespace Testcase_BatchUpdateJoin
             contextFactory = nameFixture.ContextFactory;
         }
 
-        [Fact, TestPriority(-1)]
+        [ConditionalFact, TestPriority(-1)]
         public void NormalUpdate()
         {
             using var context = contextFactory();
@@ -102,7 +102,7 @@ namespace Testcase_BatchUpdateJoin
             Assert.Equal(1, list[1].Value);
         }
 
-        [Fact, TestPriority(0)]
+        [ConditionalFact, TestPriority(0)]
         public void LocalTableJoin()
         {
             using var context = contextFactory();

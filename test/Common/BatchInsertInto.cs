@@ -138,7 +138,7 @@ namespace Testcase_BatchInsertInto
             contextFactory = nameFixture.ContextFactory;
         }
 
-        [Fact, TestPriority(0)]
+        [ConditionalFact, TestPriority(0)]
         public void NormalSelectInto()
         {
             using var context = contextFactory();
@@ -157,7 +157,7 @@ namespace Testcase_BatchInsertInto
                 .BatchInsertInto(context.ChangeLogs);
         }
 
-        [Fact, TestPriority(1)]
+        [ConditionalFact, TestPriority(1)]
         public void WithAbstractType()
         {
             using var context = contextFactory();
@@ -171,7 +171,7 @@ namespace Testcase_BatchInsertInto
                 .BatchInsertInto(context.Teachers);
         }
 
-        [Fact, TestPriority(1)]
+        [ConditionalFact, TestPriority(1)]
         public void WithComputedColumn()
         {
             using var context = contextFactory();
