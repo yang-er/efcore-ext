@@ -24,8 +24,6 @@ internal static partial class ContextUtil
             $"Pooling=true;",
             s => s.UseBulk());
 
-        optionsBuilder.UseTableSplittingJoinsRemoval();
-
         optionsBuilder.UseLoggerFactory(
             LoggerFactory.Create(builder => builder
                 .AddDebug()

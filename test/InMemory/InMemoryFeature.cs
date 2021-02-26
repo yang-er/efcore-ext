@@ -56,4 +56,9 @@ internal static partial class ContextUtil
     {
         return propertyBuilder;
     }
+
+    public static DbContextOptionsBuilder UseTableSplittingJoinsRemoval(this DbContextOptionsBuilder builder)
+    {
+        return builder;
+    }
 }

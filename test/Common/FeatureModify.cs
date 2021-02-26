@@ -78,6 +78,11 @@ namespace Check_UseLessJoinsRemoval
             DefaultSchema = schema;
         }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseTableSplittingJoinsRemoval();
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ChangeLog>(entity =>
