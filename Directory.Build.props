@@ -54,8 +54,8 @@
 
   <ItemGroup Condition=" $(IsUnitTest) == 'True' ">
     <AssemblyAttribute Include="Xunit.TestCaseOrdererAttribute">
-      <_Parameter1>PriorityOrderer</_Parameter1>
-      <_Parameter2>$(AssemblyName)</_Parameter2>
+      <_Parameter1>Microsoft.EntityFrameworkCore.TestUtilities.Xunit.TestPriorityOrderer</_Parameter1>
+      <_Parameter2>Microsoft.EntityFrameworkCore.TestUtilities</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
 
@@ -75,6 +75,6 @@
   </PropertyGroup>
 
   <!-- Source Code Debugging for EFCore -->
-  <Import Project="..\Directory.Build.Override.props" />
+  <Import Project="Directory.Build.Override.props" />
 
 </Project>
