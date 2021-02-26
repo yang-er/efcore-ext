@@ -43,6 +43,9 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 case DeleteExpression delete:
                     return Visit(delete);
+
+                case UpdateExpression update:
+                    return Visit(update);
             }
 
             return base.Visit(tableExpressionBase);
@@ -88,6 +91,39 @@ namespace Microsoft.EntityFrameworkCore.Query
             return changed
                 ? new DeleteExpression(mainTable, predicate, tables)
                 : deleteExpression;
+        }
+
+        protected virtual UpdateExpression Visit(UpdateExpression updateExpression)
+        {
+            var expandedTable = updateExpression.ExpandedTable == null ? null : (TableExpression)Visit(updateExpression.ExpandedTable);
+            bool changed = expandedTable != updateExpression.ExpandedTable;
+
+            var predicate = Visit(updateExpression.Predicate, allowOptimizedExpansion: true, out _);
+            changed |= predicate != updateExpression.Predicate;
+
+            bool fieldsChanged = false;
+            var fields = updateExpression.Fields.ToList();
+            for (int i = 0; i < fields.Count; i++)
+            {
+                var newExpr = Visit(fields[i].Expression, allowOptimizedExpansion: true, out _);
+                fields[i] = fields[i].Update(newExpr);
+                fieldsChanged = fieldsChanged || fields[i] != updateExpression.Fields[i];
+            }
+
+            bool tablesChanged = false;
+            var tables = updateExpression.Tables.ToList();
+            for (int i = 0; i < tables.Count; i++)
+            {
+                tables[i] = Visit(tables[i]);
+                tablesChanged = tablesChanged || tables[i] != updateExpression.Tables[i];
+            }
+
+            if (!tablesChanged) tables = (List<TableExpressionBase>)updateExpression.Tables;
+            if (!fieldsChanged) fields = (List<ProjectionExpression>)updateExpression.Fields;
+
+            return changed || fieldsChanged || tablesChanged
+                ? new UpdateExpression(updateExpression.Expanded, expandedTable, predicate, fields, tables)
+                : updateExpression;
         }
 
         private static bool? TryGetBoolConstantValue(SqlExpression expression)

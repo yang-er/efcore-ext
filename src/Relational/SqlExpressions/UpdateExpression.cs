@@ -103,36 +103,43 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         {
             const string CallerName = "VisitUpdate";
 
-            var expandedTable = visitor.VisitAndConvert(ExpandedTable, CallerName);
-            bool changed = expandedTable != ExpandedTable;
-
-            var predicate = visitor.VisitAndConvert(Predicate, CallerName);
-            changed = changed || predicate != Predicate;
-
-            bool fieldsChanged = false;
-            var fields = Fields.ToArray();
-            for (int i = 0; i < Fields.Count; i++)
+            using (SearchConditionBooleanGuard.With(visitor, false))
             {
-                fields[i] = visitor.VisitAndConvert(Fields[i], CallerName);
-                fieldsChanged = fieldsChanged || fields[i] != Fields[i];
-            }
+                var expandedTable = visitor.VisitAndConvert(ExpandedTable, CallerName);
+                bool changed = expandedTable != ExpandedTable;
 
-            bool tablesChanged = false;
-            var tables = Tables.ToArray();
-            for (int i = 0; i < Tables.Count; i++)
-            {
-                tables[i] = visitor.VisitAndConvert(Tables[i], CallerName);
-                tablesChanged = tablesChanged || tables[i] != Tables[i];
-            }
+                SqlExpression? predicate;
+                using (SearchConditionBooleanGuard.With(visitor, true, false))
+                {
+                    predicate = visitor.VisitAndConvert(Predicate, CallerName);
+                    changed = changed || predicate != Predicate;
+                }
 
-            changed = changed || fieldsChanged || tablesChanged;
-            if (!changed) return this;
-            return new UpdateExpression(
-                Expanded,
-                expandedTable,
-                predicate,
-                fieldsChanged ? fields : Fields,
-                tablesChanged ? tables : Tables);
+                bool fieldsChanged = false;
+                var fields = Fields.ToArray();
+                for (int i = 0; i < Fields.Count; i++)
+                {
+                    fields[i] = visitor.VisitAndConvert(Fields[i], CallerName);
+                    fieldsChanged = fieldsChanged || fields[i] != Fields[i];
+                }
+
+                bool tablesChanged = false;
+                var tables = Tables.ToArray();
+                for (int i = 0; i < Tables.Count; i++)
+                {
+                    tables[i] = visitor.VisitAndConvert(Tables[i], CallerName);
+                    tablesChanged = tablesChanged || tables[i] != Tables[i];
+                }
+
+                changed = changed || fieldsChanged || tablesChanged;
+                if (!changed) return this;
+                return new UpdateExpression(
+                    Expanded,
+                    expandedTable,
+                    predicate,
+                    fieldsChanged ? fields : Fields,
+                    tablesChanged ? tables : Tables);
+            }
         }
 
         /// <inheritdoc />
