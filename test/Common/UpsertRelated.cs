@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.TestUtilities.Xunit;
 using System;
 using System.Linq;
 using Xunit;
@@ -178,9 +179,8 @@ namespace Testcase_Upsert
             Assert.Equal(3, context.RankCache.Count());
         }
 
-#if !IN_MEMORY
         [ConditionalFact, TestPriority(2)]
-#endif
+        [DatabaseProviderSkipCondition(DatabaseProvider.InMemory)]
         public void Upsert_FromSql()
         {
             EnsureRank();

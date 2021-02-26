@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
 {
@@ -13,11 +15,23 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
             _excludedProviders = excludedProviders;
         }
 
+        private static DatabaseProvider GetCurrentProvider(ITestMethod method)
+        {
+            var dir = method.Method.Type.Assembly.Name;
+
+            return dir.Contains("InMemory") ? DatabaseProvider.InMemory
+                : dir.Contains("PostgreSql") ? DatabaseProvider.PostgreSQL
+                : dir.Contains("SqlServer") ? DatabaseProvider.SqlServer
+                : DatabaseProvider.None;
+        }
+
         public string SkipReason => "Test cannot run on this provider.";
 
-        public ValueTask<bool> IsMetAsync()
+        public ValueTask<bool> IsMetAsync(XunitTestCase testcase)
         {
-            throw new NotImplementedException();
+            return new ValueTask<bool>(
+                (GetCurrentProvider(testcase.TestMethod) & _excludedProviders)
+                    == DatabaseProvider.None);
         }
     }
 }

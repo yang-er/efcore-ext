@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.TestUtilities.Xunit;
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -179,6 +180,7 @@ namespace Check_UseLessJoinsRemoval
     }
 
     [Collection("DatabaseCollection")]
+    [DatabaseProviderSkipCondition(DatabaseProvider.InMemory)]
     public class UseLessJoinsRemoval : IClassFixture<NameFixture>
     {
         readonly Func<UpdateContext> contextFactory;

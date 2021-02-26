@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Common\*.cs" Exclude="..\Common\FeatureModify.cs" />
+    <Compile Include="..\Common\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

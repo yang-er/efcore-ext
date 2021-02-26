@@ -40,7 +40,7 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
 
             foreach (var attribute in attributes)
             {
-                if (!await attribute.IsMetAsync())
+                if (!await attribute.IsMetAsync(testCase))
                 {
                     skipReasons.Add(attribute.SkipReason);
                 }
