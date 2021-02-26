@@ -183,6 +183,11 @@ namespace Microsoft.EntityFrameworkCore.Query
                         Expression.Quote(updateBody));
 
 
+                case nameof(BatchOperationExtensions.BatchInsertInto)
+                when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
+                    return Expression.Call(method, base.Expand(methodCallExpression.Arguments[0]));
+
+
                 default:
                     throw new InvalidOperationException(
                         CoreStrings.QueryFailed(methodCallExpression.Print(), GetType().Name));

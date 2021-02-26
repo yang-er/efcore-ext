@@ -407,43 +407,46 @@ namespace Microsoft.EntityFrameworkCore
         /// <summary>
         /// Perform batch insert into as <c>INSERT INTO SELECT FROM</c> operations.
         /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
+        /// <typeparam name="TEntity">The entity type.</typeparam>
         /// <param name="query">The entity query.</param>
         /// <param name="to">The target table.</param>
         /// <returns>The affected rows.</returns>
-        public static int BatchInsertInto<T>(
-            this IQueryable<T> query,
-            DbSet<T> to)
-            where T : class
+        public static int BatchInsertInto<TEntity>(
+            this IQueryable<TEntity> query,
+            DbSet<TEntity> to)
+            where TEntity : class
         {
             Check.NotNull(query, nameof(query));
             Check.NotNull(to, nameof(to));
 
-            var context = to.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchInsertInto(context, query, to);
+            return query.Provider.Execute<int>(
+                Expression.Call(
+                    BatchOperationMethods.BatchInsertIntoCollapsed.MakeGenericMethod(typeof(TEntity)),
+                    query.Expression));
         }
 
         /// <summary>
         /// Perform batch insert into as <c>INSERT INTO SELECT FROM</c> async operations.
         /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
+        /// <typeparam name="TEntity">The entity type.</typeparam>
         /// <param name="query">The entity query.</param>
         /// <param name="to">The target table.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task for affected rows.</returns>
-        public static Task<int> BatchInsertIntoAsync<T>(
-            this IQueryable<T> query,
-            DbSet<T> to,
+        public static Task<int> BatchInsertIntoAsync<TEntity>(
+            this IQueryable<TEntity> query,
+            DbSet<TEntity> to,
             CancellationToken cancellationToken = default)
-            where T : class
+            where TEntity : class
         {
             Check.NotNull(query, nameof(query));
             Check.NotNull(to, nameof(to));
 
-            var context = to.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchInsertIntoAsync(context, query, to, cancellationToken);
+            return ((IAsyncQueryProvider)query.Provider).ExecuteAsync<Task<int>>(
+                Expression.Call(
+                    BatchOperationMethods.BatchInsertIntoCollapsed.MakeGenericMethod(typeof(TEntity)),
+                    query.Expression),
+                cancellationToken);
         }
 
         /// <summary>

@@ -53,6 +53,16 @@ namespace Microsoft.EntityFrameworkCore.Query
             if (query is MethodCallExpression methodCallExpression
                 && methodCallExpression.Method.DeclaringType == typeof(BatchOperationExtensions))
             {
+                switch (methodCallExpression.Method.Name)
+                {
+                    case nameof(BatchOperationExtensions.BatchInsertInto)
+                    when methodCallExpression.Method.GetGenericMethodDefinition() == BatchOperationMethods.BatchInsertInto:
+                        query = Expression.Call(
+                            BatchOperationMethods.BatchInsertIntoCollapsed.MakeGenericMethod(methodCallExpression.Method.GetGenericArguments()),
+                            methodCallExpression.Arguments[0]);
+                        break;
+                }
+
                 var visitor = new ParameterExtractingExpressionVisitorV2(
                     _evaluatableExpressionFilter,
                     parameterValues,

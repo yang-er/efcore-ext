@@ -63,6 +63,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             {
                 DeleteExpression deleteExpression => VisitDelete(deleteExpression),
                 UpdateExpression updateExpression => VisitUpdate(updateExpression),
+                SelectIntoExpression selectIntoExpression => VisitSelectInto(selectIntoExpression),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -129,23 +130,24 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         public virtual IRelationalCommand GetCommand(SelectIntoExpression selectIntoExpression)
         {
             RelationalInternals.InitQuerySqlGenerator(this);
+            VisitSelectInto(selectIntoExpression);
+            return Sql.Build();
+        }
 
-            var selectExpression = selectIntoExpression.Expression;
-            GenerateTagsHeaderComment(selectExpression);
-
+        protected virtual Expression VisitSelectInto(SelectIntoExpression selectIntoExpression)
+        {
             Sql.Append("INSERT INTO ")
                 .Append(Helper.DelimitIdentifier(selectIntoExpression.TableName, selectIntoExpression.Schema))
                 .Append(" (");
 
             Sql.GenerateList(
-                selectExpression.Projection,
+                selectIntoExpression.Expression.Projection,
                 e => Sql.Append(Helper.DelimitIdentifier(e.Alias)));
 
             Sql.AppendLine(")");
 
-            VisitSelect(selectExpression);
-
-            return Sql.Build();
+            VisitSelect(selectIntoExpression.Expression);
+            return selectIntoExpression;
         }
 
         public virtual IRelationalCommand GetCommand(UpdateExpression updateExpression)

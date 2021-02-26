@@ -46,6 +46,9 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 case UpdateExpression update:
                     return Visit(update);
+
+                case SelectIntoExpression selectInto:
+                    return Visit(selectInto);
             }
 
             return base.Visit(tableExpressionBase);
@@ -124,6 +127,14 @@ namespace Microsoft.EntityFrameworkCore.Query
             return changed || fieldsChanged || tablesChanged
                 ? new UpdateExpression(updateExpression.Expanded, expandedTable, predicate, fields, tables)
                 : updateExpression;
+        }
+
+        protected virtual SelectIntoExpression Visit(SelectIntoExpression selectIntoExpression)
+        {
+            var expression = base.Visit(selectIntoExpression.Expression);
+            return expression != selectIntoExpression.Expression
+                ? new SelectIntoExpression(selectIntoExpression.TableName, selectIntoExpression.Schema, expression)
+                : selectIntoExpression;
         }
 
         private static bool? TryGetBoolConstantValue(SqlExpression expression)

@@ -155,6 +155,22 @@ namespace Testcase_BatchInsertInto
                     }
                 })
                 .BatchInsertInto(context.ChangeLogs);
+
+            var compiledQuery = EF.CompileQuery(
+                (SelectIntoContext ctx, string hh)
+                    => ctx.Judgings
+                        .Select(ih => new ChangeLog
+                        {
+                            Description = (ih.Server ?? hh) + "666",
+                            Audit = new Audit
+                            {
+                                ChangedBy = ih.CompileError,
+                                IsDeleted = true
+                            }
+                        })
+                        .BatchInsertInto(ctx.ChangeLogs));
+            compiledQuery(context, "aa");
+            compiledQuery(context, "bb");
         }
 
         [ConditionalFact, TestPriority(1)]
@@ -169,6 +185,18 @@ namespace Testcase_BatchInsertInto
                     Class = s.Subject,
                 })
                 .BatchInsertInto(context.Teachers);
+
+            var compiledQuery = EF.CompileQuery(
+                (SelectIntoContext ctx)
+                    => ctx.Students
+                        .Select(s => new Teacher
+                        {
+                            Name = s.Name,
+                            Class = s.Subject,
+                        })
+                        .BatchInsertInto(context.Teachers));
+            compiledQuery(context);
+            compiledQuery(context);
         }
 
         [ConditionalFact, TestPriority(1)]
@@ -182,6 +210,17 @@ namespace Testcase_BatchInsertInto
                     Content = s.Content + s.ContentLength.ToString(),
                 })
                 .BatchInsertInto(context.Documents);
+
+            var compiledQuery = EF.CompileQuery(
+                (SelectIntoContext ctx)
+                    => ctx.Documents
+                        .Select(s => new Document
+                        {
+                            Content = s.Content + s.ContentLength.ToString(),
+                        })
+                        .BatchInsertInto(context.Documents));
+            compiledQuery(context);
+            compiledQuery(context);
         }
     }
 }

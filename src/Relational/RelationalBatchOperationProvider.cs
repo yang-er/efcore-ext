@@ -10,43 +10,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class RelationalBatchOperationProvider : IBatchOperationProvider
     {
-        #region IQueryable<>.BatchInsertInto(DbSet<>)
-
-        public int BatchInsertInto<T>(
-            DbContext context,
-            IQueryable<T> query,
-            DbSet<T> to)
-            where T : class
-        {
-            var executor = GetSqlSelectInto(context, query);
-            return executor.Execute();
-        }
-
-        public Task<int> BatchInsertIntoAsync<T>(
-            DbContext context,
-            IQueryable<T> query,
-            DbSet<T> to,
-            CancellationToken cancellationToken)
-            where T : class
-        {
-            var executor = GetSqlSelectInto(context, query);
-            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
-        }
-
-        protected virtual IBulkQueryExecutor GetSqlSelectInto<T>(
-            DbContext context,
-            IQueryable<T> query)
-            where T : class
-        {
-            QueryRewriter.ParseSelectInto(
-                context, query,
-                out var updateExpression, out var queryRewritingContext);
-
-            return queryRewritingContext.Generate(updateExpression);
-        }
-
-        #endregion
-
         #region DbSet<>.BatchUpdateJoin(innerList, okey, ikey, upd, cond)
 
         public int BatchUpdateJoin<TOuter, TInner, TKey>(

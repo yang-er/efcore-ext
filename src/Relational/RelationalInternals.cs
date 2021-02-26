@@ -68,51 +68,6 @@ internal static partial class RelationalInternals
         return sql;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [DebuggerStepThrough]
-    public static IReadOnlyList<IReadOnlyList<T>> AsList<T>(this T[,] ts)
-    {
-        return new TwoList<T>(ts);
-    }
-
-    private struct OneList<T> : IReadOnlyList<T>
-    {
-        private readonly T[,] inner;
-        private readonly int id1;
-        public T this[int index] => inner[id1, index];
-        public int Count => inner.GetLength(1);
-        public IEnumerator<T> GetEnumerator() => GetEnumerable().GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerable().GetEnumerator();
-
-        public OneList(T[,] _inner, int id)
-        {
-            inner = _inner;
-            id1 = id;
-        }
-
-        private IEnumerable<T> GetEnumerable()
-        {
-            for (int i = 0; i < Count; i++)
-                yield return inner[id1, i];
-        }
-    }
-
-    private class TwoList<T> : IReadOnlyList<IReadOnlyList<T>>
-    {
-        private readonly T[,] inner;
-        public IReadOnlyList<T> this[int index] => new OneList<T>(inner, index);
-        public int Count => inner.GetLength(0);
-        public IEnumerator<IReadOnlyList<T>> GetEnumerator() => GetEnumerable().GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerable().GetEnumerator();
-        public TwoList(T[,] _inner) => inner = _inner;
-
-        private IEnumerable<IReadOnlyList<T>> GetEnumerable()
-        {
-            for (int i = 0; i < Count; i++)
-                yield return new OneList<T>(inner, i);
-        }
-    }
-
     private static Action<SelectExpression, SqlExpression> S_ApplyPredicate()
     {
         var para1 = Expression.Parameter(typeof(SelectExpression), "select");

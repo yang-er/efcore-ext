@@ -283,21 +283,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         }
 
 
-        public static void ParseSelectInto<T>(
-            DbContext context,
-            IQueryable<T> queryable,
-            out SelectIntoExpression selectIntoExpression,
-            out QueryRewritingContext queryRewritingContext)
-        {
-            var entityType = context.Model.FindEntityType(typeof(T));
-            queryRewritingContext = TranslationStrategy.Go(context, queryable);
-
-            selectIntoExpression = SelectIntoExpression.CreateFromSelect(
-                queryRewritingContext.SelectExpression,
-                entityType);
-        }
-
-
         public static void ParseUpdateJoinQueryable<TOuter, TInner, TKey>(
             DbContext context,
             IQueryable<TOuter> outer,
