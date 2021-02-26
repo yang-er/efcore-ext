@@ -10,7 +10,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.Bulk.BatchOperationMethods;
 
 namespace Microsoft.EntityFrameworkCore
 {
@@ -20,13 +19,18 @@ namespace Microsoft.EntityFrameworkCore
     public static class BatchOperationExtensions
     {
         /// <summary>
+        /// Expanded type for query generation.
+        /// </summary>
+        internal static int BatchUpdate<TIdentifier, TEntity>(
+            this IQueryable<TIdentifier> source,
+            Expression<Func<TIdentifier, TEntity>> selector)
+        {
+            throw new InvalidOperationException();
+        }
+
+        /// <summary>
         /// Convert the source local table to a fake subquery or real-query itself.
         /// </summary>
-        /// <typeparam name="TTarget">Any real queryable type.</typeparam>
-        /// <typeparam name="TSource">The source entity type.</typeparam>
-        /// <param name="targetTable">The target table.</param>
-        /// <param name="sourceEnumerable">The source table.</param>
-        /// <returns>The source query created for join or other usages.</returns>
         private static IQueryable<TSource> CreateSourceTable<TTarget, TSource>(
             DbSet<TTarget> targetTable,
             IEnumerable<TSource> sourceEnumerable)
@@ -54,11 +58,6 @@ namespace Microsoft.EntityFrameworkCore
         /// <summary>
         /// Creates a temporary values table from local variables.
         /// </summary>
-        /// <typeparam name="TSource">The source entity type.</typeparam>
-        /// <typeparam name="TTarget">The target entity type.</typeparam>
-        /// <param name="source">The source queryable.</param>
-        /// <param name="targets">The actual data.</param>
-        /// <returns>The common table as an IQueryable.</returns>
         internal static IQueryable<TTarget> CreateCommonTable<TSource, TTarget>(
             this IQueryable<TSource> source,
             List<TTarget> targets)
@@ -68,7 +67,7 @@ namespace Microsoft.EntityFrameworkCore
 
             return source.Provider.CreateQuery<TTarget>(
                 Expression.Call(
-                    s_CreateCommonTable_TSource_TTarget.MakeGenericMethod(typeof(TSource), typeof(TTarget)),
+                    BatchOperationMethods.CreateCommonTable.MakeGenericMethod(typeof(TSource), typeof(TTarget)),
                     source.Expression,
                     Expression.Constant(targets)));
         }
@@ -167,7 +166,7 @@ namespace Microsoft.EntityFrameworkCore
 
             return query.Provider.Execute<int>(
                 Expression.Call(
-                    s_BatchDelete_TSource.MakeGenericMethod(typeof(TSource)),
+                    BatchOperationMethods.BatchDelete.MakeGenericMethod(typeof(TSource)),
                     query.Expression));
         }
 
@@ -187,7 +186,7 @@ namespace Microsoft.EntityFrameworkCore
 
             return ((IAsyncQueryProvider)query.Provider).ExecuteAsync<Task<int>>(
                 Expression.Call(
-                    s_BatchDelete_TSource.MakeGenericMethod(typeof(TSource)),
+                    BatchOperationMethods.BatchDelete.MakeGenericMethod(typeof(TSource)),
                     query.Expression),
                 cancellationToken);
         }

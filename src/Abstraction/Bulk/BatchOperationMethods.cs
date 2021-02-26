@@ -8,11 +8,20 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     internal static class BatchOperationMethods
     {
-        public static readonly MethodInfo s_CreateCommonTable_TSource_TTarget
+        public static MethodInfo CreateCommonTable { get; }
             = new Func<IQueryable<object>,
                        List<object>,
                        IQueryable<object>>(
                 BatchOperationExtensions.CreateCommonTable)
+            .GetMethodInfo()
+            .GetGenericMethodDefinition();
+
+
+        public static MethodInfo BatchUpdateExpanded { get; }
+            = new Func<IQueryable<object>,
+                       Expression<Func<object, object>>,
+                       int>(
+                BatchOperationExtensions.BatchUpdate<object, object>)
             .GetMethodInfo()
             .GetGenericMethodDefinition();
 
@@ -31,7 +40,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             .GetGenericMethodDefinition();
 
 
-        public static MethodInfo s_BatchDelete_TSource
+        public static MethodInfo BatchDelete { get; }
             = new Func<IQueryable<object>,
                        int>(
                 BatchOperationExtensions.BatchDelete)
@@ -39,11 +48,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             .GetGenericMethodDefinition();
 
 
-        public static MethodInfo s_BatchUpdate_TSource
+        public static MethodInfo BatchUpdate { get; }
             = new Func<IQueryable<object>,
                        Expression<Func<object, object>>,
                        int>(
-                BatchOperationExtensions.BatchUpdate)
+                BatchOperationExtensions.BatchUpdate<object>)
             .GetMethodInfo()
             .GetGenericMethodDefinition();
 
