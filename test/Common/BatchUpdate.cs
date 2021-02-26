@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.TestUtilities.Xunit;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -239,6 +240,7 @@ namespace Testcase_BatchUpdate
         }
 
         [ConditionalFact, TestPriority(2)]
+        [DatabaseProviderSkipCondition(DatabaseProvider.PostgreSQL, SkipVersion = EFCoreVersion.Version_3_1)]
         public void HasOwnedType()
         {
             using var context = contextFactory();
