@@ -144,25 +144,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 targetKey.Parameters[0], sourceKey.Parameters[0]).Compile();
         }
 
-        public int BatchDelete<T>(
-            DbContext context,
-            IQueryable<T> query)
-            where T : class
-        {
-            context.Set<T>().RemoveRange(EnsureType(query).ToArray());
-            return context.SaveChanges();
-        }
-
-        public async Task<int> BatchDeleteAsync<T>(
-            DbContext context,
-            IQueryable<T> query,
-            CancellationToken cancellationToken = default)
-            where T : class
-        {
-            context.Set<T>().RemoveRange(await EnsureType(query).ToArrayAsync(cancellationToken));
-            return await context.SaveChangesAsync(cancellationToken);
-        }
-
         public int BatchInsertInto<T>(
             DbContext context,
             IQueryable<T> query,
@@ -181,32 +162,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where T : class
         {
             to.AddRange(await query.ToArrayAsync(cancellationToken));
-            return await context.SaveChangesAsync(cancellationToken);
-        }
-
-        public int BatchUpdate<T>(
-            DbContext context,
-            IQueryable<T> query,
-            Expression<Func<T, T>>
-            updateExpression)
-            where T : class
-        {
-            var entities = EnsureType(query).ToList();
-            entities.ForEach(CompileUpdate(updateExpression));
-            context.Set<T>().UpdateRange(entities);
-            return context.SaveChanges();
-        }
-
-        public async Task<int> BatchUpdateAsync<T>(
-            DbContext context,
-            IQueryable<T> query,
-            Expression<Func<T, T>> updateExpression,
-            CancellationToken cancellationToken = default)
-            where T : class
-        {
-            var entities = await EnsureType(query).ToListAsync(cancellationToken);
-            entities.ForEach(CompileUpdate(updateExpression));
-            context.Set<T>().UpdateRange(entities);
             return await context.SaveChangesAsync(cancellationToken);
         }
 
