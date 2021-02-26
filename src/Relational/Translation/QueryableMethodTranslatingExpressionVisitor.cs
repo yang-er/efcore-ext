@@ -227,6 +227,49 @@ namespace Microsoft.EntityFrameworkCore.Query
             return TranslateWrapped(updateExpression);
         }
 
+        protected virtual ShapedQueryExpression TranslateSelectInto(Expression shaped, Type rootType)
+        {
+            if (shaped is not ShapedQueryExpression shapedQueryExpression
+                || shapedQueryExpression.QueryExpression is not SelectExpression selectExpression
+                || shapedQueryExpression.ShaperExpression is not MemberInitExpression memberInitExpression
+                || memberInitExpression.NewExpression.Arguments.Count > 0)
+            {
+                return null;
+            }
+
+            var entityType = _model.FindEntityType(rootType);
+            if (entityType == null)
+            {
+                return Fail("Query tree root type not found.");
+            }
+
+            var tableName = entityType.GetTableName();
+            var schema = entityType.GetSchema();
+            var columnNames = entityType.GetColumns();
+            var projectionMapping = RelationalInternals.AccessProjectionMapping(selectExpression);
+            var projections = (List<ProjectionExpression>)selectExpression.Projection;
+            var newProjectionMapping = new Dictionary<ProjectionMember, Expression>();
+            if (projections.Count > 0)
+            {
+                throw new NotImplementedException("Why is projection here expanded?");
+            }
+
+            foreach (var (member, projection) in projectionMapping)
+            {
+                if (projection is not SqlExpression sqlExpression
+                    || !columnNames.TryGetValue(member.ToString(), out var fieldName))
+                {
+                    throw new NotImplementedException("Unknown projection mapping failed.");
+                }
+
+                newProjectionMapping.Add(member, Expression.Constant(projections.Count));
+                projections.Add(RelationalInternals.CreateProjectionExpression(sqlExpression, fieldName));
+            }
+
+            selectExpression.ReplaceProjectionMapping(newProjectionMapping);
+            return TranslateWrapped(new SelectIntoExpression(tableName, schema, selectExpression));
+        }
+
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
             var method = methodCallExpression.Method;
@@ -247,6 +290,10 @@ namespace Microsoft.EntityFrameworkCore.Query
                     case nameof(BatchOperationExtensions.BatchUpdate)
                         when genericMethod == BatchOperationMethods.BatchUpdateExpanded:
                         return CheckTranslated(TranslateUpdate(Visit(methodCallExpression.Arguments[0]), methodCallExpression.Arguments[1].UnwrapLambdaFromQuote()));
+
+                    case nameof(BatchOperationExtensions.BatchInsertInto)
+                        when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
+                        return CheckTranslated(TranslateSelectInto(Visit(methodCallExpression.Arguments[0]), method.GetGenericArguments()[0]));
                 }
             }
 

@@ -13,74 +13,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class InMemoryBatchOperationProvider : IBatchOperationProvider
     {
-        private static IQueryable<T> EnsureType<T>(IQueryable<T> query) where T : class
-        {
-            var expression = query.Expression;
-            while (expression.NodeType == ExpressionType.Call)
-            {
-                // expression = Call someFunc(IQueryable<T> some, ..., ...)
-                var methodCall = (MethodCallExpression)expression;
-                expression = methodCall.Arguments[0];
-
-                if (methodCall.Method.DeclaringType == typeof(Queryable)
-                    && (methodCall.Method.Name == nameof(Queryable.Take)
-                    || methodCall.Method.Name == "TakeLast"
-                    || methodCall.Method.Name == nameof(Queryable.TakeWhile)
-                    || methodCall.Method.Name == nameof(Queryable.Skip)
-                    || methodCall.Method.Name == "SkipLast"
-                    || methodCall.Method.Name == nameof(Queryable.SkipWhile)))
-                    throw new NotSupportedException("Batch update/delete doesn't support .Take() or .Skip()");
-            }
-
-#if EFCORE31
-            bool validated = expression.NodeType == ExpressionType.Constant
-                && expression.Type == typeof(EntityQueryable<T>);
-#elif EFCORE50
-            bool validated = expression is QueryRootExpression;
-#endif
-
-            if (!validated)
-            {
-                throw new ArgumentException("Query invalid. The operation entity must be in DbContext.");
-            }
-
-            return query;
-        }
-
-        private static Action<T> CompileUpdate<T>(Expression<Func<T, T>> expression)
-        {
-            var body = expression.Body;
-            var param = expression.Parameters.Single();
-
-            if (body is MemberInitExpression memberInit)
-            {
-                if (memberInit.NewExpression.Constructor.GetParameters().Any())
-                    throw new InvalidOperationException("Non-simple constructor is not supported.");
-                var sentences = new List<Expression>();
-                foreach (var item in memberInit.Bindings)
-                {
-                    if (!(item is MemberAssignment assignment))
-                        throw new InvalidOperationException("Non-assignment binding is not supported.");
-                    var m = Expression.MakeMemberAccess(param, assignment.Member);
-                    sentences.Add(Expression.Assign(m, assignment.Expression));
-                }
-
-                return Expression.Lambda<Action<T>>(
-                    Expression.Block(sentences),
-                    expression.Parameters).Compile();
-            }
-            else if (body is NewExpression @new)
-            {
-                if (@new.Constructor.GetParameters().Any())
-                    throw new InvalidOperationException("Non-simple constructor is not supported.");
-                return _ => { };
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         private static Action<T, T2> CompileUpdate<T, T2>(Expression<Func<T, T2, T>> expression)
         {
             if (expression == null) return null;
@@ -142,27 +74,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             return Expression.Lambda<Func<TTarget, TSource, bool>>(body,
                 targetKey.Parameters[0], sourceKey.Parameters[0]).Compile();
-        }
-
-        public int BatchInsertInto<T>(
-            DbContext context,
-            IQueryable<T> query,
-            DbSet<T> to)
-            where T : class
-        {
-            to.AddRange(query.ToArray());
-            return context.SaveChanges();
-        }
-
-        public async Task<int> BatchInsertIntoAsync<T>(
-            DbContext context,
-            IQueryable<T> query,
-            DbSet<T> to,
-            CancellationToken cancellationToken = default)
-            where T : class
-        {
-            to.AddRange(await query.ToArrayAsync(cancellationToken));
-            return await context.SaveChangesAsync(cancellationToken);
         }
 
         private static void SolveMerge<TTarget, TSource, TJoinKey>(

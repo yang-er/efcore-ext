@@ -68,7 +68,11 @@ namespace Microsoft.EntityFrameworkCore.Query
                     case nameof(BatchOperationExtensions.BatchUpdate)
                     when genericMethod == BatchOperationMethods.BatchUpdate:
                         EnsureQueryExpression(root);
-                        return CompileUpdateCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType, TranslateUpdateShaper(UnquoteLambda(methodCallExpression.Arguments[1])));
+                        return CompileUpdateCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType, TranslateUpdateShaper(methodCallExpression.Arguments[1].UnwrapLambdaFromQuote()));
+
+                    case nameof(BatchOperationExtensions.BatchInsertInto)
+                    when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
+                        return CompileSelectIntoCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType);
                 }
             }
 
@@ -96,11 +100,6 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return Expression.Invoke(
                     Expression.Constant(queryExecutor),
                     QueryCompilationContext.QueryContextParameter);
-            }
-
-            LambdaExpression UnquoteLambda(Expression expression)
-            {
-                return (expression as UnaryExpression)?.Operand as LambdaExpression;
             }
         }
 
@@ -175,6 +174,21 @@ namespace Microsoft.EntityFrameworkCore.Query
                         QueryCompilationContext.QueryContextParameter,
                         queryingEnumerable,
                         Expression.Constant(updateShaper.Compile())),
+                    typeof(TResult) == typeof(Task<int>)
+                        ? bulkQueryExecutor_ExecuteAsync
+                        : bulkQueryExecutor_Execute),
+                QueryCompilationContext.QueryContextParameter)
+                .Compile();
+        }
+
+        private Func<QueryContext, TResult> CompileSelectIntoCore<TResult>(InvocationExpression queryingEnumerable, Type rootType)
+        {
+            return Expression.Lambda<Func<QueryContext, TResult>>(
+                Expression.Call(
+                    Expression.New(
+                        typeof(SelectIntoOperation<>).MakeGenericType(rootType).GetConstructors()[0],
+                        QueryCompilationContext.QueryContextParameter,
+                        queryingEnumerable),
                     typeof(TResult) == typeof(Task<int>)
                         ? bulkQueryExecutor_ExecuteAsync
                         : bulkQueryExecutor_Execute),

@@ -89,19 +89,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TOuter : class
             where TInner : class;
 
-        int BatchInsertInto<T>(
-            DbContext context,
-            IQueryable<T> query,
-            DbSet<T> to)
-            where T : class;
-
-        Task<int> BatchInsertIntoAsync<T>(
-            DbContext context,
-            IQueryable<T> query,
-            DbSet<T> to,
-            CancellationToken cancellationToken)
-            where T : class;
-
         int Upsert<TTarget, TSource>(
             DbContext context,
             DbSet<TTarget> set,
