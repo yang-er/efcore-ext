@@ -62,6 +62,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return wrappedExpression switch
             {
                 DeleteExpression deleteExpression => VisitDelete(deleteExpression),
+                UpdateExpression updateExpression => VisitUpdate(updateExpression),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -149,13 +150,20 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         public virtual IRelationalCommand GetCommand(UpdateExpression updateExpression)
         {
+            RelationalInternals.InitQuerySqlGenerator(this);
+            VisitUpdate(updateExpression);
+            return Sql.Build();
+        }
+
+        protected virtual Expression VisitUpdate(UpdateExpression updateExpression)
+        {
+            var original = updateExpression;
             if (!updateExpression.Expanded)
             {
                 // This is a strange behavior for PostgreSQL. I don't like it.
                 updateExpression = updateExpression.Expand();
             }
 
-            RelationalInternals.InitQuerySqlGenerator(this);
             Sql.Append("UPDATE ")
                 .Append(Helper.DelimitIdentifier(updateExpression.ExpandedTable.Name))
                 .Append(AliasSeparator)
@@ -180,7 +188,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 Visit(updateExpression.Predicate);
             }
 
-            return Sql.Build();
+            return original;
         }
 
         public virtual IRelationalCommand GetCommand(DeleteExpression deleteExpression)

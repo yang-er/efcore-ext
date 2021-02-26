@@ -51,7 +51,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             bool generateContextAccessors = false)
         {
             if (query is MethodCallExpression methodCallExpression
-                && methodCallExpression.Method.DeclaringType == typeof(BatchOperationMethods))
+                && methodCallExpression.Method.DeclaringType == typeof(BatchOperationExtensions))
             {
                 var visitor = new ParameterExtractingExpressionVisitorV2(
                     _evaluatableExpressionFilter,

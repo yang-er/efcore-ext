@@ -34,6 +34,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return wrappedExpression switch
             {
                 DeleteExpression deleteExpression => VisitDelete(deleteExpression),
+                UpdateExpression updateExpression => VisitUpdate(updateExpression),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -113,6 +114,17 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 throw new InvalidOperationException("Update expression accidently expanded.");
 
             RelationalInternals.InitQuerySqlGenerator(this);
+            VisitUpdate(updateExpression);
+            return Sql.Build();
+        }
+
+        protected virtual Expression VisitUpdate(UpdateExpression updateExpression)
+        {
+            if (updateExpression.Expanded)
+            {
+                throw new InvalidOperationException("Update expression accidently expanded.");
+            }
+
             Sql.Append("UPDATE ");
 
             string tableExp = Helper.DelimitIdentifier(updateExpression.Tables[0].Alias);
@@ -140,7 +152,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 Visit(updateExpression.Predicate);
             }
 
-            return Sql.Build();
+            return updateExpression;
         }
 
         public virtual IRelationalCommand GetCommand(DeleteExpression deleteExpression)

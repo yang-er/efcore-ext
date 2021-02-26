@@ -172,19 +172,21 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return null;
             }
 
+            if (selectExpression.Offset != null
+                || selectExpression.Limit != null
+                || (selectExpression.GroupBy?.Count ?? 0) != 0
+                || selectExpression.Having != null)
+            {
+                return Fail("The query can't be aggregated or be with .Take() or .Skip() filters.");
+            }
+
             if (updateBody.Body is not MemberInitExpression memberInitExpression
                 || memberInitExpression.NewExpression.Arguments.Count != 0)
             {
                 return Fail("Invalid update body expression.");
             }
 
-            var updateRootType = updateBody.Parameters[0].Type;
-            while (updateRootType.FullName.StartsWith(OuterInner))
-            {
-                updateRootType = updateRootType.GetGenericArguments()[0];
-            }
-
-            var entityType = _model.FindEntityType(updateRootType);
+            var entityType = _model.FindEntityType(updateBody.Body.Type);
             if (entityType == null)
             {
                 return Fail("Query tree root type not found.");

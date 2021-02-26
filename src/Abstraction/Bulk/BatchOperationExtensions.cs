@@ -194,43 +194,48 @@ namespace Microsoft.EntityFrameworkCore
         /// <summary>
         /// Perform batch update as <c>UPDATE SET</c> operations.
         /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
+        /// <typeparam name="TSource">The entity type.</typeparam>
         /// <param name="query">The entity query.</param>
         /// <param name="updateExpression">The update expression.</param>
         /// <returns>The affected rows.</returns>
-        public static int BatchUpdate<T>(
-            this IQueryable<T> query,
-            Expression<Func<T, T>> updateExpression)
-            where T : class
+        public static int BatchUpdate<TSource>(
+            this IQueryable<TSource> query,
+            Expression<Func<TSource, TSource>> updateExpression)
+            where TSource : class
         {
             Check.NotNull(query, nameof(query));
             Check.NotNull(updateExpression, nameof(updateExpression));
 
-            var context = query.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchUpdate(context, query, updateExpression);
+            return query.Provider.Execute<int>(
+                Expression.Call(
+                    BatchOperationMethods.BatchUpdate.MakeGenericMethod(typeof(TSource)),
+                    query.Expression,
+                    Expression.Quote(updateExpression)));
         }
 
         /// <summary>
         /// Perform batch update as <c>UPDATE SET</c> async operations.
         /// </summary>
-        /// <typeparam name="T">The entity type.</typeparam>
+        /// <typeparam name="TSource">The entity type.</typeparam>
         /// <param name="query">The entity query.</param>
         /// <param name="updateExpression">The update expression.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task for affected rows.</returns>
-        public static Task<int> BatchUpdateAsync<T>(
-            this IQueryable<T> query,
-            Expression<Func<T, T>> updateExpression,
+        public static Task<int> BatchUpdateAsync<TSource>(
+            this IQueryable<TSource> query,
+            Expression<Func<TSource, TSource>> updateExpression,
             CancellationToken cancellationToken = default)
-            where T : class
+            where TSource : class
         {
             Check.NotNull(query, nameof(query));
             Check.NotNull(updateExpression, nameof(updateExpression));
 
-            var context = query.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchUpdateAsync(context, query, updateExpression, cancellationToken);
+            return ((IAsyncQueryProvider)query.Provider).ExecuteAsync<Task<int>>(
+                Expression.Call(
+                    BatchOperationMethods.BatchUpdate.MakeGenericMethod(typeof(TSource)),
+                    query.Expression,
+                    Expression.Quote(updateExpression)),
+                cancellationToken);
         }
 
         /// <summary>
