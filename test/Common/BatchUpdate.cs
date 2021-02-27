@@ -240,18 +240,42 @@ namespace Testcase_BatchUpdate
         }
 
         [ConditionalFact, TestPriority(2)]
-        [DatabaseProviderSkipCondition(DatabaseProvider.PostgreSQL, SkipVersion = EFCoreVersion.Version_3_1)]
+        [DatabaseProviderSkipCondition(DatabaseProvider.PostgreSQL_31)]
         public void HasOwnedType()
         {
-            using var context = contextFactory();
-
-            context.ChangeLogs.BatchUpdate(c => new ChangeLog
+            using (var initctx = contextFactory())
             {
-                Audit = new Audit
+                initctx.ChangeLogs.Add(new ChangeLog
                 {
-                    IsDeleted = !c.Audit.IsDeleted
-                }
-            });
+                    Audit = new Audit
+                    {
+                        IsDeleted = false,
+                        ChangedBy = "wdwdw",
+                        ChangedTime = DateTime.Now,
+                    },
+                    Description = "wfefvrg",
+                });
+
+                initctx.SaveChanges();
+            }
+
+            using (var context = contextFactory())
+            {
+                context.ChangeLogs.BatchUpdate(c => new ChangeLog
+                {
+                    Audit = new Audit
+                    {
+                        IsDeleted = !c.Audit.IsDeleted
+                    }
+                });
+            }
+
+            using (var validate = contextFactory())
+            {
+                var chg = validate.ChangeLogs.Single();
+                Assert.Equal("ChangedBy", chg.Audit.ChangedBy);
+                Assert.True(chg.Audit.IsDeleted);
+            }
         }
 
         [ConditionalFact, TestPriority(3)]
