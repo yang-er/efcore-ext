@@ -84,7 +84,7 @@ namespace Microsoft.EntityFrameworkCore
         /// </summary>
         internal static IQueryable<TTarget> CreateCommonTable<TSource, TTarget>(
             this IQueryable<TSource> source,
-            List<TTarget> targets)
+            IReadOnlyList<TTarget> targets)
         {
             Check.NotNull(source, nameof(source));
             Check.NotNull(targets, nameof(targets));
@@ -93,7 +93,7 @@ namespace Microsoft.EntityFrameworkCore
                 Expression.Call(
                     BatchOperationMethods.CreateCommonTable.MakeGenericMethod(typeof(TSource), typeof(TTarget)),
                     source.Expression,
-                    Expression.Constant(targets)));
+                    Expression.Constant(targets, typeof(IReadOnlyList<TTarget>))));
         }
 
 
@@ -290,10 +290,21 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(outerKeySelector, nameof(outerKeySelector));
             Check.NotNull(innerKeySelector, nameof(innerKeySelector));
             Check.NotNull(updateSelector, nameof(updateSelector));
+            condition ??= (_, __) => true;
+            var outer2 = (IQueryable<TOuter>)outer;
 
-            var context = outer.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchUpdateJoin(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
+            return outer2.Provider.Execute<int>(
+                Expression.Call(
+                    BatchOperationMethods.BatchUpdateJoin.MakeGenericMethod(
+                        typeof(TOuter),
+                        typeof(TInner),
+                        typeof(TKey)),
+                    outer2.Expression,
+                    inner.Expression,
+                    Expression.Quote(outerKeySelector),
+                    Expression.Quote(innerKeySelector),
+                    Expression.Quote(updateSelector),
+                    Expression.Quote(condition)));
         }
 
         /// <summary>
@@ -326,10 +337,22 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(outerKeySelector, nameof(outerKeySelector));
             Check.NotNull(innerKeySelector, nameof(innerKeySelector));
             Check.NotNull(updateSelector, nameof(updateSelector));
+            condition ??= (_, __) => true;
+            var outer2 = (IQueryable<TOuter>)outer;
 
-            var context = outer.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchUpdateJoinAsync(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition, cancellationToken);
+            return ((IAsyncQueryProvider)outer2.Provider).ExecuteAsync<Task<int>>(
+                Expression.Call(
+                    BatchOperationMethods.BatchUpdateJoin.MakeGenericMethod(
+                        typeof(TOuter),
+                        typeof(TInner),
+                        typeof(TKey)),
+                    outer2.Expression,
+                    inner.Expression,
+                    Expression.Quote(outerKeySelector),
+                    Expression.Quote(innerKeySelector),
+                    Expression.Quote(updateSelector),
+                    Expression.Quote(condition)),
+                cancellationToken);
         }
 
         /// <summary>
@@ -357,14 +380,26 @@ namespace Microsoft.EntityFrameworkCore
         {
             Check.NotNull(outer, nameof(outer));
             Check.NotNull(inner, nameof(inner));
-            if (inner.Count == 0) return 0;
             Check.NotNull(outerKeySelector, nameof(outerKeySelector));
             Check.NotNull(innerKeySelector, nameof(innerKeySelector));
             Check.NotNull(updateSelector, nameof(updateSelector));
 
-            var context = outer.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchUpdateJoin(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
+            if (inner.Count == 0) return 0;
+            condition ??= (_, __) => true;
+            var outer2 = (IQueryable<TOuter>)outer;
+
+            return outer2.Provider.Execute<int>(
+                Expression.Call(
+                    BatchOperationMethods.BatchUpdateJoin.MakeGenericMethod(
+                        typeof(TOuter),
+                        typeof(TInner),
+                        typeof(TKey)),
+                    outer2.Expression,
+                    outer.CreateCommonTable(inner).Expression,
+                    Expression.Quote(outerKeySelector),
+                    Expression.Quote(innerKeySelector),
+                    Expression.Quote(updateSelector),
+                    Expression.Quote(condition)));
         }
 
         /// <summary>
@@ -394,14 +429,27 @@ namespace Microsoft.EntityFrameworkCore
         {
             Check.NotNull(outer, nameof(outer));
             Check.NotNull(inner, nameof(inner));
-            if (inner.Count == 0) return Task.FromResult(0);
             Check.NotNull(outerKeySelector, nameof(outerKeySelector));
             Check.NotNull(innerKeySelector, nameof(innerKeySelector));
             Check.NotNull(updateSelector, nameof(updateSelector));
 
-            var context = outer.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.BatchUpdateJoinAsync(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition, cancellationToken);
+            if (inner.Count == 0) return Task.FromResult(0);
+            condition ??= (_, __) => true;
+            var outer2 = (IQueryable<TOuter>)outer;
+
+            return ((IAsyncQueryProvider)outer2.Provider).ExecuteAsync<Task<int>>(
+                Expression.Call(
+                    BatchOperationMethods.BatchUpdateJoin.MakeGenericMethod(
+                        typeof(TOuter),
+                        typeof(TInner),
+                        typeof(TKey)),
+                    outer2.Expression,
+                    outer.CreateCommonTable(inner).Expression,
+                    Expression.Quote(outerKeySelector),
+                    Expression.Quote(innerKeySelector),
+                    Expression.Quote(updateSelector),
+                    Expression.Quote(condition)),
+                cancellationToken);
         }
 
         /// <summary>

@@ -110,7 +110,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                         when genericMethod == BatchOperationMethods.CreateCommonTable &&
                              methodCallExpression.Arguments[1] is ParameterExpression parameter:
 
-                        result = VisitorHelper.CreateCommonTable(
+                        result = VisitorHelper.CreateDirect(
                             methodCallExpression,
                             Expression.Call(
                                 parameter,
@@ -147,6 +147,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
 
             var genericMethod = method.GetGenericMethodDefinition();
+            var genericArguments = method.GetGenericArguments();
             switch (method.Name)
             {
                 case nameof(BatchOperationExtensions.CreateCommonTable)
@@ -161,26 +162,10 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 case nameof(BatchOperationExtensions.BatchUpdate)
                 when genericMethod == BatchOperationMethods.BatchUpdate:
-                    var coreType = method.GetGenericArguments()[0];
-                    var expanded = base.Expand(
+                    return BatchUpdateExpand(
                         Expression.Call(
-                            QueryableMethods.Select.MakeGenericMethod(coreType, coreType),
+                            QueryableMethods.Select.MakeGenericMethod(genericArguments[0], genericArguments[0]),
                             methodCallExpression.Arguments));
-
-                    // TODO: Is type hierarchy affected?
-                    if (expanded is not MethodCallExpression fakeSelect ||
-                        fakeSelect.Method.GetGenericMethodDefinition() != QueryableMethods.Select)
-                        goto default;
-
-                    var newSelectTypes = fakeSelect.Method.GetGenericArguments();
-                    var updateBody = fakeSelect.Arguments[1].UnwrapLambdaFromQuote();
-                    return Expression.Call(
-                        BatchOperationMethods.BatchUpdateExpanded.MakeGenericMethod(newSelectTypes),
-                        Expression.Call(
-                            QueryableMethods.Select.MakeGenericMethod(newSelectTypes[0], newSelectTypes[0]),
-                            fakeSelect.Arguments[0],
-                            Expression.Lambda(updateBody.Parameters[0], updateBody.Parameters[0])),
-                        Expression.Quote(updateBody));
 
 
                 case nameof(BatchOperationExtensions.BatchInsertInto)
@@ -188,10 +173,89 @@ namespace Microsoft.EntityFrameworkCore.Query
                     return Expression.Call(method, base.Expand(methodCallExpression.Arguments[0]));
 
 
+                case nameof(BatchOperationExtensions.BatchUpdateJoin)
+                when genericMethod == BatchOperationMethods.BatchUpdateJoin:
+                    return BatchUpdateExpand(
+                        RemapBatchUpdateJoin(methodCallExpression));
+
+
                 default:
-                    throw new InvalidOperationException(
-                        CoreStrings.QueryFailed(methodCallExpression.Print(), GetType().Name));
+                    throw TranslateFailed();
             }
+
+            Exception TranslateFailed()
+                => new InvalidOperationException(
+                    CoreStrings.QueryFailed(query.Print(), GetType().Name));
+
+            Expression BatchUpdateExpand(Expression toUpdate)
+            {
+                var expanded = base.Expand(toUpdate);
+
+                // TODO: Is type hierarchy affected?
+                if (expanded is not MethodCallExpression fakeSelect ||
+                    fakeSelect.Method.GetGenericMethodDefinition() != QueryableMethods.Select)
+                    throw TranslateFailed();
+
+                var newSelectTypes = fakeSelect.Method.GetGenericArguments();
+                return Expression.Call(
+                    BatchOperationMethods.BatchUpdateExpanded.MakeGenericMethod(newSelectTypes),
+                    fakeSelect.Arguments[0],
+                    Expression.Quote(fakeSelect.Arguments[1].UnwrapLambdaFromQuote()));
+            }
+        }
+
+        private static MethodCallExpression RemapBatchUpdateJoin(MethodCallExpression methodCallExpression)
+        {
+            var genericArguments = methodCallExpression.Method.GetGenericArguments();
+            var outerType = genericArguments[0];
+            var innerType = genericArguments[1];
+            var joinKeyType = genericArguments[2];
+
+            var transparentIdentifierType = TransparentIdentifierFactory.Create(outerType, innerType);
+            var transparentIdentifierOuterMemberInfo = transparentIdentifierType.GetTypeInfo().GetDeclaredField("Outer");
+            var transparentIdentifierInnerMemberInfo = transparentIdentifierType.GetTypeInfo().GetDeclaredField("Inner");
+            var transparentIdentifierParameter = Expression.Parameter(transparentIdentifierType, "tree");
+            var transparentIdentifierReplacement = new[]
+            {
+                Expression.Field(transparentIdentifierParameter, transparentIdentifierOuterMemberInfo),
+                Expression.Field(transparentIdentifierParameter, transparentIdentifierInnerMemberInfo),
+            };
+
+            var outerParameter = Expression.Parameter(outerType, "outer");
+            var innerParameter = Expression.Parameter(innerType, "inner");
+            var predicate = methodCallExpression.Arguments[5].UnwrapLambdaFromQuote();
+            var selector = methodCallExpression.Arguments[4].UnwrapLambdaFromQuote();
+
+            return Expression.Call(
+                QueryableMethods.Select.MakeGenericMethod(transparentIdentifierType, outerType),
+                Expression.Call(
+                    QueryableMethods.Where.MakeGenericMethod(transparentIdentifierType),
+                    Expression.Call(
+                        QueryableMethods.Join.MakeGenericMethod(outerType, innerType, joinKeyType, transparentIdentifierType),
+                        methodCallExpression.Arguments[0],
+                        methodCallExpression.Arguments[1],
+                        methodCallExpression.Arguments[2],
+                        methodCallExpression.Arguments[3],
+                        Expression.Quote(
+                            Expression.Lambda(
+                                Expression.New(
+                                    transparentIdentifierType.GetConstructors().Single(),
+                                    new[] { outerParameter, innerParameter },
+                                    new[] { transparentIdentifierOuterMemberInfo, transparentIdentifierInnerMemberInfo }),
+                                outerParameter,
+                                innerParameter))),
+                    Expression.Quote(
+                        Expression.Lambda(
+                            new ReplacingExpressionVisitor(
+                                predicate.Parameters.ToArray(),
+                                transparentIdentifierReplacement).Visit(predicate.Body),
+                            transparentIdentifierParameter))),
+                Expression.Quote(
+                    Expression.Lambda(
+                        new ReplacingExpressionVisitor(
+                            selector.Parameters.ToArray(),
+                            transparentIdentifierReplacement).Visit(selector.Body),
+                        transparentIdentifierParameter)));
         }
     }
 

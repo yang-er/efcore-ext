@@ -32,13 +32,24 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         private RelationalCommandCache CreateCommandCache(SelectExpression selectExpression)
         {
-            return new RelationalCommandCache(
+            var commandCache = new RelationalCommandCache(
                 Dependencies.MemoryCache,
                 RelationalDependencies.SqlExpressionFactory,
                 RelationalDependencies.ParameterNameGeneratorFactory,
                 RelationalDependencies.QuerySqlGeneratorFactory,
                 _useRelationalNulls,
                 selectExpression);
+
+            var optimizer = new XysParameterValueBasedSelectExpressionOptimizer(
+                RelationalDependencies.SqlExpressionFactory,
+                RelationalDependencies.ParameterNameGeneratorFactory,
+                _useRelationalNulls);
+
+            typeof(RelationalCommandCache)
+                .GetField("_parameterValueBasedSelectExpressionOptimizer", Internals.bindingFlags)
+                .SetValue(commandCache, optimizer);
+
+            return commandCache;
         }
 
 #elif EFCORE50

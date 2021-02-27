@@ -53,13 +53,42 @@ namespace Microsoft.EntityFrameworkCore.Query
             if (query is MethodCallExpression methodCallExpression
                 && methodCallExpression.Method.DeclaringType == typeof(BatchOperationExtensions))
             {
+                var genericMethod = methodCallExpression.Method.GetGenericMethodDefinition();
+                var genericArguments = methodCallExpression.Method.GetGenericArguments();
                 switch (methodCallExpression.Method.Name)
                 {
                     case nameof(BatchOperationExtensions.BatchInsertInto)
-                    when methodCallExpression.Method.GetGenericMethodDefinition() == BatchOperationMethods.BatchInsertInto:
+                    when genericMethod == BatchOperationMethods.BatchInsertInto:
                         query = Expression.Call(
-                            BatchOperationMethods.BatchInsertIntoCollapsed.MakeGenericMethod(methodCallExpression.Method.GetGenericArguments()),
+                            BatchOperationMethods.BatchInsertIntoCollapsed.MakeGenericMethod(genericArguments),
                             methodCallExpression.Arguments[0]);
+                        break;
+
+                    case nameof(BatchOperationExtensions.BatchUpdateJoin)
+                    when genericMethod == BatchOperationMethods.BatchUpdateJoinQueryable:
+                        query = Expression.Call(
+                            BatchOperationMethods.BatchUpdateJoin.MakeGenericMethod(genericArguments),
+                            methodCallExpression.Arguments[0],
+                            methodCallExpression.Arguments[1],
+                            methodCallExpression.Arguments[2],
+                            methodCallExpression.Arguments[3],
+                            methodCallExpression.Arguments[4],
+                            methodCallExpression.Arguments[5]);
+                        break;
+
+                    case nameof(BatchOperationExtensions.BatchUpdateJoin)
+                    when genericMethod == BatchOperationMethods.BatchUpdateJoinReadOnlyList:
+                        query = Expression.Call(
+                            BatchOperationMethods.BatchUpdateJoin.MakeGenericMethod(genericArguments),
+                            methodCallExpression.Arguments[0],
+                            Expression.Call(
+                                BatchOperationMethods.CreateCommonTable.MakeGenericMethod(genericArguments[0], genericArguments[1]),
+                                methodCallExpression.Arguments[0],
+                                methodCallExpression.Arguments[1]),
+                            methodCallExpression.Arguments[2],
+                            methodCallExpression.Arguments[3],
+                            methodCallExpression.Arguments[4],
+                            methodCallExpression.Arguments[5]);
                         break;
                 }
 

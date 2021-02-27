@@ -66,7 +66,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             })
             .Invoke().Compile();
 
-        public static Expression CreateCommonTable(Expression origin, Expression entity)
+        public static Expression CreateDirect(Expression origin, Expression entity)
             => NavigationExpansionExpressionFactory.Invoke(origin, entity);
 
         public static Type GetEntityTypeWithinEntityReference(Expression origin)

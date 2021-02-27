@@ -1,47 +1,49 @@
-﻿using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq.Expressions;
+﻿#if EFCORE31
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
-    public class ValuesExpressionExpansionVisitor : SqlExpressionVisitorV2
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq.Expressions;
+    using Microsoft.EntityFrameworkCore.Query.Internal;
+    using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+    using Microsoft.EntityFrameworkCore.Storage;
+
+    public class XysParameterValueBasedSelectExpressionOptimizer : ParameterValueBasedSelectExpressionOptimizer
     {
-        private readonly ValuesExpression[] _toReplace, _replacement;
-
-        public ValuesExpressionExpansionVisitor(ValuesExpression[] toReplace, ValuesExpression[] replacement)
+        public XysParameterValueBasedSelectExpressionOptimizer(
+            ISqlExpressionFactory sqlExpressionFactory,
+            IParameterNameGeneratorFactory parameterNameGeneratorFactory,
+            bool useRelationalNulls)
+            : base(sqlExpressionFactory, parameterNameGeneratorFactory, useRelationalNulls)
         {
-            Check.NotNull(toReplace, nameof(toReplace));
-            Check.NotNull(replacement, nameof(replacement));
-            Check.DebugAssert(toReplace.Length == replacement.Length, "Should be equal length.");
-
-            _toReplace = toReplace;
-            _replacement = replacement;
         }
 
-        protected override Expression VisitValues(ValuesExpression valuesExpression)
+        public override (SelectExpression selectExpression, bool canCache) Optimize(
+            SelectExpression selectExpression,
+            IReadOnlyDictionary<string, object> parametersValues)
         {
-            for (int i = 0; i < _toReplace.Length; i++)
-            {
-                if (valuesExpression == _toReplace[i])
-                {
-                    return _replacement[i];
-                }
-            }
+            var (optimizedSelectExpression, canCache) = base.Optimize(selectExpression, parametersValues);
+            var valuesVisitor = new ValuesExpressionExpansionVisitor(parametersValues);
 
-            return base.VisitValues(valuesExpression);
+            optimizedSelectExpression = (SelectExpression)valuesVisitor.Visit(optimizedSelectExpression);
+            canCache = canCache && valuesVisitor.CanCache;
+
+            return (optimizedSelectExpression, canCache);
         }
     }
 
-    public class WorkAroudEFCore31ValuesExpressionExpansionVisitor : SqlExpressionVisitorV2
+    public class ValuesExpressionExpansionVisitor : SqlExpressionVisitorV2
     {
-        private readonly RelationalQueryContext _queryContext;
+        private readonly IReadOnlyDictionary<string, object> _parameterValues;
         private readonly List<(ValuesExpression, ValuesExpression)> _replacement;
 
-        public WorkAroudEFCore31ValuesExpressionExpansionVisitor(RelationalQueryContext relationalQueryContext)
+        public bool CanCache => _replacement.Count > 0;
+
+        public ValuesExpressionExpansionVisitor(IReadOnlyDictionary<string, object> parameterValues)
         {
-            _queryContext = relationalQueryContext;
+            _parameterValues = parameterValues;
             _replacement = new List<(ValuesExpression, ValuesExpression)>();
         }
 
@@ -49,7 +51,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             if (valuesExpression.TupleCount == null)
             {
-                if (_queryContext.ParameterValues.TryGetValue(valuesExpression.RuntimeParameter, out var _lists)
+                if (_parameterValues.TryGetValue(valuesExpression.RuntimeParameter, out var _lists)
                     && _lists is IList lists)
                 {
                     for (int i = 0; i < _replacement.Count; i++)
@@ -75,3 +77,5 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
     }
 }
+
+#endif
