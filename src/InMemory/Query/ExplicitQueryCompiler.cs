@@ -63,26 +63,60 @@ namespace Microsoft.EntityFrameworkCore.Query
                     case nameof(BatchOperationExtensions.BatchDelete)
                     when genericMethod == BatchOperationMethods.BatchDelete:
                         EnsureQueryExpression(root);
-                        return CompileDeleteCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType);
+                        var queryingEnumerable = TranslateQueryingEnumerable(root, rootType);
+                        return CompileDeleteCore<TResult>(queryingEnumerable, rootType);
+
 
                     case nameof(BatchOperationExtensions.BatchUpdate)
                     when genericMethod == BatchOperationMethods.BatchUpdate:
                         EnsureQueryExpression(root);
-                        return CompileUpdateCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType, TranslateUpdateShaper(methodCallExpression.Arguments[1].UnwrapLambdaFromQuote()));
+                        var updateSelector = methodCallExpression.Arguments[1].UnwrapLambdaFromQuote();
+                        var sentences = new List<Expression>();
+                        ReshapeForUpdate(updateSelector.Body, updateSelector.Parameters[0], model.FindEntityType(rootType), sentences);
+                        sentences.Add(updateSelector.Parameters[0]);
+
+                        var updateShaper = Expression.Lambda(
+                            Expression.Block(sentences),
+                            QueryCompilationContext.QueryContextParameter,
+                            updateSelector.Parameters[0]);
+
+                        queryingEnumerable = TranslateQueryingEnumerable(root, rootType);
+                        return CompileUpdateCore<TResult>(queryingEnumerable, rootType, rootType, updateShaper);
+
 
                     case nameof(BatchOperationExtensions.BatchInsertInto)
                     when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
-                        return CompileSelectIntoCore<TResult>(TranslateQueryingEnumerable(root, rootType), rootType);
+                        queryingEnumerable = TranslateQueryingEnumerable(root, rootType);
+                        return CompileSelectIntoCore<TResult>(queryingEnumerable, rootType);
+
+
+                    case nameof(BatchOperationExtensions.BatchUpdateJoin)
+                    when genericMethod == BatchOperationMethods.BatchUpdateJoin:
+                        // The second parameter is update shaper.
+                        var newBatchJoin = VisitorHelper.RemapBatchUpdateJoin(methodCallExpression, out var outer, out _);
+                        updateSelector = newBatchJoin.Arguments[1].UnwrapLambdaFromQuote();
+                        sentences = new List<Expression>();
+                        var rootParameter = updateSelector.Parameters[0].MakeMemberAccess(outer);
+                        ReshapeForUpdate(updateSelector.Body, rootParameter, model.FindEntityType(rootType), sentences);
+                        sentences.Add(rootParameter);
+
+                        updateShaper = Expression.Lambda(
+                            Expression.Block(sentences),
+                            QueryCompilationContext.QueryContextParameter,
+                            updateSelector.Parameters[0]);
+
+                        queryingEnumerable = TranslateQueryingEnumerable(newBatchJoin.Arguments[0], updateSelector.Parameters[0].Type);
+                        return CompileUpdateCore<TResult>(queryingEnumerable, outer.DeclaringType, rootType, updateShaper);
                 }
             }
 
             return base.CompileQueryCore<TResult>(database, query, model, async);
 
-            InvocationExpression TranslateQueryingEnumerable(Expression innerQuery, Type sourceEntityType)
+            InvocationExpression TranslateQueryingEnumerable(Expression innerQuery, Type entityType)
             {
                 var innerEnumerableType = async
-                    ? typeof(IAsyncEnumerable<>).MakeGenericType(sourceEntityType)
-                    : typeof(IEnumerable<>).MakeGenericType(sourceEntityType);
+                    ? typeof(IAsyncEnumerable<>).MakeGenericType(entityType)
+                    : typeof(IEnumerable<>).MakeGenericType(entityType);
 
                 Delegate queryExecutor;
 
@@ -118,14 +152,12 @@ namespace Microsoft.EntityFrameworkCore.Query
                 .Compile();
         }
 
-        private static LambdaExpression TranslateUpdateShaper(LambdaExpression expression)
+        private static void ReshapeForUpdate(Expression body, Expression current, IEntityType entityType, List<Expression> sentences)
         {
-            var param = expression.Parameters[0];
             NewExpression newExpression;
             IEnumerable<MemberBinding> bindings;
-            var sentences = new List<Expression>();
 
-            switch (expression.Body)
+            switch (body)
             {
                 case MemberInitExpression memberInit:
                     newExpression = memberInit.NewExpression;
@@ -139,7 +171,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 default:
                     throw new NotImplementedException(
-                        $"Type of {expression.Body.NodeType} is not supported in InMemory update yet.");
+                        $"Type of {body.NodeType} is not supported in InMemory update yet.");
             }
 
             if (newExpression.Constructor.GetParameters().Length > 0)
@@ -154,23 +186,39 @@ namespace Microsoft.EntityFrameworkCore.Query
                     throw new InvalidOperationException("Non-assignment binding is not supported.");
                 }
 
-                var member = Expression.MakeMemberAccess(param, assignment.Member);
-                var result = InMemoryParameterAccessVisitor.Process(assignment.Expression);
-                sentences.Add(Expression.Assign(member, result));
-            }
+                var member = Expression.MakeMemberAccess(current, assignment.Member);
+                var memberInfo = entityType.FindProperty(assignment.Member);
+                if (memberInfo != null)
+                {
+                    var result = InMemoryParameterAccessVisitor.Process(assignment.Expression);
+                    sentences.Add(Expression.Assign(member, result));
+                    return;
+                }
 
-            return Expression.Lambda(
-                Expression.Block(typeof(void), sentences),
-                QueryCompilationContext.QueryContextParameter,
-                param);
+                var navigation = entityType.FindNavigation(assignment.Member);
+                if (navigation == null)
+                {
+                    throw new NotSupportedException(
+                        $"Unknown member \"{assignment.Member}\" is not supported in InMemory update yet.");
+                }
+                else if (!navigation.ForeignKey.IsOwnership)
+                {
+                    throw new NotSupportedException(
+                        $"Wrong member \"{navigation.ForeignKey}\". Only owned-navigation member can be updated.");
+                }
+                else
+                {
+                    ReshapeForUpdate(assignment.Expression, member, navigation.ForeignKey.DeclaringEntityType, sentences);
+                }
+            }
         }
 
-        private Func<QueryContext, TResult> CompileUpdateCore<TResult>(InvocationExpression queryingEnumerable, Type rootType, LambdaExpression updateShaper)
+        private Func<QueryContext, TResult> CompileUpdateCore<TResult>(InvocationExpression queryingEnumerable, Type sourceType, Type rootType, LambdaExpression updateShaper)
         {
             return Expression.Lambda<Func<QueryContext, TResult>>(
                 Expression.Call(
                     Expression.New(
-                        typeof(UpdateOperation<>).MakeGenericType(rootType).GetConstructors()[0],
+                        typeof(UpdateOperation<,>).MakeGenericType(sourceType, rootType).GetConstructors()[0],
                         QueryCompilationContext.QueryContextParameter,
                         queryingEnumerable,
                         Expression.Constant(updateShaper.Compile())),

@@ -3,20 +3,19 @@ using System;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
-    public class UpdateOperation<TEntity> : BulkOperationBase<TEntity>
+    public class UpdateOperation<TSource, TEntity> : BulkOperationBase<TSource>
     {
-        private readonly Action<QueryContext, TEntity> _updater;
+        private readonly Func<QueryContext, TSource, TEntity> _updaterAndExtractor;
 
-        public UpdateOperation(QueryContext queryContext, object queryExecutor, Action<QueryContext, TEntity> updater)
+        public UpdateOperation(QueryContext queryContext, object queryExecutor, Func<QueryContext, TSource, TEntity> updaterAndExtractor)
             : base(queryContext, queryExecutor)
         {
-            _updater = updater;
+            _updaterAndExtractor = updaterAndExtractor;
         }
 
-        protected override void Process(TEntity entity)
+        protected override void Process(TSource source)
         {
-            _updater(_queryContext, entity);
-            _dbContext.Update(entity);
+            _dbContext.Update(_updaterAndExtractor(_queryContext, source));
         }
     }
 }
