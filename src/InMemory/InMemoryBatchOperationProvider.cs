@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -277,96 +275,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 }
             }
 
-            return await context.SaveChangesAsync(cancellationToken);
-        }
-
-        public int BatchUpdateJoin<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IQueryable<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition)
-            where TOuter : class
-            where TInner : class
-        {
-            var action = CompileUpdate(updateSelector);
-
-            var entities = outer
-                .Join(inner, outerKeySelector, innerKeySelector, (outer, inner) => new { outer, inner })
-                .WhereIf(condition.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner));
-
-            var loaded = entities.ToList();
-            loaded.ForEach(a =>
-            {
-                action.Invoke(a.outer, a.inner);
-                outer.Update(a.outer);
-            });
-
-            return context.SaveChanges();
-        }
-
-        public async Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IQueryable<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition,
-            CancellationToken cancellationToken)
-            where TOuter : class
-            where TInner : class
-        {
-            var action = CompileUpdate(updateSelector);
-
-            var entities = outer
-                .Join(inner, outerKeySelector, innerKeySelector, (outer, inner) => new { outer, inner })
-                .WhereIf(condition.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner));
-
-            var loaded = entities.ToList();
-            loaded.ForEach(a =>
-            {
-                action.Invoke(a.outer, a.inner);
-                outer.Update(a.outer);
-            });
-
-            return await context.SaveChangesAsync(cancellationToken);
-        }
-
-        public int BatchUpdateJoin<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IReadOnlyList<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition)
-            where TOuter : class
-            where TInner : class
-        {
-            var target = outer.ToList();
-            var source = inner.ToList();
-            SolveMerge(context, target, source, outerKeySelector, innerKeySelector, condition, updateSelector, null, false);
-            return context.SaveChanges();
-        }
-
-        public async Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IReadOnlyList<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition,
-            CancellationToken cancellationToken)
-            where TOuter : class
-            where TInner : class
-        {
-            var target = await outer.ToListAsync(cancellationToken);
-            var source = inner.ToList();
-            SolveMerge(context, target, source, outerKeySelector, innerKeySelector, condition, updateSelector, null, false);
             return await context.SaveChangesAsync(cancellationToken);
         }
     }
