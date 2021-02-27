@@ -41,7 +41,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .Private<ParameterValueBasedSelectExpressionOptimizer>("_parameterValueBasedSelectExpressionOptimizer")
                 .Optimize(selectExpression, queryContext.ParameterValues);
 
-            selectExpression = new WorkAroudEFCore31ValuesExpressionExpansionVisitor(queryContext)
+            selectExpression = new ValuesExpressionExpansionVisitor(queryContext.ParameterValues)
                 .VisitAndConvert(selectExpression, null);
 #endif
 

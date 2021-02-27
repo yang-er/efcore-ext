@@ -88,7 +88,7 @@ namespace Testcase_BatchUpdateJoin
             using var context = contextFactory();
 
             context.A.BatchUpdateJoin(
-                inner: context.B,
+                inner: context.B.Where(b => b.Value == 2),
                 outerKeySelector: a => a.Id,
                 innerKeySelector: b => b.Id,
                 condition: (a, b) => a.Id == 1,
@@ -100,6 +100,17 @@ namespace Testcase_BatchUpdateJoin
             Assert.Equal(0, list[0].Value);
             Assert.Equal(2, list[1].Id);
             Assert.Equal(1, list[1].Value);
+
+            var compiledQuery = EF.CompileQuery(
+                (UpdateContext ctx, int aa, int bb, int cc)
+                    => ctx.A.BatchUpdateJoin(
+                        ctx.B.Where(b => b.Value == aa),
+                        a => a.Id,
+                        b => b.Id,
+                        (a, b) => new ItemA { Value = a.Value + b.Value - cc },
+                        (a, b) => a.Id == bb));
+            compiledQuery.Invoke(context, 5, 6, 7);
+            compiledQuery.Invoke(context, 2, 5, 7);
         }
 
         [ConditionalFact, TestPriority(0)]
