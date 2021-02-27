@@ -176,7 +176,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 case nameof(BatchOperationExtensions.BatchUpdateJoin)
                 when genericMethod == BatchOperationMethods.BatchUpdateJoin:
                     return BatchUpdateExpand(
-                        RemapBatchUpdateJoin(methodCallExpression));
+                        VisitorHelper.RemapBatchUpdateJoin(methodCallExpression, out _, out _));
 
 
                 default:
@@ -202,60 +202,6 @@ namespace Microsoft.EntityFrameworkCore.Query
                     fakeSelect.Arguments[0],
                     Expression.Quote(fakeSelect.Arguments[1].UnwrapLambdaFromQuote()));
             }
-        }
-
-        private static MethodCallExpression RemapBatchUpdateJoin(MethodCallExpression methodCallExpression)
-        {
-            var genericArguments = methodCallExpression.Method.GetGenericArguments();
-            var outerType = genericArguments[0];
-            var innerType = genericArguments[1];
-            var joinKeyType = genericArguments[2];
-
-            var transparentIdentifierType = TransparentIdentifierFactory.Create(outerType, innerType);
-            var transparentIdentifierOuterMemberInfo = transparentIdentifierType.GetTypeInfo().GetDeclaredField("Outer");
-            var transparentIdentifierInnerMemberInfo = transparentIdentifierType.GetTypeInfo().GetDeclaredField("Inner");
-            var transparentIdentifierParameter = Expression.Parameter(transparentIdentifierType, "tree");
-            var transparentIdentifierReplacement = new[]
-            {
-                Expression.Field(transparentIdentifierParameter, transparentIdentifierOuterMemberInfo),
-                Expression.Field(transparentIdentifierParameter, transparentIdentifierInnerMemberInfo),
-            };
-
-            var outerParameter = Expression.Parameter(outerType, "outer");
-            var innerParameter = Expression.Parameter(innerType, "inner");
-            var predicate = methodCallExpression.Arguments[5].UnwrapLambdaFromQuote();
-            var selector = methodCallExpression.Arguments[4].UnwrapLambdaFromQuote();
-
-            return Expression.Call(
-                QueryableMethods.Select.MakeGenericMethod(transparentIdentifierType, outerType),
-                Expression.Call(
-                    QueryableMethods.Where.MakeGenericMethod(transparentIdentifierType),
-                    Expression.Call(
-                        QueryableMethods.Join.MakeGenericMethod(outerType, innerType, joinKeyType, transparentIdentifierType),
-                        methodCallExpression.Arguments[0],
-                        methodCallExpression.Arguments[1],
-                        methodCallExpression.Arguments[2],
-                        methodCallExpression.Arguments[3],
-                        Expression.Quote(
-                            Expression.Lambda(
-                                Expression.New(
-                                    transparentIdentifierType.GetConstructors().Single(),
-                                    new[] { outerParameter, innerParameter },
-                                    new[] { transparentIdentifierOuterMemberInfo, transparentIdentifierInnerMemberInfo }),
-                                outerParameter,
-                                innerParameter))),
-                    Expression.Quote(
-                        Expression.Lambda(
-                            new ReplacingExpressionVisitor(
-                                predicate.Parameters.ToArray(),
-                                transparentIdentifierReplacement).Visit(predicate.Body),
-                            transparentIdentifierParameter))),
-                Expression.Quote(
-                    Expression.Lambda(
-                        new ReplacingExpressionVisitor(
-                            selector.Parameters.ToArray(),
-                            transparentIdentifierReplacement).Visit(selector.Body),
-                        transparentIdentifierParameter)));
         }
     }
 

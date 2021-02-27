@@ -273,7 +273,7 @@ namespace Testcase_BatchUpdate
             using (var validate = contextFactory())
             {
                 var chg = validate.ChangeLogs.Single();
-                Assert.Equal("ChangedBy", chg.Audit.ChangedBy);
+                Assert.Equal("wdwdw", chg.Audit.ChangedBy);
                 Assert.True(chg.Audit.IsDeleted);
             }
         }
