@@ -28,7 +28,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             where TSource : class
         {
             sourceQuery = sourceEnumerable as IQueryable<TSource>;
-            List<TSource> sourceTable = null;
 
             // normal subquery or table
             if (sourceQuery != null) return true;
@@ -36,7 +35,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             if (!typeof(TSource).IsAnonymousType())
                 throw new InvalidOperationException($"The source entity for upsert/merge must be anonymous objects.");
 
-            sourceTable = sourceEnumerable.ToList();
+            var sourceTable = sourceEnumerable as IReadOnlyList<TSource>;
+            sourceTable ??= sourceEnumerable.ToList();
             if (sourceTable.Count == 0) return false;
 
             sourceQuery = targetTable.CreateCommonTable(sourceTable);
@@ -280,71 +280,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 var body = Expression.MemberInit(res, binding);
                 return Expression.Lambda<Func<T1, T2, GenericUtility.Result<T1>>>(body, para1, para2);
             }
-        }
-
-
-        public static void ParseUpdateJoinQueryable<TOuter, TInner, TKey>(
-            DbContext context,
-            IQueryable<TOuter> outer,
-            IQueryable<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition,
-            out UpdateExpression updateExpression,
-            out QueryRewritingContext queryRewritingContext)
-        {
-            var queryable = outer
-                .Join(inner, outerKeySelector, innerKeySelector, (outer, inner) => new { outer, inner })
-                .WhereIf(condition.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner))
-                .Select(updateSelector.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner));
-
-            var entityType = context.Model.FindEntityType(typeof(TOuter));
-            queryRewritingContext = TranslationStrategy.Go(context, queryable);
-
-            updateExpression = UpdateExpression.CreateFromSelect(
-                queryRewritingContext.SelectExpression,
-                entityType,
-                queryRewritingContext.InternalExpression);
-        }
-
-
-        public static void ParseUpdateJoinList<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IReadOnlyList<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition,
-            out UpdateExpression updateExpression,
-            out QueryRewritingContext queryRewritingContext)
-            where TOuter : class
-            where TInner : class
-        {
-            updateExpression = null;
-            queryRewritingContext = null;
-
-            if (!DetectSourceTable(outer, inner, out var innerQ))
-                return;
-
-            var queryable = outer
-                .Join(innerQ, outerKeySelector, innerKeySelector, (outer, inner) => new { outer, inner })
-                .WhereIf(condition.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner))
-                .Select(updateSelector.Combine(new { outer = default(TOuter), inner = default(TInner) }, a => a.outer, b => b.inner));
-
-            var entityType = context.Model.FindEntityType(typeof(TOuter));
-            queryRewritingContext = TranslationStrategy.Go(context, queryable);
-            var queryContext = queryRewritingContext.QueryContext;
-
-            updateExpression = UpdateExpression.CreateFromSelect(
-                queryRewritingContext.SelectExpression,
-                entityType,
-                queryRewritingContext.InternalExpression);
-
-            if (!(updateExpression.Tables[updateExpression.Tables.Count - 1] is InnerJoinExpression innerJoin)
-                || !(innerJoin.Table is SelectExpression || innerJoin.Table is ValuesExpression))
-                throw new NotImplementedException("Translation failed.");
         }
     }
 }

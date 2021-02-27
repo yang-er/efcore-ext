@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Query;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,113 +9,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public class RelationalBatchOperationProvider : IBatchOperationProvider
     {
-        #region DbSet<>.BatchUpdateJoin(innerList, okey, ikey, upd, cond)
-
-        public int BatchUpdateJoin<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IReadOnlyList<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition = null)
-            where TOuter : class
-            where TInner : class
-        {
-            var executor = GetSqlUpdateJoinList(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
-            return executor.Execute();
-        }
-
-        public Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IReadOnlyList<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition = null,
-            CancellationToken cancellationToken = default)
-            where TOuter : class
-            where TInner : class
-        {
-            var executor = GetSqlUpdateJoinList(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
-            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
-        }
-
-        protected virtual IBulkQueryExecutor GetSqlUpdateJoinList<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IReadOnlyList<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition = null)
-            where TOuter : class
-            where TInner : class
-        {
-            QueryRewriter.ParseUpdateJoinList(
-                context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition,
-                out var updateExpression, out var queryRewritingContext);
-
-            if (updateExpression == null) return new NullBulkQueryExecutor();
-            return queryRewritingContext.Generate(updateExpression);
-        }
-
-        #endregion
-
-        #region DbSet<>.BatchUpdateJoin(innerQueryable, okey, ikey, upd, cond)
-
-        public int BatchUpdateJoin<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IQueryable<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition = null)
-            where TOuter : class
-            where TInner : class
-        {
-            var executor = GetSqlUpdateJoinQueryable(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
-            return executor.Execute();
-        }
-
-        public Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IQueryable<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition = null,
-            CancellationToken cancellationToken = default)
-            where TOuter : class
-            where TInner : class
-        {
-            var executor = GetSqlUpdateJoinQueryable(context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition);
-            return executor.WithCancellationToken(cancellationToken).ExecuteAsync();
-        }
-
-        protected virtual IBulkQueryExecutor GetSqlUpdateJoinQueryable<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IQueryable<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>> condition = null)
-            where TOuter : class
-            where TInner : class
-        {
-            QueryRewriter.ParseUpdateJoinQueryable(
-                context, outer, inner, outerKeySelector, innerKeySelector, updateSelector, condition,
-                out var updateExpression, out var queryRewritingContext);
-
-            return queryRewritingContext.Generate(updateExpression);
-        }
-
-        #endregion
-
         #region DbSet<>.Merge(source, tkey, skey, upd, ins, del)
 
         public int Merge<TTarget, TSource, TJoinKey>(

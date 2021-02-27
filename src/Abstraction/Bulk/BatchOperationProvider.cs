@@ -3,7 +3,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,52 +41,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             CancellationToken cancellationToken)
             where TTarget : class
             where TSource : class;
-
-        int BatchUpdateJoin<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IQueryable<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>>? condition)
-            where TOuter : class
-            where TInner : class;
-
-        Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IQueryable<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>>? condition,
-            CancellationToken cancellationToken)
-            where TOuter : class
-            where TInner : class;
-
-        int BatchUpdateJoin<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IReadOnlyList<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>>? condition)
-            where TOuter : class
-            where TInner : class;
-
-        Task<int> BatchUpdateJoinAsync<TOuter, TInner, TKey>(
-            DbContext context,
-            DbSet<TOuter> outer,
-            IReadOnlyList<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeySelector,
-            Expression<Func<TInner, TKey>> innerKeySelector,
-            Expression<Func<TOuter, TInner, TOuter>> updateSelector,
-            Expression<Func<TOuter, TInner, bool>>? condition,
-            CancellationToken cancellationToken)
-            where TOuter : class
-            where TInner : class;
 
         int Upsert<TTarget, TSource>(
             DbContext context,
