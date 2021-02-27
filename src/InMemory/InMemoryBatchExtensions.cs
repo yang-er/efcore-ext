@@ -31,6 +31,8 @@ namespace Microsoft.EntityFrameworkCore
             {
                 services.AddSingleton<IBatchOperationProvider, InMemoryBatchOperationProvider>();
                 services.Replace(ServiceDescriptor.Scoped<IQueryCompiler, ExplicitQueryCompiler>());
+                services.Replace(ServiceDescriptor.Singleton<IQueryTranslationPreprocessorFactory, XysQueryTranslationPreprocessorFactory>());
+                services.Replace(ServiceDescriptor.Singleton<IQueryableMethodTranslatingExpressionVisitorFactory, XysQueryableMethodTranslatingExpressionVisitorFactory>());
             }
 
             public void Validate(IDbContextOptions options)
