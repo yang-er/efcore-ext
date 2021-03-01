@@ -8,24 +8,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
     /// <inheritdoc />
-    public class ExplicitQueryCompiler : BulkQueryCompiler
+    public class InMemoryBulkQueryCompiler : BulkQueryCompiler
     {
-        private static readonly MethodInfo database_CompileQuery
-            = typeof(IDatabase).GetMethod(nameof(IDatabase.CompileQuery));
+        private readonly IBulkQueryCompilationContextFactory _qccFactory;
 
-        private static readonly MethodInfo bulkQueryExecutor_Execute
-            = typeof(IBulkQueryExecutor).GetMethod(nameof(IBulkQueryExecutor.Execute));
-
-        private static readonly MethodInfo bulkQueryExecutor_ExecuteAsync
-            = typeof(IBulkQueryExecutor).GetMethod(nameof(IBulkQueryExecutor.ExecuteAsync));
-
-        public ExplicitQueryCompiler(
+        /// <summary>
+        /// Instantiates the <see cref="InMemoryBulkQueryCompiler"/>.
+        /// </summary>
+        public InMemoryBulkQueryCompiler(
+            IBulkQueryCompilationContextFactory qccFactory,
             IQueryContextFactory queryContextFactory,
             ICompiledQueryCache compiledQueryCache,
             ICompiledQueryCacheKeyGenerator compiledQueryCacheKeyGenerator,
@@ -43,6 +39,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                   evaluatableExpressionFilter,
                   model)
         {
+            _qccFactory = qccFactory;
         }
 
         public override Func<QueryContext, TResult> CompileQueryCore<TResult>(
@@ -96,39 +93,22 @@ namespace Microsoft.EntityFrameworkCore.Query
             return base.CompileQueryCore<TResult>(database, query, model, async);
 
             static Expression ApplySelect(Expression innerQuery, LambdaExpression selector)
-            {
-                return Expression.Call(
+                => Expression.Call(
                     QueryableMethods.Select.MakeGenericMethod(selector.Parameters[0].Type, selector.Body.Type),
                     innerQuery,
                     Expression.Quote(selector));
-            }
 
             InvocationExpression TranslateQueryingEnumerable(Expression innerQuery, Type entityType)
-            {
-                var innerEnumerableType = async
-                    ? typeof(IAsyncEnumerable<>).MakeGenericType(entityType)
-                    : typeof(IEnumerable<>).MakeGenericType(entityType);
-
-                Delegate queryExecutor;
-
-                try
-                {
-                    queryExecutor = (Delegate)database_CompileQuery
-                        .MakeGenericMethod(innerEnumerableType)
-                        .Invoke(database, new object[] { innerQuery, async });
-                }
-                catch (TargetInvocationException ex)
-                {
-                    throw ex?.InnerException ?? ex;
-                }
-
-                return Expression.Invoke(
-                    Expression.Constant(queryExecutor),
+                => Expression.Invoke(
+                    Expression.Constant(
+                        _qccFactory.CreateQueryExecutor(
+                            async,
+                            innerQuery,
+                            (async ? typeof(IAsyncEnumerable<>) : typeof(IEnumerable<>)).MakeGenericType(entityType))),
                     QueryCompilationContext.QueryContextParameter);
-            }
         }
 
-        private Func<QueryContext, TResult> CompileDeleteCore<TResult>(InvocationExpression queryingEnumerable, Type rootType)
+        protected virtual Func<QueryContext, TResult> CompileDeleteCore<TResult>(InvocationExpression queryingEnumerable, Type rootType)
         {
             return Expression.Lambda<Func<QueryContext, TResult>>(
                 Expression.Call(
@@ -137,13 +117,13 @@ namespace Microsoft.EntityFrameworkCore.Query
                         QueryCompilationContext.QueryContextParameter,
                         queryingEnumerable),
                     typeof(TResult) == typeof(Task<int>)
-                        ? bulkQueryExecutor_ExecuteAsync
-                        : bulkQueryExecutor_Execute),
+                        ? BulkQueryExecutorExecuteAsync
+                        : BulkQueryExecutorExecute),
                 QueryCompilationContext.QueryContextParameter)
                 .Compile();
         }
 
-        private class UpdateRemapper<TEntity>
+        protected class UpdateRemapper<TEntity>
         {
             public UpdateRemapper(TEntity origin, TEntity update)
             {
@@ -242,7 +222,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
-        private Func<QueryContext, TResult> CompileUpdateCore<TResult>(InvocationExpression queryingEnumerable, Type sourceType, Type rootType, LambdaExpression updateShaper)
+        protected virtual Func<QueryContext, TResult> CompileUpdateCore<TResult>(InvocationExpression queryingEnumerable, Type sourceType, Type rootType, LambdaExpression updateShaper)
         {
             return Expression.Lambda<Func<QueryContext, TResult>>(
                 Expression.Call(
@@ -252,13 +232,13 @@ namespace Microsoft.EntityFrameworkCore.Query
                         queryingEnumerable,
                         Expression.Constant(updateShaper.Compile())),
                     typeof(TResult) == typeof(Task<int>)
-                        ? bulkQueryExecutor_ExecuteAsync
-                        : bulkQueryExecutor_Execute),
+                        ? BulkQueryExecutorExecuteAsync
+                        : BulkQueryExecutorExecute),
                 QueryCompilationContext.QueryContextParameter)
                 .Compile();
         }
 
-        private Func<QueryContext, TResult> CompileSelectIntoCore<TResult>(InvocationExpression queryingEnumerable, Type rootType)
+        protected virtual Func<QueryContext, TResult> CompileSelectIntoCore<TResult>(InvocationExpression queryingEnumerable, Type rootType)
         {
             return Expression.Lambda<Func<QueryContext, TResult>>(
                 Expression.Call(
@@ -267,8 +247,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                         QueryCompilationContext.QueryContextParameter,
                         queryingEnumerable),
                     typeof(TResult) == typeof(Task<int>)
-                        ? bulkQueryExecutor_ExecuteAsync
-                        : bulkQueryExecutor_Execute),
+                        ? BulkQueryExecutorExecuteAsync
+                        : BulkQueryExecutorExecute),
                 QueryCompilationContext.QueryContextParameter)
                 .Compile();
         }

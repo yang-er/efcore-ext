@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.InMemory.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,9 +31,14 @@ namespace Microsoft.EntityFrameworkCore
             public void ApplyServices(IServiceCollection services)
             {
                 services.AddSingleton<IBatchOperationProvider, InMemoryBatchOperationProvider>();
-                services.Replace(ServiceDescriptor.Scoped<IQueryCompiler, ExplicitQueryCompiler>());
-                services.Replace(ServiceDescriptor.Singleton<IQueryTranslationPreprocessorFactory, XysQueryTranslationPreprocessorFactory>());
-                services.Replace(ServiceDescriptor.Singleton<IQueryableMethodTranslatingExpressionVisitorFactory, XysQueryableMethodTranslatingExpressionVisitorFactory>());
+
+                services.AddSingleton<IBulkQueryableMethodTranslatingExpressionVisitorFactory, BulkInMemoryQueryableMethodTranslatingExpressionVisitorFactory>();
+                services.AddSingleton<IBulkQueryTranslationPreprocessorFactory, BulkQueryTranslationPreprocessorFactory>();
+                services.AddSingleton<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();
+                services.AddSingleton<IBulkShapedQueryCompilingExpressionVisitorFactory, BypassBulkShapedQueryCompilingExpressionVisitorFactory>();
+                services.AddScoped<IBulkQueryCompilationContextFactory, BulkQueryCompilationContextFactory>();
+
+                services.Replace(ServiceDescriptor.Scoped<IQueryCompiler, InMemoryBulkQueryCompiler>());
             }
 
             public void Validate(IDbContextOptions options)

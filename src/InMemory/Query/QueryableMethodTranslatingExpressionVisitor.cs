@@ -1,24 +1,24 @@
-﻿namespace Microsoft.EntityFrameworkCore.Query
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Linq.Expressions;
-    using System.Reflection;
-    using Microsoft.EntityFrameworkCore.Bulk;
-    using Microsoft.EntityFrameworkCore.Diagnostics;
-    using Microsoft.EntityFrameworkCore.Infrastructure;
-    using Microsoft.EntityFrameworkCore.InMemory.Query.Internal;
-    using Microsoft.EntityFrameworkCore.Metadata;
-    using Microsoft.EntityFrameworkCore.Storage;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+using Microsoft.EntityFrameworkCore.Bulk;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Storage;
 
 #if EFCORE31
-    using ThirdParameter = Metadata.IModel;
+using ThirdParameter = Microsoft.EntityFrameworkCore.Metadata.IModel;
 #elif EFCORE50
-    using ThirdParameter = QueryCompilationContext;
+using ThirdParameter = Microsoft.EntityFrameworkCore.Query.QueryCompilationContext;
 #endif
 
-    public class XysQueryableMethodTranslatingExpressionVisitor : InMemoryQueryableMethodTranslatingExpressionVisitor
+namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
+{
+    public class InMemoryBulkQueryableMethodTranslatingExpressionVisitor : InMemoryQueryableMethodTranslatingExpressionVisitor
     {
         private static readonly MethodInfo _getParameterValueMethodInfo
             = typeof(InMemoryExpressionTranslatingExpressionVisitor)
@@ -52,21 +52,21 @@
 
 #endif
 
-        public XysQueryableMethodTranslatingExpressionVisitor(
+        public InMemoryBulkQueryableMethodTranslatingExpressionVisitor(
             QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
             ThirdParameter thirdParameter)
             : base(dependencies, thirdParameter)
         {
         }
 
-        protected XysQueryableMethodTranslatingExpressionVisitor(
-            XysQueryableMethodTranslatingExpressionVisitor parentVisitor)
+        protected InMemoryBulkQueryableMethodTranslatingExpressionVisitor(
+            InMemoryBulkQueryableMethodTranslatingExpressionVisitor parentVisitor)
             : base(parentVisitor)
         {
         }
 
         protected override QueryableMethodTranslatingExpressionVisitor CreateSubqueryVisitor()
-            => new XysQueryableMethodTranslatingExpressionVisitor(this);
+            => new InMemoryBulkQueryableMethodTranslatingExpressionVisitor(this);
 
         protected virtual ShapedQueryExpression TranslateCommonTable(Expression neededShaped, ParameterExpression parameterExpression)
         {
@@ -175,12 +175,13 @@
         }
     }
 
-    public class XysQueryableMethodTranslatingExpressionVisitorFactory :
-        IQueryableMethodTranslatingExpressionVisitorFactory
+    public class BulkInMemoryQueryableMethodTranslatingExpressionVisitorFactory :
+        IBulkQueryableMethodTranslatingExpressionVisitorFactory,
+        IServiceAnnotation<IQueryableMethodTranslatingExpressionVisitorFactory, InMemoryQueryableMethodTranslatingExpressionVisitorFactory>
     {
         private readonly QueryableMethodTranslatingExpressionVisitorDependencies _dependencies;
 
-        public XysQueryableMethodTranslatingExpressionVisitorFactory(
+        public BulkInMemoryQueryableMethodTranslatingExpressionVisitorFactory(
             QueryableMethodTranslatingExpressionVisitorDependencies dependencies)
         {
             _dependencies = dependencies;
@@ -188,7 +189,7 @@
 
         public QueryableMethodTranslatingExpressionVisitor Create(ThirdParameter thirdParameter)
         {
-            return new XysQueryableMethodTranslatingExpressionVisitor(_dependencies, thirdParameter);
+            return new InMemoryBulkQueryableMethodTranslatingExpressionVisitor(_dependencies, thirdParameter);
         }
     }
 }
