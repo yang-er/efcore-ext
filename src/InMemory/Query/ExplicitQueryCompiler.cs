@@ -71,17 +71,9 @@ namespace Microsoft.EntityFrameworkCore.Query
                     when genericMethod == BatchOperationMethods.BatchUpdate:
                         EnsureQueryExpression(root);
                         var updateSelector = methodCallExpression.Arguments[1].UnwrapLambdaFromQuote();
-                        var sentences = new List<Expression>();
-                        ReshapeForUpdate(updateSelector.Body, updateSelector.Parameters[0], model.FindEntityType(rootType), sentences);
-                        sentences.Add(updateSelector.Parameters[0]);
-
-                        var updateShaper = Expression.Lambda(
-                            Expression.Block(sentences),
-                            QueryCompilationContext.QueryContextParameter,
-                            updateSelector.Parameters[0]);
-
-                        queryingEnumerable = TranslateQueryingEnumerable(root, rootType);
-                        return CompileUpdateCore<TResult>(queryingEnumerable, rootType, rootType, updateShaper);
+                        ReshapeForUpdate(model, ref updateSelector, updateSelector.Parameters[0], out var updateShaper);
+                        queryingEnumerable = TranslateQueryingEnumerable(ApplySelect(root, updateSelector), updateSelector.Body.Type);
+                        return CompileUpdateCore<TResult>(queryingEnumerable, updateSelector.Body.Type, updateShaper.Body.Type, updateShaper);
 
 
                     case nameof(BatchOperationExtensions.BatchInsertInto)
@@ -95,22 +87,21 @@ namespace Microsoft.EntityFrameworkCore.Query
                         // The second parameter is update shaper.
                         var newBatchJoin = VisitorHelper.RemapBatchUpdateJoin(methodCallExpression, out var outer, out _);
                         updateSelector = newBatchJoin.Arguments[1].UnwrapLambdaFromQuote();
-                        sentences = new List<Expression>();
-                        var rootParameter = updateSelector.Parameters[0].MakeMemberAccess(outer);
-                        ReshapeForUpdate(updateSelector.Body, rootParameter, model.FindEntityType(rootType), sentences);
-                        sentences.Add(rootParameter);
-
-                        updateShaper = Expression.Lambda(
-                            Expression.Block(sentences),
-                            QueryCompilationContext.QueryContextParameter,
-                            updateSelector.Parameters[0]);
-
-                        queryingEnumerable = TranslateQueryingEnumerable(newBatchJoin.Arguments[0], updateSelector.Parameters[0].Type);
-                        return CompileUpdateCore<TResult>(queryingEnumerable, outer.DeclaringType, rootType, updateShaper);
+                        ReshapeForUpdate(model, ref updateSelector, updateSelector.Parameters[0].MakeMemberAccess(outer), out updateShaper);
+                        queryingEnumerable = TranslateQueryingEnumerable(ApplySelect(newBatchJoin.Arguments[0], updateSelector), updateSelector.Body.Type);
+                        return CompileUpdateCore<TResult>(queryingEnumerable, updateSelector.Body.Type, updateShaper.Body.Type, updateShaper);
                 }
             }
 
             return base.CompileQueryCore<TResult>(database, query, model, async);
+
+            static Expression ApplySelect(Expression innerQuery, LambdaExpression selector)
+            {
+                return Expression.Call(
+                    QueryableMethods.Select.MakeGenericMethod(selector.Parameters[0].Type, selector.Body.Type),
+                    innerQuery,
+                    Expression.Quote(selector));
+            }
 
             InvocationExpression TranslateQueryingEnumerable(Expression innerQuery, Type entityType)
             {
@@ -152,63 +143,101 @@ namespace Microsoft.EntityFrameworkCore.Query
                 .Compile();
         }
 
-        private static void ReshapeForUpdate(Expression body, Expression current, IEntityType entityType, List<Expression> sentences)
+        private class UpdateRemapper<TEntity>
         {
-            NewExpression newExpression;
-            IEnumerable<MemberBinding> bindings;
-
-            switch (body)
+            public UpdateRemapper(TEntity origin, TEntity update)
             {
-                case MemberInitExpression memberInit:
-                    newExpression = memberInit.NewExpression;
-                    bindings = memberInit.Bindings;
-                    break;
-
-                case NewExpression @new:
-                    newExpression = @new;
-                    bindings = Enumerable.Empty<MemberBinding>();
-                    break;
-
-                default:
-                    throw new NotImplementedException(
-                        $"Type of {body.NodeType} is not supported in InMemory update yet.");
+                Origin = origin;
+                Update = update;
             }
 
-            if (newExpression.Constructor.GetParameters().Length > 0)
+            public TEntity Origin { get; }
+
+            public TEntity Update { get; }
+        }
+
+        protected virtual void ReshapeForUpdate(IModel model, ref LambdaExpression selector, Expression origin, out LambdaExpression updateShaper)
+        {
+            var remapperType = typeof(UpdateRemapper<>).MakeGenericType(origin.Type);
+            var entityType = model.FindEntityType(origin.Type);
+            var shaperArgs = Expression.Parameter(remapperType, "shaper");
+            var shaperOrigin = Expression.Property(shaperArgs, "Origin");
+            var shaperUpdate = Expression.Property(shaperArgs, "Update");
+
+            var sentences = new List<Expression>();
+            ReshapeForUpdate(selector.Body, shaperOrigin, shaperUpdate, entityType, sentences);
+            sentences.Add(shaperOrigin);
+
+            updateShaper = Expression.Lambda(
+                Expression.Block(sentences),
+                QueryCompilationContext.QueryContextParameter,
+                shaperArgs);
+
+            selector = Expression.Lambda(
+                Expression.New(
+                    remapperType.GetConstructors()[0],
+                    new[] { origin, selector.Body },
+                    remapperType.GetProperties()),
+                selector.Parameters);
+
+            static void ReshapeForUpdate(Expression body, Expression current, Expression another, IEntityType entityType, List<Expression> sentences)
             {
-                throw new InvalidOperationException("Non-simple constructor is not supported.");
-            }
+                NewExpression newExpression;
+                IEnumerable<MemberBinding> bindings;
 
-            foreach (var item in bindings)
-            {
-                if (item is not MemberAssignment assignment)
+                switch (body)
                 {
-                    throw new InvalidOperationException("Non-assignment binding is not supported.");
+                    case MemberInitExpression memberInit:
+                        newExpression = memberInit.NewExpression;
+                        bindings = memberInit.Bindings;
+                        break;
+
+                    case NewExpression @new:
+                        newExpression = @new;
+                        bindings = Enumerable.Empty<MemberBinding>();
+                        break;
+
+                    default:
+                        throw new NotImplementedException(
+                            $"Type of {body.NodeType} is not supported in InMemory update yet.");
                 }
 
-                var member = Expression.MakeMemberAccess(current, assignment.Member);
-                var memberInfo = entityType.FindProperty(assignment.Member);
-                if (memberInfo != null)
+                if (newExpression.Constructor.GetParameters().Length > 0)
                 {
-                    var result = InMemoryParameterAccessVisitor.Process(assignment.Expression);
-                    sentences.Add(Expression.Assign(member, result));
-                    return;
+                    throw new InvalidOperationException("Non-simple constructor is not supported.");
                 }
 
-                var navigation = entityType.FindNavigation(assignment.Member);
-                if (navigation == null)
+                foreach (var item in bindings)
                 {
-                    throw new NotSupportedException(
-                        $"Unknown member \"{assignment.Member}\" is not supported in InMemory update yet.");
-                }
-                else if (!navigation.ForeignKey.IsOwnership)
-                {
-                    throw new NotSupportedException(
-                        $"Wrong member \"{navigation.ForeignKey}\". Only owned-navigation member can be updated.");
-                }
-                else
-                {
-                    ReshapeForUpdate(assignment.Expression, member, navigation.ForeignKey.DeclaringEntityType, sentences);
+                    if (item is not MemberAssignment assignment)
+                    {
+                        throw new InvalidOperationException("Non-assignment binding is not supported.");
+                    }
+
+                    var member = Expression.MakeMemberAccess(current, assignment.Member);
+                    var anotherMember = Expression.MakeMemberAccess(another, assignment.Member);
+                    var memberInfo = entityType.FindProperty(assignment.Member);
+                    if (memberInfo != null)
+                    {
+                        sentences.Add(Expression.Assign(member, anotherMember));
+                        return;
+                    }
+
+                    var navigation = entityType.FindNavigation(assignment.Member);
+                    if (navigation == null)
+                    {
+                        throw new NotSupportedException(
+                            $"Unknown member \"{assignment.Member}\" is not supported in InMemory update yet.");
+                    }
+                    else if (!navigation.ForeignKey.IsOwnership)
+                    {
+                        throw new NotSupportedException(
+                            $"Wrong member \"{navigation.ForeignKey}\". Only owned-navigation member can be updated.");
+                    }
+                    else
+                    {
+                        ReshapeForUpdate(assignment.Expression, member, anotherMember, navigation.ForeignKey.DeclaringEntityType, sentences);
+                    }
                 }
             }
         }
