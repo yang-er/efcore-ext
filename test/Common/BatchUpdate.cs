@@ -135,6 +135,14 @@ namespace Testcase_BatchUpdate
             }
 
             context.Items.AddRange(entities);
+
+            context.Details.Add(new Detail
+            {
+                Judging = new Judging
+                {
+                }
+            });
+
             context.SaveChanges();
             Items = entities;
         }
@@ -352,6 +360,21 @@ namespace Testcase_BatchUpdate
                         .BatchUpdate(a => new Detail { Another = a.Another + a.Judging.SubmissionId + x, }));
             compiledQuery(context, 5);
             compiledQuery(context, 7);
+        }
+
+        [ConditionalFact, TestPriority(7)]
+        public void ScalarSubquery()
+        {
+            using var context = contextFactory();
+
+            context.Details.BatchUpdate(a => new Detail { Another = context.Items.Count() });
+
+            var compiledQuery = EF.CompileQuery(
+                (UpdateContext ctx)
+                    => ctx.Details
+                        .BatchUpdate(a => new Detail { Another = ctx.Items.Count() }));
+            compiledQuery(context);
+            compiledQuery(context);
         }
     }
 }
