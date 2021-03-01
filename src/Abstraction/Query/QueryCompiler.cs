@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
@@ -15,6 +16,18 @@ namespace Microsoft.EntityFrameworkCore.Query
         private readonly Type _contextType;
         private readonly IEvaluatableExpressionFilter _evaluatableExpressionFilter;
         private readonly IModel _model;
+
+        /// <summary>
+        /// The method of <see cref="IBulkQueryExecutor.Execute"/>
+        /// </summary>
+        public static MethodInfo BulkQueryExecutorExecute { get; }
+            = typeof(IBulkQueryExecutor).GetMethod(nameof(IBulkQueryExecutor.Execute));
+
+        /// <summary>
+        /// The method of <see cref="IBulkQueryExecutor.ExecuteAsync"/>
+        /// </summary>
+        public static MethodInfo BulkQueryExecutorExecuteAsync { get; }
+            = typeof(IBulkQueryExecutor).GetMethod(nameof(IBulkQueryExecutor.ExecuteAsync));
 
         /// <summary>
         /// Instantiates the <see cref="IQueryCompiler"/>.

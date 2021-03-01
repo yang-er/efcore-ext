@@ -1,20 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore.Bulk;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
+
+#if EFCORE31
+using RelationalQueryCompilationContext = Microsoft.EntityFrameworkCore.Query.QueryCompilationContext;
+#pragma warning disable IDE0001
+#pragma warning disable IDE0004
+#endif
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
-#if EFCORE31
-    using RelationalQueryCompilationContext = QueryCompilationContext;
-#endif
-
     public class XysQueryTranslationPreprocessor : RelationalQueryTranslationPreprocessor
     {
         private readonly RelationalQueryCompilationContext _queryCompilationContext;
@@ -28,10 +27,11 @@ namespace Microsoft.EntityFrameworkCore.Query
             _queryCompilationContext = (RelationalQueryCompilationContext)queryCompilationContext;
         }
 
-#if EFCORE31
-
         public override Expression Process(Expression query)
         {
+            Check.NotNull(query, nameof(query));
+
+#if EFCORE31
             query = new EnumerableToQueryableMethodConvertingExpressionVisitor().Visit(query);
             query = new QueryMetadataExtractingExpressionVisitor(_queryCompilationContext).Visit(query);
             query = new InvocationExpressionRemovingExpressionVisitor().Visit(query);
@@ -40,173 +40,28 @@ namespace Microsoft.EntityFrameworkCore.Query
             query = new NullCheckRemovingExpressionVisitor().Visit(query);
             query = new EntityEqualityRewritingExpressionVisitor(_queryCompilationContext).Rewrite(query);
             query = new SubqueryMemberPushdownExpressionVisitor().Visit(query);
-            query = new XysNavigationExpandingExpressionVisitor(_queryCompilationContext, Dependencies.EvaluatableExpressionFilter)
-                .Expand(query);
+            query = new SupportCommonTableNavigationExpandingExpressionVisitor(_queryCompilationContext, Dependencies.EvaluatableExpressionFilter).Expand(query);
             query = new FunctionPreprocessingExpressionVisitor().Visit(query);
             // new EnumerableVerifyingExpressionVisitor().Visit(query);
-
-            return query;
-        }
-
 #elif EFCORE50
-
-        public override Expression Process(Expression query)
-        {
-            Check.NotNull(query, nameof(query));
-
             query = new InvocationExpressionRemovingExpressionVisitor().Visit(query);
             query = NormalizeQueryableMethod(query);
             query = new NullCheckRemovingExpressionVisitor().Visit(query);
             query = new SubqueryMemberPushdownExpressionVisitor(QueryCompilationContext.Model).Visit(query);
-            query = new XysNavigationExpandingExpressionVisitor(this, QueryCompilationContext, Dependencies.EvaluatableExpressionFilter)
-                .Expand(query);
+            query = new SupportCommonTableNavigationExpandingExpressionVisitor(this, QueryCompilationContext, Dependencies.EvaluatableExpressionFilter).Expand(query);
             query = new QueryOptimizingExpressionVisitor().Visit(query);
             query = new NullCheckRemovingExpressionVisitor().Visit(query);
 
-            return _queryCompilationContext.QuerySplittingBehavior == QuerySplittingBehavior.SplitQuery
-                ? new SplitIncludeRewritingExpressionVisitor().Visit(query)
-                : query;
-        }
-
+            if (_queryCompilationContext.QuerySplittingBehavior == QuerySplittingBehavior.SplitQuery)
+                query = new SplitIncludeRewritingExpressionVisitor().Visit(query);
 #endif
 
-    }
-
-    public class XysNavigationExpandingExpressionVisitor : NavigationExpandingExpressionVisitor
-    {
-
-#if EFCORE31
-
-        public XysNavigationExpandingExpressionVisitor(
-            QueryCompilationContext queryCompilationContext,
-            IEvaluatableExpressionFilter evaluatableExpressionFilter)
-            : base(queryCompilationContext, evaluatableExpressionFilter)
-        {
-        }
-
-#elif EFCORE50
-
-        public XysNavigationExpandingExpressionVisitor(
-            QueryTranslationPreprocessor queryTranslationPreprocessor,
-            QueryCompilationContext queryCompilationContext,
-            IEvaluatableExpressionFilter evaluatableExpressionFilter)
-            : base(queryTranslationPreprocessor, queryCompilationContext, evaluatableExpressionFilter)
-        {
-        }
-
-#endif
-
-        protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
-        {
-            var method = methodCallExpression.Method;
-            if (method.DeclaringType == typeof(BatchOperationExtensions))
-            {
-                var genericMethod = method.GetGenericMethodDefinition();
-                Expression result = null;
-
-                switch (method.Name)
-                {
-                    case nameof(BatchOperationExtensions.CreateCommonTable)
-                        when genericMethod == BatchOperationMethods.CreateCommonTable &&
-                             methodCallExpression.Arguments[1] is ParameterExpression parameter:
-
-                        result = VisitorHelper.CreateDirect(
-                            methodCallExpression,
-                            Expression.Call(
-                                parameter,
-                                parameter.Type.GetMethod("get_Item"),
-                                Expression.Constant(0))); ;
-                        break;
-                }
-
-                if (result == null)
-                {
-                    throw new InvalidOperationException(
-                        CoreStrings.QueryFailed(methodCallExpression.Print(), GetType().Name));
-                }
-                else
-                {
-                    return result;
-                }
-            }
-
-            return base.VisitMethodCall(methodCallExpression);
-        }
-
-        public override Expression Expand(Expression query)
-        {
-            if (query is not MethodCallExpression methodCallExpression)
-            {
-                return base.Expand(query);
-            }
-
-            var method = methodCallExpression.Method;
-            if (method.DeclaringType != typeof(BatchOperationExtensions))
-            {
-                return base.Expand(query);
-            }
-
-            var genericMethod = method.GetGenericMethodDefinition();
-            var genericArguments = method.GetGenericArguments();
-            switch (method.Name)
-            {
-                case nameof(BatchOperationExtensions.CreateCommonTable)
-                when genericMethod == BatchOperationMethods.CreateCommonTable:
-                    return methodCallExpression;
-
-
-                case nameof(BatchOperationExtensions.BatchDelete)
-                when genericMethod == BatchOperationMethods.BatchDelete:
-                    return Expression.Call(method, base.Expand(methodCallExpression.Arguments[0]));
-
-
-                case nameof(BatchOperationExtensions.BatchUpdate)
-                when genericMethod == BatchOperationMethods.BatchUpdate:
-                    return BatchUpdateExpand(
-                        Expression.Call(
-                            QueryableMethods.Select.MakeGenericMethod(genericArguments[0], genericArguments[0]),
-                            methodCallExpression.Arguments));
-
-
-                case nameof(BatchOperationExtensions.BatchInsertInto)
-                when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
-                    return Expression.Call(method, base.Expand(methodCallExpression.Arguments[0]));
-
-
-                case nameof(BatchOperationExtensions.BatchUpdateJoin)
-                when genericMethod == BatchOperationMethods.BatchUpdateJoin:
-                    return BatchUpdateExpand(
-                        VisitorHelper.RemapBatchUpdateJoin(methodCallExpression, out _, out _));
-
-
-                default:
-                    throw TranslateFailed();
-            }
-
-            Exception TranslateFailed()
-                => new InvalidOperationException(
-                    CoreStrings.QueryFailed(query.Print(), GetType().Name));
-
-            Expression BatchUpdateExpand(Expression toUpdate)
-            {
-                var expanded = base.Expand(toUpdate);
-
-                // TODO: Is type hierarchy affected?
-                if (expanded is not MethodCallExpression fakeSelect ||
-                    fakeSelect.Method.GetGenericMethodDefinition() != QueryableMethods.Select)
-                    throw TranslateFailed();
-
-                var newSelectTypes = fakeSelect.Method.GetGenericArguments();
-                return Expression.Call(
-                    BatchOperationMethods.BatchUpdateExpanded.MakeGenericMethod(newSelectTypes),
-                    fakeSelect.Arguments[0],
-                    Expression.Quote(fakeSelect.Arguments[1].UnwrapLambdaFromQuote()));
-            }
+            return query;
         }
     }
 
     public class XysQueryTranslationPreprocessorFactory :
-        IQueryTranslationPreprocessorFactory,
+        IBulkQueryTranslationPreprocessorFactory,
         IServiceAnnotation<IQueryTranslationPreprocessorFactory, RelationalQueryTranslationPreprocessorFactory>
     {
         private readonly QueryTranslationPreprocessorDependencies _dependencies;
