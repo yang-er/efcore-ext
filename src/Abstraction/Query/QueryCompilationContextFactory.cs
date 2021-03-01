@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Query.Internal;
+﻿using Microsoft.EntityFrameworkCore.Bulk;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using System;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -32,7 +33,9 @@ namespace Microsoft.EntityFrameworkCore.Query
     }
 
     /// <inheritdoc cref="QueryCompilationContextFactory" />
-    public class BulkQueryCompilationContextFactory : IBulkQueryCompilationContextFactory
+    public class BulkQueryCompilationContextFactory :
+        IBulkQueryCompilationContextFactory,
+        IServiceAnnotation<IQueryCompilationContextFactory, QueryCompilationContextFactory>
     {
         /// <summary>
         ///     The <see cref="MethodInfo"/> for <see cref="CreateQueryExecutor{TResult}(bool, Expression)"/>.

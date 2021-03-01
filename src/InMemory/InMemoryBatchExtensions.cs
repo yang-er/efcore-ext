@@ -3,9 +3,6 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.InMemory.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using System.Collections.Generic;
 using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore
@@ -17,50 +14,28 @@ namespace Microsoft.EntityFrameworkCore
             var builder1 = typeof(InMemoryDbContextOptionsBuilder)
                 .GetProperty("OptionsBuilder", BindingFlags.Instance | BindingFlags.NonPublic)
                 .GetValue(builder) as IDbContextOptionsBuilderInfrastructure;
-            builder1.AddOrUpdateExtension(new InMemoryBatchDbContextOptionsExtension());
+            builder1.AddOrUpdateExtension(new InMemoryBatchOptionsExtension());
             return builder;
         }
+    }
 
-        internal class InMemoryBatchDbContextOptionsExtension : IDbContextOptionsExtension
+    internal class InMemoryBatchOptionsExtension : BatchOptionsExtension
+    {
+        public override string Name => "InMemoryBatchExtension";
+
+        public override bool Relational => false;
+
+        internal override void ApplyServices(BatchServicesBuilder services)
         {
-            private DbContextOptionsExtensionInfo _info;
+            services.TryAdd<IBatchOperationProvider, InMemoryBatchOperationProvider>();
 
-            public DbContextOptionsExtensionInfo Info =>
-                _info ??= new BatchDbContextOptionsExtensionInfo(this);
+            services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, BulkInMemoryQueryableMethodTranslatingExpressionVisitorFactory>();
+            services.TryAdd<IBulkQueryTranslationPreprocessorFactory, BulkQueryTranslationPreprocessorFactory>();
+            services.TryAdd<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();
+            services.TryAdd<IBulkShapedQueryCompilingExpressionVisitorFactory, BypassBulkShapedQueryCompilingExpressionVisitorFactory>();
+            services.TryAdd<IBulkQueryCompilationContextFactory, BulkQueryCompilationContextFactory>();
 
-            public void ApplyServices(IServiceCollection services)
-            {
-                services.AddSingleton<IBatchOperationProvider, InMemoryBatchOperationProvider>();
-
-                services.AddSingleton<IBulkQueryableMethodTranslatingExpressionVisitorFactory, BulkInMemoryQueryableMethodTranslatingExpressionVisitorFactory>();
-                services.AddSingleton<IBulkQueryTranslationPreprocessorFactory, BulkQueryTranslationPreprocessorFactory>();
-                services.AddSingleton<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();
-                services.AddSingleton<IBulkShapedQueryCompilingExpressionVisitorFactory, BypassBulkShapedQueryCompilingExpressionVisitorFactory>();
-                services.AddScoped<IBulkQueryCompilationContextFactory, BulkQueryCompilationContextFactory>();
-
-                services.Replace(ServiceDescriptor.Scoped<IQueryCompiler, InMemoryBulkQueryCompiler>());
-            }
-
-            public void Validate(IDbContextOptions options)
-            {
-            }
-
-            private class BatchDbContextOptionsExtensionInfo : DbContextOptionsExtensionInfo
-            {
-                public BatchDbContextOptionsExtensionInfo(
-                    InMemoryBatchDbContextOptionsExtension extension) :
-                    base(extension)
-                {
-                }
-
-                public override bool IsDatabaseProvider => false;
-
-                public override string LogFragment => string.Empty;
-
-                public override long GetServiceProviderHashCode() => 0;
-
-                public override void PopulateDebugInfo(IDictionary<string, string> debugInfo) { }
-            }
+            services.TryAdd<IQueryCompiler, InMemoryBulkQueryCompiler>();
         }
     }
 }
