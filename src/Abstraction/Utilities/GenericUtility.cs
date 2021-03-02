@@ -65,45 +65,60 @@ namespace Microsoft.EntityFrameworkCore
 
 
         #region private struct GenericJoinKey<>
-#pragma warning disable IDE0060
 
-        struct GenericJoinKey<T>
+        struct GenericJoinKey<T> : IEquatable<GenericJoinKey<T>>
+            where T : IEquatable<T>
         {
-            public GenericJoinKey(T _) { }
-            public static bool operator ==(GenericJoinKey<T> _, GenericJoinKey<T> __) => false;
-            public static bool operator !=(GenericJoinKey<T> _, GenericJoinKey<T> __) => false;
-            public override bool Equals(object obj) => false;
-            public override int GetHashCode() => 0;
+            readonly T Value1;
+            public GenericJoinKey(T _) => Value1 = _;
+            public static bool operator ==(GenericJoinKey<T> _, GenericJoinKey<T> __) => _.Equals(__);
+            public static bool operator !=(GenericJoinKey<T> _, GenericJoinKey<T> __) => !_.Equals(__);
+            public override bool Equals(object obj) => obj is GenericJoinKey<T> other && Equals(other);
+            public override int GetHashCode() => HashCode.Combine(Value1);
+            public bool Equals(GenericJoinKey<T> other) => Value1.Equals(other.Value1);
         }
 
-        struct GenericJoinKey<T1, T2>
+        struct GenericJoinKey<T1, T2> : IEquatable<GenericJoinKey<T1, T2>>
+            where T1 : IEquatable<T1>
+            where T2 : IEquatable<T2>
         {
-            public GenericJoinKey(T1 _, T2 __) { }
-            public static bool operator ==(GenericJoinKey<T1, T2> _, GenericJoinKey<T1, T2> __) => false;
-            public static bool operator !=(GenericJoinKey<T1, T2> _, GenericJoinKey<T1, T2> __) => false;
-            public override bool Equals(object obj) => false;
-            public override int GetHashCode() => 0;
+            readonly T1 Value1; readonly T2 Value2;
+            public GenericJoinKey(T1 _, T2 __) => (Value1, Value2) = (_, __);
+            public static bool operator ==(GenericJoinKey<T1, T2> _, GenericJoinKey<T1, T2> __) => _.Equals(__);
+            public static bool operator !=(GenericJoinKey<T1, T2> _, GenericJoinKey<T1, T2> __) => !_.Equals(__);
+            public override bool Equals(object obj) => obj is GenericJoinKey<T1, T2> other && Equals(other);
+            public override int GetHashCode() => HashCode.Combine(Value1, Value2);
+            public bool Equals(GenericJoinKey<T1, T2> other) => Value1.Equals(other.Value1) && Value2.Equals(other.Value2);
         }
 
-        struct GenericJoinKey<T1, T2, T3>
+        struct GenericJoinKey<T1, T2, T3> : IEquatable<GenericJoinKey<T1, T2, T3>>
+            where T1 : IEquatable<T1>
+            where T2 : IEquatable<T2>
+            where T3 : IEquatable<T3>
         {
-            public GenericJoinKey(T1 _, T2 __, T3 ___) { }
-            public static bool operator ==(GenericJoinKey<T1, T2, T3> _, GenericJoinKey<T1, T2, T3> __) => false;
-            public static bool operator !=(GenericJoinKey<T1, T2, T3> _, GenericJoinKey<T1, T2, T3> __) => false;
-            public override bool Equals(object obj) => false;
-            public override int GetHashCode() => 0;
+            readonly T1 Value1; readonly T2 Value2; readonly T3 Value3;
+            public GenericJoinKey(T1 _, T2 __, T3 ___) => (Value1, Value2, Value3) = (_, __, ___);
+            public static bool operator ==(GenericJoinKey<T1, T2, T3> _, GenericJoinKey<T1, T2, T3> __) => _.Equals(__);
+            public static bool operator !=(GenericJoinKey<T1, T2, T3> _, GenericJoinKey<T1, T2, T3> __) => !_.Equals(__);
+            public override bool Equals(object obj) => obj is GenericJoinKey<T1, T2, T3> other && Equals(other);
+            public override int GetHashCode() => HashCode.Combine(Value1, Value2, Value3);
+            public bool Equals(GenericJoinKey<T1, T2, T3> other) => Value1.Equals(other.Value1) && Value2.Equals(other.Value2) && Value3.Equals(other.Value3);
         }
 
-        struct GenericJoinKey<T1, T2, T3, T4>
+        struct GenericJoinKey<T1, T2, T3, T4> : IEquatable<GenericJoinKey<T1, T2, T3, T4>>
+            where T1 : IEquatable<T1>
+            where T2 : IEquatable<T2>
+            where T3 : IEquatable<T3>
+            where T4 : IEquatable<T4>
         {
-            public GenericJoinKey(T1 _, T2 __, T3 ___, T4 ____) { }
-            public static bool operator ==(GenericJoinKey<T1, T2, T3, T4> _, GenericJoinKey<T1, T2, T3, T4> __) => false;
-            public static bool operator !=(GenericJoinKey<T1, T2, T3, T4> _, GenericJoinKey<T1, T2, T3, T4> __) => false;
-            public override bool Equals(object obj) => false;
-            public override int GetHashCode() => 0;
+            readonly T1 Value1; readonly T2 Value2; readonly T3 Value3; readonly T4 Value4;
+            public GenericJoinKey(T1 _, T2 __, T3 ___, T4 ____) => (Value1, Value2, Value3, Value4) = (_, __, ___, ____);
+            public static bool operator ==(GenericJoinKey<T1, T2, T3, T4> _, GenericJoinKey<T1, T2, T3, T4> __) => _.Equals(__);
+            public static bool operator !=(GenericJoinKey<T1, T2, T3, T4> _, GenericJoinKey<T1, T2, T3, T4> __) => !_.Equals(__);
+            public override bool Equals(object obj) => obj is GenericJoinKey<T1, T2, T3, T4> other && Equals(other);
+            public override int GetHashCode() => HashCode.Combine(Value1, Value2, Value3, Value4);
+            public bool Equals(GenericJoinKey<T1, T2, T3, T4> other) => Value1.Equals(other.Value1) && Value2.Equals(other.Value2) && Value3.Equals(other.Value3) && Value4.Equals(other.Value4);
         }
-
-#pragma warning restore IDE0060
         #endregion
     }
 }

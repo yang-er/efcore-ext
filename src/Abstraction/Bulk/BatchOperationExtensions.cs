@@ -18,39 +18,46 @@ namespace Microsoft.EntityFrameworkCore
     /// </summary>
     public static class BatchOperationExtensions
     {
+        #region Collapsed Definitions
+
         /// <summary>
         /// Expanded type for query generation.
         /// </summary>
         internal static int BatchUpdate<TIdentifier, TEntity>(
-            this IQueryable<TIdentifier> source,
+            IQueryable<TIdentifier> source,
             Expression<Func<TIdentifier, TEntity>> selector)
-        {
-            throw new InvalidOperationException();
-        }
+            => throw new InvalidOperationException();
 
         /// <summary>
         /// Expression type for query generation.
         /// </summary>
         internal static int BatchUpdateJoin<TOuter, TInner, TKey>(
-            this IQueryable<TOuter> outer,
+            IQueryable<TOuter> outer,
             IQueryable<TInner> inner,
             Expression<Func<TOuter, TKey>> outerKeySelector,
             Expression<Func<TInner, TKey>> innerKeySelector,
             Expression<Func<TOuter, TInner, TOuter>> updateSelector,
             Expression<Func<TOuter, TInner, bool>> condition)
-            where TOuter : class
-            where TInner : class
-        {
-            throw new InvalidOperationException();
-        }
+            => throw new InvalidOperationException();
 
         /// <summary>
         /// Expression type for query generation.
         /// </summary>
-        internal static int BatchInsertInto<TSource>(this IQueryable<TSource> query)
-        {
-            throw new InvalidOperationException();
-        }
+        internal static int BatchInsertInto<TSource>(
+            IQueryable<TSource> query)
+            => throw new InvalidOperationException();
+
+        /// <summary>
+        /// Expression type for query generation.
+        /// </summary>
+        internal static int Upsert<TTarget, TSource>(
+            IQueryable<TTarget> set,
+            IEnumerable<TSource> sources,
+            Expression<Func<TSource, TTarget>> insertExpression,
+            Expression<Func<TTarget, TTarget, TTarget>> updateExpression)
+            => throw new InvalidOperationException();
+
+        #endregion
 
         /// <summary>
         /// Convert the source local table to a fake subquery or real-query itself.

@@ -170,7 +170,7 @@ namespace Testcase_Upsert
             EnsureRank();
 
             using var context = contextFactory();
-            
+
             var e = context.RankCache.Upsert(
                 context.RankSource,
                 rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
