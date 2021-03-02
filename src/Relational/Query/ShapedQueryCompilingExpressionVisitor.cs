@@ -7,13 +7,13 @@ using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
-    public class XysShapedQueryCompilingExpressionVisitor : RelationalShapedQueryCompilingExpressionVisitor
+    public class RelationalBulkShapedQueryCompilingExpressionVisitor : RelationalShapedQueryCompilingExpressionVisitor
     {
         private readonly bool _useRelationalNulls;
         private readonly ISet<string> _tags;
         private readonly QueryCompilationContext _queryCompilationContext;
 
-        public XysShapedQueryCompilingExpressionVisitor(
+        public RelationalBulkShapedQueryCompilingExpressionVisitor(
             ShapedQueryCompilingExpressionVisitorDependencies dependencies,
             RelationalShapedQueryCompilingExpressionVisitorDependencies relationalDependencies,
             QueryCompilationContext queryCompilationContext)
@@ -40,7 +40,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 _useRelationalNulls,
                 selectExpression);
 
-            var optimizer = new XysParameterValueBasedSelectExpressionOptimizer(
+            var optimizer = new BulkParameterValueBasedSelectExpressionOptimizer(
                 RelationalDependencies.SqlExpressionFactory,
                 RelationalDependencies.ParameterNameGeneratorFactory,
                 _useRelationalNulls);
@@ -91,14 +91,14 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
     }
 
-    public class XysShapedQueryCompilingExpressionVisitorFactory :
+    public class RelationalBulkShapedQueryCompilingExpressionVisitorFactory :
         IShapedQueryCompilingExpressionVisitorFactory,
         IServiceAnnotation<IShapedQueryCompilingExpressionVisitorFactory, RelationalShapedQueryCompilingExpressionVisitorFactory>
     {
         private readonly ShapedQueryCompilingExpressionVisitorDependencies _dependencies;
         private readonly RelationalShapedQueryCompilingExpressionVisitorDependencies _relationalDependencies;
 
-        public XysShapedQueryCompilingExpressionVisitorFactory(
+        public RelationalBulkShapedQueryCompilingExpressionVisitorFactory(
             ShapedQueryCompilingExpressionVisitorDependencies dependencies,
             RelationalShapedQueryCompilingExpressionVisitorDependencies relationalDependencies)
         {
@@ -113,7 +113,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             Check.NotNull(queryCompilationContext, nameof(queryCompilationContext));
 
-            return new XysShapedQueryCompilingExpressionVisitor(
+            return new RelationalBulkShapedQueryCompilingExpressionVisitor(
                 _dependencies,
                 _relationalDependencies,
                 queryCompilationContext);

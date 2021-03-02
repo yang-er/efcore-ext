@@ -1,8 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -12,24 +10,6 @@ using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
-    public static class RelationalExtensions
-    {
-
-#if EFCORE31
-        public static SqlFunctionExpression Function(
-            this ISqlExpressionFactory factory,
-            string name,
-            IEnumerable<SqlExpression> arguments,
-            bool nullable,
-            IEnumerable<bool> argumentsPropagateNullability,
-            Type returnType,
-            RelationalTypeMapping typeMapping = null)
-        {
-            return factory.Function(name, arguments, returnType, typeMapping);
-        }
-#endif
-    }
-
     internal class RelationalBatchDbContextOptionsExtension<TNewFactory, TOldFactory, TProvider> :
         IDbContextOptionsExtension
         where TOldFactory : class, IQuerySqlGeneratorFactory
@@ -61,7 +41,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             services.AddSingleton<IBatchOperationProvider, TProvider>();
             services.AddSingleton<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
             services.Replace(ServiceDescriptor.Scoped<IQueryCompiler, BulkQueryCompiler>());
-            services.Replace(ServiceDescriptor.Singleton<IShapedQueryCompilingExpressionVisitorFactory, XysShapedQueryCompilingExpressionVisitorFactory>());
+            services.Replace(ServiceDescriptor.Singleton<IShapedQueryCompilingExpressionVisitorFactory, RelationalBulkShapedQueryCompilingExpressionVisitorFactory>());
             services.Replace(ServiceDescriptor.Singleton<IQueryTranslationPreprocessorFactory, RelationalBulkQueryTranslationPreprocessorFactory>());
             services.Replace(ServiceDescriptor.Singleton<IQueryableMethodTranslatingExpressionVisitorFactory, RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory>());
             _configureServices.Invoke(services);

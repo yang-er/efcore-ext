@@ -237,9 +237,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                     .AppendLine();
 
                 var originalAlias = upsertExpression.SourceTable.Alias;
-                RelationalInternals.ApplyAlias(upsertExpression.SourceTable, null);
+                upsertExpression.SourceTable.SetAlias(null);
                 Visit(upsertExpression.SourceTable);
-                RelationalInternals.ApplyAlias(upsertExpression.SourceTable, originalAlias);
+                upsertExpression.SourceTable.SetAlias(originalAlias);
 
                 Sql.DecrementIndent()
                     .AppendLine()

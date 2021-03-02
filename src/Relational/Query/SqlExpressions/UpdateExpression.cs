@@ -1,6 +1,5 @@
 ﻿#nullable enable
-using Microsoft.EntityFrameworkCore.Bulk;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -167,58 +166,6 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
                     .AppendLine().Append("WHERE ")
                     .Visit(Predicate);
             }
-        }
-
-        /// <summary>
-        /// Creates the UPDATE expression from SELECT expression.
-        /// </summary>
-        /// <param name="selectExpression">The select expression.</param>
-        /// <param name="entityType">The entity type to update.</param>
-        /// <param name="internals">The queryable internal expression.</param>
-        /// <returns>The update expression.</returns>
-        public static UpdateExpression CreateFromSelect(
-            SelectExpression selectExpression,
-            IEntityType entityType,
-            Expression internals)
-        {
-            if (!(selectExpression.Tables[0] is TableExpression table))
-                throw new NotSupportedException("The query root should be main entity.");
-            if (table.Name != entityType.GetTableName())
-                throw new NotSupportedException("The query root type mismatch.");
-            if (selectExpression.Offset != null || selectExpression.Limit != null)
-                throw new NotSupportedException("The query can't have .Take() or .Skip() filters.");
-            if ((selectExpression.GroupBy?.Count ?? 0) != 0 || selectExpression.Having != null)
-                throw new NotSupportedException("The query can't be aggregated.");
-
-            var projectionMapping = RelationalInternals.AccessProjectionMapping(selectExpression);
-            var projections = selectExpression.Projection;
-            var setFields = new List<ProjectionExpression>(projectionMapping.Count);
-
-            // Do some replacing here..
-            var columnNames = entityType.GetColumns();
-            foreach (var (member, _id) in projectionMapping)
-            {
-                if (!columnNames.TryGetValue(member.ToString(), out var fieldName))
-                    throw new NotImplementedException("Projection mapping failed.");
-
-                int id = (int)((ConstantExpression)_id).Value!;
-                setFields.Add(RelationalInternals.CreateProjectionExpression(projections[id].Expression, fieldName));
-            }
-
-            // check the lost fields when it is all parameters
-            if (!(internals is MethodCallExpression methodCall)
-                || !(methodCall.Arguments[1] is UnaryExpression unary)
-                || !(unary.Operand is LambdaExpression lambda)
-                || !(lambda.Body is MemberInitExpression memberInit)
-                || memberInit.Bindings.Count < projections.Count)
-                throw new NotSupportedException("Translation failed.");
-
-            return new UpdateExpression(
-                false,
-                null,
-                selectExpression.Predicate,
-                setFields,
-                selectExpression.Tables);
         }
     }
 }

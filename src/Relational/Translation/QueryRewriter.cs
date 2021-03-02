@@ -57,7 +57,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             update = new List<ProjectionExpression>();
 
             var columnNames = entityType.GetColumns();
-            var projectionMapping = RelationalInternals.AccessProjectionMapping(selectExpression);
+            var projectionMapping = selectExpression.GetProjectionMapping();
             foreach (var (projectionMember, _id) in projectionMapping)
             {
                 if (!(_id is ConstantExpression constant) || !(constant.Value is int id))
@@ -73,7 +73,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                     _ => throw new InvalidOperationException("Unknown projection member"),
                 };
 
-                target.Add(RelationalInternals.CreateProjectionExpression(
+                target.Add(BulkSqlExpressionFactoryExtensions.ProjectionExpressionConstructor(
                     selectExpression.Projection[id].Expression,
                     columnNames[name.Substring(7)]));
             }

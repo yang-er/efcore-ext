@@ -148,7 +148,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             var entityType = _anonymousExpressionFactory.GetType(param.Type.GetGenericArguments()[0]);
             var values = new ValuesExpression(param, entityType.Fields.Select(a => a.Name).ToArray(), entityType);
 
-            var select = RelationalInternals.CreateSelectExpression(
+            var select = _sqlExpressionFactory.Select(
                 alias: null,
                 projections: new List<ProjectionExpression>(),
                 tables: new List<TableExpressionBase> { values },
@@ -162,7 +162,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             foreach (var field in entityType.Fields)
             {
                 var projectionMember = rootMember.Append(field.PropertyInfo);
-                mapping[projectionMember] = field.CreateColumn(values);
+                mapping[projectionMember] = _sqlExpressionFactory.Column(field.Name, values, field.Type, field.TypeMapping, field.Nullable);
                 shaperArguments.Add(field.CreateProjectionBinding(select, projectionMember));
             }
 
@@ -173,7 +173,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         protected virtual ShapedQueryExpression TranslateWrapped(WrappedExpression wrappedExpression)
         {
-            var selectExpression = RelationalInternals.CreateSelectExpression(
+            var selectExpression = _sqlExpressionFactory.Select(
                 alias: null,
                 projections: new List<ProjectionExpression>(),
                 tables: new List<TableExpressionBase> { wrappedExpression },
@@ -264,7 +264,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             Check.DebugAssert(selectExpression == shapedQueryExpression.QueryExpression, "Should be the same instance.");
 
             // Get the concrete update field expression
-            var projectionMapping = RelationalInternals.AccessProjectionMapping(selectExpression);
+            var projectionMapping = selectExpression.GetProjectionMapping();
             var setFields = new List<ProjectionExpression>(projectionMapping.Count);
             var columnNames = entityType.GetColumns();
 
@@ -276,7 +276,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     throw new NotImplementedException("Unknown projection mapping failed.");
                 }
 
-                setFields.Add(RelationalInternals.CreateProjectionExpression(sqlExpression, fieldName));
+                setFields.Add(_sqlExpressionFactory.Projection(sqlExpression, fieldName));
             }
 
             var updateExpression = new UpdateExpression(
@@ -308,7 +308,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             var tableName = entityType.GetTableName();
             var schema = entityType.GetSchema();
             var columnNames = entityType.GetColumns();
-            var projectionMapping = RelationalInternals.AccessProjectionMapping(selectExpression);
+            var projectionMapping = selectExpression.GetProjectionMapping();
             var projections = (List<ProjectionExpression>)selectExpression.Projection;
             var newProjectionMapping = new Dictionary<ProjectionMember, Expression>();
             if (projections.Count > 0)
@@ -325,7 +325,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 }
 
                 newProjectionMapping.Add(member, Expression.Constant(projections.Count));
-                projections.Add(RelationalInternals.CreateProjectionExpression(sqlExpression, fieldName));
+                projections.Add(_sqlExpressionFactory.Projection(sqlExpression, fieldName));
             }
 
             selectExpression.ReplaceProjectionMapping(newProjectionMapping);
@@ -391,7 +391,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 entityType,
                 (property, expression) =>
                     insertFields.Add(
-                        RelationalInternals.CreateProjectionExpression(
+                        _sqlExpressionFactory.Projection(
                             _sqlTranslator.Translate(expression),
                             property.GetColumnName(soi))));
 
@@ -418,7 +418,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     entityType,
                     (property, expression) =>
                         updateFields.Add(
-                            RelationalInternals.CreateProjectionExpression(
+                            _sqlExpressionFactory.Projection(
                                 excludedRewriter.VisitAndConvert(_sqlTranslator.Translate(expression), null),
                                 property.GetColumnName(soi))));
             }
