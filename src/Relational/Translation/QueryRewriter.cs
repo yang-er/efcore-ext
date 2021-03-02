@@ -150,7 +150,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             if (updateExpression != null)
             {
-                var processor = new FakeSelectReplacingVisitor(excludedTable);
+                var processor = new ExcludedTableColumnRewritingVisitor(excludedTable);
                 var updateFields = (List<ProjectionExpression>)updates;
                 for (int i = 0; i < updateFields.Count; i++)
                 {

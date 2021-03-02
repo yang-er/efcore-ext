@@ -20,45 +20,13 @@ namespace Microsoft.EntityFrameworkCore.Query
     using ThisParameterBasedSqlProcessorFactory = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessorFactory;
 #endif
 
-    public class ValuesExpressionExpansionVisitor : SqlExpressionVisitorV2
-    {
-        private readonly ValuesExpression[] _toReplace, _replacement;
-
-        public ValuesExpressionExpansionVisitor(ValuesExpression[] toReplace, ValuesExpression[] replacement)
-        {
-            Check.NotNull(toReplace, nameof(toReplace));
-            Check.NotNull(replacement, nameof(replacement));
-            Check.DebugAssert(toReplace.Length == replacement.Length, "Should be equal length.");
-
-            _toReplace = toReplace;
-            _replacement = replacement;
-        }
-
-        protected override Expression VisitValues(ValuesExpression valuesExpression)
-        {
-            for (int i = 0; i < _toReplace.Length; i++)
-            {
-                if (valuesExpression == _toReplace[i])
-                {
-                    return _replacement[i];
-                }
-            }
-
-            return base.VisitValues(valuesExpression);
-        }
-    }
-
     public class XysSqlNullabilityProcessor : ThisSqlNullabilityProcessor
     {
-        private readonly HashSet<ValuesExpression> _valuesExpressions;
-
         public XysSqlNullabilityProcessor(
             RelationalParameterBasedSqlProcessorDependencies dependencies,
-            bool useRelationalNulls,
-            HashSet<ValuesExpression> valuesExpressions)
+            bool useRelationalNulls)
             : base(dependencies, useRelationalNulls)
         {
-            _valuesExpressions = valuesExpressions;
         }
 
         protected override TableExpressionBase Visit(TableExpressionBase tableExpressionBase)
@@ -67,7 +35,6 @@ namespace Microsoft.EntityFrameworkCore.Query
             {
                 case ValuesExpression values:
                     DoNotCache();
-                    _valuesExpressions.Add(values);
                     return values;
 
                 case DeleteExpression delete:
@@ -215,14 +182,11 @@ namespace Microsoft.EntityFrameworkCore.Query
 
     public class XysParameterBasedSqlProcessor : ThisParameterBasedSqlProcessor
     {
-        private readonly HashSet<ValuesExpression> _valuesTables;
-
         public XysParameterBasedSqlProcessor(
             RelationalParameterBasedSqlProcessorDependencies dependencies,
             bool useRelationalNulls)
             : base(dependencies, useRelationalNulls)
         {
-            _valuesTables = new HashSet<ValuesExpression>();
         }
 
         protected override SelectExpression ProcessSqlNullability(
@@ -233,7 +197,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             Check.NotNull(selectExpression, nameof(selectExpression));
             Check.NotNull(parametersValues, nameof(parametersValues));
 
-            return new XysSqlNullabilityProcessor(Dependencies, UseRelationalNulls, _valuesTables)
+            return new XysSqlNullabilityProcessor(Dependencies, UseRelationalNulls)
                 .Process(selectExpression, parametersValues, out canCache);
         }
 
@@ -241,27 +205,8 @@ namespace Microsoft.EntityFrameworkCore.Query
             SelectExpression selectExpression,
             IReadOnlyDictionary<string, object> parametersValues)
         {
-            if (_valuesTables.Count == 0) return selectExpression;
-            var toReplace = _valuesTables.ToArray();
-            var replacement = new ValuesExpression[toReplace.Length];
-
-            for (int i = 0; i < toReplace.Length; i++)
-            {
-                var target = toReplace[i];
-                if (parametersValues.TryGetValue(target.RuntimeParameter, out var param)
-                    && param is IList lists)
-                {
-                    replacement[i] = new ValuesExpression(target, lists.Count);
-                }
-                else
-                {
-                    throw new InvalidOperationException(
-                        "Parameter value corrupted.");
-                }
-            }
-
-            return (SelectExpression)new ValuesExpressionExpansionVisitor(toReplace, replacement)
-                .Visit(selectExpression);
+            return new ValuesExpressionParameterExpandingVisitor(parametersValues)
+                .VisitAndConvert(selectExpression, null);
         }
 
         public override SelectExpression Optimize(

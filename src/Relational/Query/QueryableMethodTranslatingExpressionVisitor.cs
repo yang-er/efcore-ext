@@ -13,6 +13,7 @@ using System.Linq.Expressions;
 
 #if EFCORE31
 using ThirdParameter = Microsoft.EntityFrameworkCore.Metadata.IModel;
+using RelationalEntityShaperExpression = Microsoft.EntityFrameworkCore.Query.EntityShaperExpression;
 #elif EFCORE50
 using ThirdParameter = Microsoft.EntityFrameworkCore.Query.QueryCompilationContext;
 #endif
@@ -403,7 +404,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 updateFields = new List<ProjectionExpression>();
 
                 var excludedTable = _sqlExpressionFactory.Select(entityType);
-                var excludedRewriter = new FakeSelectReplacingVisitor((TableExpression)excludedTable.Tables.Single());
+                var excludedRewriter = new ExcludedTableColumnRewritingVisitor((TableExpression)excludedTable.Tables.Single());
                 var excludedShaper = new RelationalEntityShaperExpression(
                         entityType,
                         new ProjectionBindingExpression(excludedTable, new ProjectionMember(), typeof(ValueBuffer)),

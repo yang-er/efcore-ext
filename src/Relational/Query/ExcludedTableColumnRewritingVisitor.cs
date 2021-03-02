@@ -3,11 +3,11 @@ using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
-    public class FakeSelectReplacingVisitor : SqlExpressionVisitorV2
+    public class ExcludedTableColumnRewritingVisitor : SqlExpressionVisitorV2
     {
         private readonly TableExpression _excludedTable;
 
-        public FakeSelectReplacingVisitor(TableExpression excludedTable)
+        public ExcludedTableColumnRewritingVisitor(TableExpression excludedTable)
         {
             _excludedTable = excludedTable;
         }
@@ -15,14 +15,17 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override Expression VisitColumn(ColumnExpression columnExpression)
         {
             if (columnExpression.Table == _excludedTable)
+            {
                 return new ExcludedTableColumnExpression(
                     columnExpression.Name,
                     columnExpression.Type,
                     columnExpression.TypeMapping,
                     columnExpression.IsNullable);
-
+            }
             else
+            {
                 return base.VisitColumn(columnExpression);
+            }
         }
     }
 }
