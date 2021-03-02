@@ -64,6 +64,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 DeleteExpression deleteExpression => VisitDelete(deleteExpression),
                 UpdateExpression updateExpression => VisitUpdate(updateExpression),
                 SelectIntoExpression selectIntoExpression => VisitSelectInto(selectIntoExpression),
+                UpsertExpression upsertExpression => VisitUpsert(upsertExpression),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -204,9 +205,14 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         public virtual IRelationalCommand GetCommand(UpsertExpression insertExpression)
         {
             RelationalInternals.InitQuerySqlGenerator(this);
+            VisitUpsert(insertExpression);
+            return Sql.Build();
+        }
 
+        protected virtual Expression VisitUpsert(UpsertExpression upsertExpression)
+        {
             string cteName = null;
-            if (!(insertExpression.SourceTable is TableExpression))
+            if (upsertExpression.SourceTable is not TableExpression)
             {
                 // WITH temp_table_efcore AS
                 cteName = "temp_table_efcore";
@@ -214,7 +220,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 Sql.Append("WITH ")
                     .Append(cteName);
 
-                if (insertExpression.SourceTable is ValuesExpression values)
+                if (upsertExpression.SourceTable is ValuesExpression values)
                 {
                     Sql.Append(" (");
 
@@ -230,10 +236,10 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                     .IncrementIndent()
                     .AppendLine();
 
-                var originalAlias = insertExpression.SourceTable.Alias;
-                RelationalInternals.ApplyAlias(insertExpression.SourceTable, null);
-                Visit(insertExpression.SourceTable);
-                RelationalInternals.ApplyAlias(insertExpression.SourceTable, originalAlias);
+                var originalAlias = upsertExpression.SourceTable.Alias;
+                RelationalInternals.ApplyAlias(upsertExpression.SourceTable, null);
+                Visit(upsertExpression.SourceTable);
+                RelationalInternals.ApplyAlias(upsertExpression.SourceTable, originalAlias);
 
                 Sql.DecrementIndent()
                     .AppendLine()
@@ -241,38 +247,38 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
 
             Sql.Append("INSERT INTO ");
-            Visit(insertExpression.TargetTable);
+            Visit(upsertExpression.TargetTable);
             Sql.AppendLine();
 
             Sql.Append("(")
-                .GenerateList(insertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
+                .GenerateList(upsertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
                 .AppendLine(")");
 
             Sql.Append("SELECT ")
-                .GenerateList(insertExpression.Columns, e => Visit(e))
+                .GenerateList(upsertExpression.Columns, e => Visit(e))
                 .AppendLine();
 
             Sql.Append("FROM ")
-                .Append(Helper.DelimitIdentifier(cteName ?? ((TableExpression)insertExpression.SourceTable).Name))
+                .Append(Helper.DelimitIdentifier(cteName ?? ((TableExpression)upsertExpression.SourceTable).Name))
                 .Append(AliasSeparator)
-                .AppendLine(Helper.DelimitIdentifier(insertExpression.SourceTable.Alias));
+                .AppendLine(Helper.DelimitIdentifier(upsertExpression.SourceTable.Alias));
 
-            if (insertExpression.OnConflictUpdate == null)
+            if (upsertExpression.OnConflictUpdate == null)
             {
                 Sql.AppendLine("ON CONFLICT DO NOTHING");
             }
             else
             {
                 Sql.Append("ON CONFLICT ON CONSTRAINT ")
-                    .Append(Helper.DelimitIdentifier(insertExpression.ConflictConstraintName))
+                    .Append(Helper.DelimitIdentifier(upsertExpression.ConflictConstraintName))
                     .AppendLine(" DO UPDATE")
                     .Append("SET ")
                     .GenerateList(
-                        insertExpression.OnConflictUpdate,
+                        upsertExpression.OnConflictUpdate,
                         e => Sql.Append(Helper.DelimitIdentifier(e.Alias)).Append(" = ").Then(() => Visit(e.Expression)));
             }
 
-            return Sql.Build();
+            return upsertExpression;
         }
 
         public IRelationalCommand GetCommand(MergeExpression mergeExpression)

@@ -108,8 +108,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             services.AddSingleton<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
             services.Replace(ServiceDescriptor.Scoped<IQueryCompiler, BulkQueryCompiler>());
             services.Replace(ServiceDescriptor.Singleton<IShapedQueryCompilingExpressionVisitorFactory, XysShapedQueryCompilingExpressionVisitorFactory>());
-            XysQueryTranslationPreprocessorFactory.TryReplace(services);
-            XysQueryableMethodTranslatingExpressionVisitorFactory.TryReplace(services);
+            services.Replace(ServiceDescriptor.Singleton<IQueryTranslationPreprocessorFactory, RelationalBulkQueryTranslationPreprocessorFactory>());
+            services.Replace(ServiceDescriptor.Singleton<IQueryableMethodTranslatingExpressionVisitorFactory, RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory>());
             _configureServices.Invoke(services);
         }
 

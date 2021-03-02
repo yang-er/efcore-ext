@@ -166,6 +166,9 @@ internal static partial class RelationalInternals
             param => param.AccessProperty("IsNullable"))
         .Compile();
 
+    public static readonly Func<RelationalQueryableMethodTranslatingExpressionVisitor, RelationalSqlTranslatingExpressionVisitor> AccessTranslator
+        = Internals.CreateLambda<RelationalQueryableMethodTranslatingExpressionVisitor, RelationalSqlTranslatingExpressionVisitor>(param => param.AccessField("_sqlTranslator")).Compile();
+
     public static readonly Func<IQueryProvider, QueryContextDependencies> AccessDependencies
         = Internals.CreateLambda<IQueryProvider, QueryContextDependencies>(param => param
             .As<EntityQueryProvider>()

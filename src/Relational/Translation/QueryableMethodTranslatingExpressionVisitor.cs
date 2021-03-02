@@ -3,32 +3,30 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace Microsoft.EntityFrameworkCore.Query
-{
 #if EFCORE31
-    using ThirdParameter = IModel;
+using ThirdParameter = Microsoft.EntityFrameworkCore.Metadata.IModel;
 #elif EFCORE50
-    using ThirdParameter = QueryCompilationContext;
+using ThirdParameter = Microsoft.EntityFrameworkCore.Query.QueryCompilationContext;
 #endif
 
-    public class XysQueryableMethodTranslatingExpressionVisitor : RelationalQueryableMethodTranslatingExpressionVisitor
+namespace Microsoft.EntityFrameworkCore.Query
+{
+    public class RelationalBulkQueryableMethodTranslatingExpressionVisitor : RelationalQueryableMethodTranslatingExpressionVisitor
     {
-        private const string OuterInner = "Microsoft.EntityFrameworkCore.Query.TransparentIdentifierFactory+TransparentIdentifier`2";
+        private readonly RelationalSqlTranslatingExpressionVisitor _sqlTranslator;
         private readonly ISqlExpressionFactory _sqlExpressionFactory;
         private readonly IAnonymousExpressionFactory _anonymousExpressionFactory;
         private readonly IModel _model;
 
-        public XysQueryableMethodTranslatingExpressionVisitor(
+        public RelationalBulkQueryableMethodTranslatingExpressionVisitor(
             QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
             RelationalQueryableMethodTranslatingExpressionVisitorDependencies relationalDependencies,
             ThirdParameter thirdParameter,
@@ -38,18 +36,20 @@ namespace Microsoft.EntityFrameworkCore.Query
             _sqlExpressionFactory = relationalDependencies.SqlExpressionFactory;
             _anonymousExpressionFactory = anonymousExpressionFactory;
             _model = AccessModel(thirdParameter);
+            _sqlTranslator = RelationalInternals.AccessTranslator(this);
         }
 
-        public XysQueryableMethodTranslatingExpressionVisitor(
-            XysQueryableMethodTranslatingExpressionVisitor parentVisitor)
+        public RelationalBulkQueryableMethodTranslatingExpressionVisitor(
+            RelationalBulkQueryableMethodTranslatingExpressionVisitor parentVisitor)
             : base(parentVisitor)
         {
             _sqlExpressionFactory = parentVisitor._sqlExpressionFactory;
             _anonymousExpressionFactory = parentVisitor._anonymousExpressionFactory;
+            _sqlTranslator = parentVisitor._sqlTranslator;
         }
 
         protected override QueryableMethodTranslatingExpressionVisitor CreateSubqueryVisitor()
-            => new XysQueryableMethodTranslatingExpressionVisitor(this);
+            => new RelationalBulkQueryableMethodTranslatingExpressionVisitor(this);
 
 #if EFCORE31
 
@@ -80,6 +80,67 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
 
 #endif
+
+        private void ManualReshape(Expression body, IEntityType entityType, Action<IProperty, Expression> fieldCallback)
+        {
+            NewExpression newExpression;
+            IEnumerable<MemberBinding> bindings;
+
+            switch (body)
+            {
+                case MemberInitExpression memberInit:
+                    newExpression = memberInit.NewExpression;
+                    bindings = memberInit.Bindings;
+                    break;
+
+                case NewExpression @new:
+                    newExpression = @new;
+                    bindings = Enumerable.Empty<MemberBinding>();
+                    break;
+
+                default:
+                    Fail($"Type of {body.NodeType} is not supported in upsert yet.");
+                    return;
+            }
+
+            if (newExpression.Constructor.GetParameters().Length > 0)
+            {
+                Fail("Non-simple constructor is not supported.");
+                return;
+            }
+
+            foreach (var item in bindings)
+            {
+                if (item is not MemberAssignment assignment)
+                {
+                    Fail("Non-assignment binding is not supported.");
+                    return;
+                }
+
+                var memberInfo = entityType.FindProperty(assignment.Member);
+                if (memberInfo != null)
+                {
+                    fieldCallback(memberInfo, assignment.Expression);
+                    continue;
+                }
+
+                var navigation = entityType.FindNavigation(assignment.Member);
+                if (navigation == null)
+                {
+                    Fail($"Unknown member \"{assignment.Member}\" is not supported in update yet.");
+                    return;
+                }
+                else if (!navigation.ForeignKey.IsOwnership)
+                {
+                    Fail($"Wrong member \"{navigation.ForeignKey}\". Only owned-navigation member can be upserted.");
+                    return;
+                }
+                else
+                {
+                    ManualReshape(assignment.Expression, navigation.ForeignKey.DeclaringEntityType, fieldCallback);
+                }
+            }
+        }
 
         protected virtual ShapedQueryExpression TranslateCommonTable(ParameterExpression param)
         {
@@ -270,6 +331,107 @@ namespace Microsoft.EntityFrameworkCore.Query
             return TranslateWrapped(new SelectIntoExpression(tableName, schema, selectExpression));
         }
 
+        protected virtual ShapedQueryExpression TranslateUpsert(Expression target, Expression source, LambdaExpression insert, LambdaExpression update)
+        {
+            if (target is not ShapedQueryExpression targetShaped
+                || source is not ShapedQueryExpression sourceShaped
+                || targetShaped.QueryExpression is not SelectExpression targetSelect
+                || sourceShaped.QueryExpression is not SelectExpression
+                || targetShaped.ShaperExpression is not EntityShaperExpression)
+            {
+                return null;
+            }
+
+            var targetTable = targetSelect.Tables.Single();
+            var entityType = ((EntityShaperExpression)targetShaped.ShaperExpression).EntityType;
+            if (insert.Body is not MemberInitExpression insertMemberInit
+                || insertMemberInit.NewExpression.Arguments.Count > 0)
+            {
+                return Fail("Insert expression should be member-init without constructor arguments.");
+            }
+
+            if (!entityType.TryGuessKey(insertMemberInit.Bindings, out var pkeyOrAkey))
+            {
+                return Fail(
+                    "Only entity with primary key or alternative key specified can be upserted. " +
+                    "Are you trying to normally insert one or lost your key fields?");
+            }
+
+            var newShaper = targetSelect.AddCrossJoin(sourceShaped, targetShaped.ShaperExpression);
+            if (newShaper is not NewExpression newNewShaper
+                || newNewShaper.Arguments.Count != 2
+                || targetSelect.Tables.Count != 2
+                || targetSelect.Tables[0] is not TableExpression tableExpression
+                || targetSelect.Tables[1] is not CrossJoinExpression crossJoinExpression
+                || targetSelect.IsDistinct
+                || targetSelect.Having != null
+                || targetSelect.Alias != null
+                || targetSelect.GroupBy.Count != 0
+                || targetSelect.Limit != null
+                || targetSelect.Offset != null
+                || targetSelect.Orderings.Count != 0
+                || targetSelect.Predicate != null
+                || targetSelect.Projection.Count != 0)
+            {
+                throw new NotImplementedException(
+                    "Unknown produced select expression: \r\n" +
+                    targetSelect.Print());
+            }
+
+            var soi = StoreObjectIdentifier.Create(entityType, StoreObjectType.Table).Value;
+            var insertFields = new List<ProjectionExpression>();
+            List<ProjectionExpression> updateFields;
+
+            ManualReshape(
+                ReplacingExpressionVisitor.Replace(
+                    insert.Parameters.Single(),
+                    newNewShaper.Arguments[1],
+                    insert.Body),
+                entityType,
+                (property, expression) =>
+                    insertFields.Add(
+                        RelationalInternals.CreateProjectionExpression(
+                            _sqlTranslator.Translate(expression),
+                            property.GetColumnName(soi))));
+
+            if (update.Body is ConstantExpression constantExpression && constantExpression.Value == null)
+            {
+                updateFields = null;
+            }
+            else
+            {
+                updateFields = new List<ProjectionExpression>();
+
+                var excludedTable = _sqlExpressionFactory.Select(entityType);
+                var excludedRewriter = new FakeSelectReplacingVisitor((TableExpression)excludedTable.Tables.Single());
+                var excludedShaper = new RelationalEntityShaperExpression(
+                        entityType,
+                        new ProjectionBindingExpression(excludedTable, new ProjectionMember(), typeof(ValueBuffer)),
+                        false);
+
+                var replacing = update.Parameters.ToArray();
+                var replacement = new[] { newNewShaper.Arguments[0], excludedShaper };
+
+                ManualReshape(
+                    new ReplacingExpressionVisitor(replacing, replacement).Visit(update.Body),
+                    entityType,
+                    (property, expression) =>
+                        updateFields.Add(
+                            RelationalInternals.CreateProjectionExpression(
+                                excludedRewriter.VisitAndConvert(_sqlTranslator.Translate(expression), null),
+                                property.GetColumnName(soi))));
+            }
+
+            var upsertExpression = new UpsertExpression(
+                tableExpression,
+                crossJoinExpression.Table,
+                insertFields,
+                updateFields,
+                pkeyOrAkey.GetName());
+
+            return TranslateWrapped(upsertExpression);
+        }
+
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
             var method = methodCallExpression.Method;
@@ -279,25 +441,35 @@ namespace Microsoft.EntityFrameworkCore.Query
                 switch (method.Name)
                 {
                     case nameof(BatchOperationExtensions.CreateCommonTable)
-                         when genericMethod == BatchOperationMethods.CreateCommonTable &&
-                              methodCallExpression.Arguments[1] is ParameterExpression param:
+                    when genericMethod == BatchOperationMethods.CreateCommonTable &&
+                         methodCallExpression.Arguments[1] is ParameterExpression param:
                         return CheckTranslated(TranslateCommonTable(param));
 
                     case nameof(BatchOperationExtensions.BatchDelete)
-                        when genericMethod == BatchOperationMethods.BatchDelete:
-                        return CheckTranslated(TranslateDelete(Visit(methodCallExpression.Arguments[0])));
+                    when genericMethod == BatchOperationMethods.BatchDelete:
+                        return CheckTranslated(TranslateDelete(GetShapedAt(0)));
 
                     case nameof(BatchOperationExtensions.BatchUpdate)
-                        when genericMethod == BatchOperationMethods.BatchUpdateExpanded:
-                        return CheckTranslated(TranslateUpdate(Visit(methodCallExpression.Arguments[0]), methodCallExpression.Arguments[1].UnwrapLambdaFromQuote()));
+                    when genericMethod == BatchOperationMethods.BatchUpdateExpanded:
+                        return CheckTranslated(TranslateUpdate(GetShapedAt(0), GetLambdaAt(1)));
 
                     case nameof(BatchOperationExtensions.BatchInsertInto)
-                        when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
-                        return CheckTranslated(TranslateSelectInto(Visit(methodCallExpression.Arguments[0]), method.GetGenericArguments()[0]));
+                    when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
+                        return CheckTranslated(TranslateSelectInto(GetShapedAt(0), method.GetGenericArguments()[0]));
+
+                    case nameof(BatchOperationExtensions.Upsert)
+                    when genericMethod == BatchOperationMethods.UpsertCollapsed:
+                        return CheckTranslated(TranslateUpsert(GetShapedAt(0), GetShapedAt(1), GetLambdaAt(2), GetLambdaAt(3)));
                 }
             }
 
             return base.VisitMethodCall(methodCallExpression);
+
+            Expression GetShapedAt(int argumentIndex)
+                => Visit(methodCallExpression.Arguments[argumentIndex]);
+
+            LambdaExpression GetLambdaAt(int argumentIndex)
+                => methodCallExpression.Arguments[argumentIndex].UnwrapLambdaFromQuote();
 
 #if EFCORE31
             ShapedQueryExpression CheckTranslated(ShapedQueryExpression translated)
@@ -325,13 +497,13 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
     }
 
-    public class XysQueryableMethodTranslatingExpressionVisitorFactory : IQueryableMethodTranslatingExpressionVisitorFactory
+    public class RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory : IQueryableMethodTranslatingExpressionVisitorFactory
     {
         private readonly QueryableMethodTranslatingExpressionVisitorDependencies _dependencies;
         private readonly RelationalQueryableMethodTranslatingExpressionVisitorDependencies _relationalDependencies;
         private readonly IAnonymousExpressionFactory _anonymousExpressionFactory;
 
-        public XysQueryableMethodTranslatingExpressionVisitorFactory(
+        public RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory(
             QueryableMethodTranslatingExpressionVisitorDependencies dependencies,
             RelationalQueryableMethodTranslatingExpressionVisitorDependencies relationalDependencies,
             IAnonymousExpressionFactory anonymousExpressionFactory)
@@ -343,25 +515,11 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         public QueryableMethodTranslatingExpressionVisitor Create(ThirdParameter thirdParameter)
         {
-            return new XysQueryableMethodTranslatingExpressionVisitor(
+            return new RelationalBulkQueryableMethodTranslatingExpressionVisitor(
                 _dependencies,
                 _relationalDependencies,
                 thirdParameter,
                 _anonymousExpressionFactory);
-        }
-
-        private static readonly Type _parentPreprocessorType = typeof(RelationalQueryableMethodTranslatingExpressionVisitorFactory);
-
-        public static void TryReplace(IServiceCollection services)
-        {
-            var factory = services
-                .Where(s => s.ServiceType == typeof(IQueryableMethodTranslatingExpressionVisitorFactory))
-                .ToList();
-
-            if (factory.Count != 1 || factory[0].ImplementationType != _parentPreprocessorType)
-                throw new InvalidOperationException($"Implementation of IQueryableMethodTranslatingExpressionVisitorFactory is not supported.");
-
-            services.Replace(ServiceDescriptor.Singleton<IQueryableMethodTranslatingExpressionVisitorFactory, XysQueryableMethodTranslatingExpressionVisitorFactory>());
         }
     }
 }

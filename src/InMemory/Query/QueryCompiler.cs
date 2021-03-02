@@ -202,7 +202,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 if (memberInfo != null)
                 {
                     sentences.Add(Expression.Assign(member, resultSelector(anotherMember, assignment.Expression)));
-                    return;
+                    continue;
                 }
 
                 var navigation = entityType.FindNavigation(assignment.Member);
