@@ -25,6 +25,8 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
 
         public bool Nullable { get; }
 
+        public Type Type => PropertyInfo.PropertyType;
+
         internal AnonymousExpressionField(
             PropertyInfo propertyInfo,
             string name,
@@ -39,17 +41,6 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
             Name = name;
             TypeMapping = typeMapping;
             Nullable = nullable;
-        }
-
-        public ColumnExpression CreateColumn(
-            TableExpressionBase table)
-        {
-            return RelationalInternals.CreateColumnExpression(
-                Name,
-                table,
-                PropertyInfo.PropertyType,
-                TypeMapping,
-                Nullable);
         }
 
         public Expression CreateProjectionBinding(

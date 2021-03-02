@@ -247,7 +247,7 @@ namespace Microsoft.EntityFrameworkCore
                 => Checker = new SelfJoinPredicateChecker(model);
 
             private static Func<ColumnExpression, Expression> Change(TableExpressionBase tbl1)
-                => c => RelationalInternals.CreateColumnExpression(c.Name, tbl1, c.Type, c.TypeMapping, c.IsNullable);
+                => c => BulkSqlExpressionFactoryExtensions.ColumnExpressionConstructor(c.Name, tbl1, c.Type, c.TypeMapping, c.IsNullable);
 
             private SqlExpression Merge(ExpressionType type, SqlExpression left, SqlExpression right)
             {
@@ -273,7 +273,7 @@ namespace Microsoft.EntityFrameworkCore
                 for (int i = 0; i < lst.Count; i++)
                     lst[i] = (ProjectionExpression)visitor2.Visit(lst[i]);
 
-                var dict = RelationalInternals.AccessProjectionMapping(select);
+                var dict = select.GetProjectionMapping();
                 foreach (var item in dict.Keys.ToList())
                     dict[item] = visitor2.Visit(dict[item]);
 
@@ -282,7 +282,7 @@ namespace Microsoft.EntityFrameworkCore
                     var pred = (SqlExpression)visitor2.Visit(select.Predicate);
                     var pred2 = (SqlExpression)visitor2.Visit(sel2.Predicate);
                     pred = Merge(ExpressionType.AndAlso, pred, pred2);
-                    RelationalInternals.ApplyPredicate(select, pred);
+                    select.SetPredicate(pred);
                 }
 
                 return select;
@@ -294,7 +294,7 @@ namespace Microsoft.EntityFrameworkCore
                 TableExpressionBase newTable)
             {
                 if (!(newTable is SelectExpression s)) throw new NotImplementedException();
-                RelationalInternals.ApplyAlias(s, join.Table.Alias);
+                s.SetAlias(join.Table.Alias);
                 var oldTable = join.Table;
 
                 var visitor = new ColumnJoinsReduceVisitor(c => c.Table == oldTable ? Change(s)(c) : c);
@@ -364,7 +364,7 @@ namespace Microsoft.EntityFrameworkCore
                                 .ToDictionary(p => p.Alias, p => visitor1.Visit(p.Expression));
 
                             var pred2 = (SqlExpression)visitor1.Visit(tbl3.Predicate);
-                            RelationalInternals.ApplyPredicate(tbl3, pred2);
+                            tbl3.SetPredicate(pred2);
 
                             Reduce(selectExpression, pjeb, c => tbl3proj[c.Name]);
                         }
@@ -423,7 +423,7 @@ namespace Microsoft.EntityFrameworkCore
                         var visitor = new ColumnJoinsReduceVisitor(c => c.Table == tt2 ? changer(c) : c);
                         var pred2 = (SqlExpression)visitor.Visit(sets.Source2.Predicate);
                         var pred = Merge(ExpressionType.OrElse, sets.Source1.Predicate, pred2);
-                        RelationalInternals.ApplyPredicate(slt, pred);
+                        slt.SetPredicate(pred);
                         return slt;
                     }
                 }
