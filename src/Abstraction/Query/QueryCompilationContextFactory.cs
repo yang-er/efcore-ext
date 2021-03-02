@@ -21,15 +21,6 @@ namespace Microsoft.EntityFrameworkCore.Query
         /// <param name="query"> The query to generate executor for. </param>
         /// <returns> Returns <see cref="Func{QueryContext, TResult}" /> which can be invoked to get results of this query. </returns>
         Func<QueryContext, TResult> CreateQueryExecutor<TResult>(bool async, Expression query);
-
-        /// <summary>
-        ///     Creates the query executor func which gives results for this query.
-        /// </summary>
-        /// <param name="async"> Specifies whether the query is async. </param>
-        /// <param name="query"> The query to generate executor for. </param>
-        /// <param name="resultType"> The result type of this query. </param>
-        /// <returns> Returns <see cref="Func{QueryContext, TResult}" /> which can be invoked to get results of this query. </returns>
-        Delegate CreateQueryExecutor(bool async, Expression query, Type resultType);
     }
 
     /// <inheritdoc cref="QueryCompilationContextFactory" />
@@ -86,29 +77,6 @@ namespace Microsoft.EntityFrameworkCore.Query
         public Func<QueryContext, TResult> CreateQueryExecutor<TResult>(bool async, Expression query)
         {
             return Create(async).CreateQueryExecutor<TResult>(query);
-        }
-
-        /// <summary>
-        ///     Creates the query executor func which gives results for this query.
-        /// </summary>
-        /// <param name="async"> Specifies whether the query is async. </param>
-        /// <param name="query"> The query to generate executor for. </param>
-        /// <param name="resultType"> The result type of this query. </param>
-        /// <returns> Returns <see cref="Func{QueryContext, TResult}" /> which can be invoked to get results of this query. </returns>
-        public Delegate CreateQueryExecutor(bool async, Expression query, Type resultType)
-        {
-            var queryCompilationContext = Create(async);
-
-            try
-            {
-                return (Delegate)CreateQueryExecutorMethod
-                    .MakeGenericMethod(resultType)
-                    .Invoke(queryCompilationContext, new[] { query });
-            }
-            catch (TargetInvocationException ex)
-            {
-                throw ex?.InnerException ?? ex;
-            }
         }
     }
 }

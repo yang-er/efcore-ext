@@ -101,10 +101,9 @@ namespace Microsoft.EntityFrameworkCore.Query
             InvocationExpression TranslateQueryingEnumerable(Expression innerQuery, Type entityType)
                 => Expression.Invoke(
                     Expression.Constant(
-                        _qccFactory.CreateQueryExecutor(
+                        _qccFactory.CreateQueryExecutor<object>(
                             async,
-                            innerQuery,
-                            (async ? typeof(IAsyncEnumerable<>) : typeof(IEnumerable<>)).MakeGenericType(entityType))),
+                            innerQuery)),
                     QueryCompilationContext.QueryContextParameter);
         }
 
