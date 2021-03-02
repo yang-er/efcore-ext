@@ -78,38 +78,50 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 case SelectIntoExpression selectInto:
                     return Visit(selectInto);
+
+                case UpsertExpression upsert:
+                    return Visit(upsert);
             }
 
             return base.Visit(tableExpressionBase);
         }
 
+        protected virtual IReadOnlyList<ProjectionExpression> Visit(IReadOnlyList<ProjectionExpression> projections)
+        {
+            if (projections == null) return null;
+
+            bool changed = false;
+            var fields = projections.ToList();
+            for (int i = 0; i < fields.Count; i++)
+            {
+                var newExpr = Visit(fields[i].Expression, allowOptimizedExpansion: true, out _);
+                fields[i] = fields[i].Update(newExpr);
+                changed = changed || fields[i] != projections[i];
+            }
+
+            return changed ? fields : projections;
+        }
+
+        protected virtual IReadOnlyList<TableExpressionBase> Visit(IReadOnlyList<TableExpressionBase> origTables)
+        {
+            bool changed = false;
+            var tables = origTables.ToList();
+            for (int i = 0; i < tables.Count; i++)
+            {
+                tables[i] = Visit(tables[i]);
+                changed = changed || tables[i] != origTables[i];
+            }
+
+            return changed ? tables : origTables;
+        }
+
         protected virtual DeleteExpression Visit(DeleteExpression deleteExpression)
         {
-            var mainTable = Visit(deleteExpression.Table) as TableExpression;
+            var mainTable = (TableExpression)Visit(deleteExpression.Table);
             bool changed = mainTable == deleteExpression.Table;
 
-            var tables = (List<TableExpressionBase>)deleteExpression.JoinedTables;
-            for (var i = 0; i < deleteExpression.JoinedTables.Count; i++)
-            {
-                var item = deleteExpression.JoinedTables[i];
-                var table = Visit(item);
-                if (table != item
-                    && tables == deleteExpression.JoinedTables)
-                {
-                    tables = new List<TableExpressionBase>();
-                    for (var j = 0; j < i; j++)
-                    {
-                        tables.Add(deleteExpression.JoinedTables[j]);
-                    }
-
-                    changed = true;
-                }
-
-                if (tables != deleteExpression.JoinedTables)
-                {
-                    tables.Add(table);
-                }
-            }
+            var joinedTables = Visit(deleteExpression.JoinedTables);
+            changed |= joinedTables != deleteExpression.JoinedTables;
 
             var predicate = Visit(deleteExpression.Predicate, allowOptimizedExpansion: true, out _);
             changed |= predicate != deleteExpression.Predicate;
@@ -121,7 +133,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
 
             return changed
-                ? new DeleteExpression(mainTable, predicate, tables)
+                ? new DeleteExpression(mainTable, predicate, joinedTables)
                 : deleteExpression;
         }
 
@@ -133,27 +145,13 @@ namespace Microsoft.EntityFrameworkCore.Query
             var predicate = Visit(updateExpression.Predicate, allowOptimizedExpansion: true, out _);
             changed |= predicate != updateExpression.Predicate;
 
-            bool fieldsChanged = false;
-            var fields = updateExpression.Fields.ToList();
-            for (int i = 0; i < fields.Count; i++)
-            {
-                var newExpr = Visit(fields[i].Expression, allowOptimizedExpansion: true, out _);
-                fields[i] = fields[i].Update(newExpr);
-                fieldsChanged = fieldsChanged || fields[i] != updateExpression.Fields[i];
-            }
+            var fields = Visit(updateExpression.Fields);
+            changed |= fields == updateExpression.Fields;
 
-            bool tablesChanged = false;
-            var tables = updateExpression.Tables.ToList();
-            for (int i = 0; i < tables.Count; i++)
-            {
-                tables[i] = Visit(tables[i]);
-                tablesChanged = tablesChanged || tables[i] != updateExpression.Tables[i];
-            }
+            var tables = Visit(updateExpression.Tables);
+            changed |= tables == Visit(updateExpression.Tables);
 
-            if (!tablesChanged) tables = (List<TableExpressionBase>)updateExpression.Tables;
-            if (!fieldsChanged) fields = (List<ProjectionExpression>)updateExpression.Fields;
-
-            return changed || fieldsChanged || tablesChanged
+            return changed
                 ? new UpdateExpression(updateExpression.Expanded, expandedTable, predicate, fields, tables)
                 : updateExpression;
         }
@@ -164,6 +162,25 @@ namespace Microsoft.EntityFrameworkCore.Query
             return expression != selectIntoExpression.Expression
                 ? new SelectIntoExpression(selectIntoExpression.TableName, selectIntoExpression.Schema, expression)
                 : selectIntoExpression;
+        }
+
+        protected virtual UpsertExpression Visit(UpsertExpression upsertExpression)
+        {
+            var targetTable = (TableExpression)Visit(upsertExpression.TargetTable);
+            bool changed = targetTable != upsertExpression.TargetTable;
+
+            var sourceTable = Visit(upsertExpression.SourceTable);
+            changed = changed || sourceTable != upsertExpression.SourceTable;
+
+            var onConflictUpdate = Visit(upsertExpression.OnConflictUpdate);
+            changed = changed || onConflictUpdate != upsertExpression.OnConflictUpdate;
+
+            var columns = Visit(upsertExpression.Columns);
+            changed = changed || columns != upsertExpression.Columns;
+
+            return changed
+                ? new UpsertExpression(targetTable, sourceTable, columns, onConflictUpdate, upsertExpression.ConflictConstraintName)
+                : upsertExpression;
         }
 
         private static bool? TryGetBoolConstantValue(SqlExpression expression)
@@ -181,6 +198,12 @@ namespace Microsoft.EntityFrameworkCore.Query
             {
                 nullable = false;
                 return sqlExpression;
+            }
+
+            if (sqlExpression is ExcludedTableColumnExpression excluded)
+            {
+                nullable = excluded.IsNullable;
+                return excluded;
             }
 
             return base.VisitCustomSqlExpression(

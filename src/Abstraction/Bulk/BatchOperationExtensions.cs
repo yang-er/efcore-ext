@@ -525,10 +525,16 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(set, nameof(set));
             Check.NotNull(sources, nameof(sources));
             Check.NotNull(insertExpression, nameof(insertExpression));
+            var inner = CreateSourceTable(set, sources);
+            var outer = (IQueryable<TTarget>)set;
 
-            var context = set.GetService<ICurrentDbContext>().Context;
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.Upsert(context, set, sources, insertExpression, updateExpression);
+            return outer.Provider.Execute<int>(
+                Expression.Call(
+                    BatchOperationMethods.UpsertCollapsed.MakeGenericMethod(typeof(TTarget), typeof(TSource)),
+                    outer.Expression,
+                    inner.Expression,
+                    Expression.Quote(insertExpression),
+                    Expression.Quote(updateExpression ?? ((_, __) => null!))));
         }
 
         /// <summary>
@@ -554,10 +560,17 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(set, nameof(set));
             Check.NotNull(sources, nameof(sources));
             Check.NotNull(insertExpression, nameof(insertExpression));
+            var inner = CreateSourceTable(set, sources);
+            var outer = (IQueryable<TTarget>)set;
 
-            var context = set.GetService<ICurrentDbContext>().Context;
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.UpsertAsync(context, set, sources, insertExpression, updateExpression, cancellationToken);
+            return ((IAsyncQueryProvider)outer.Provider).ExecuteAsync<Task<int>>(
+                Expression.Call(
+                    BatchOperationMethods.UpsertCollapsed.MakeGenericMethod(typeof(TTarget), typeof(TSource)),
+                    outer.Expression,
+                    inner.Expression,
+                    Expression.Quote(insertExpression),
+                    Expression.Quote(updateExpression ?? ((_, __) => null!))),
+                cancellationToken);
         }
 
         /// <summary>
@@ -581,10 +594,16 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(set, nameof(set));
             Check.NotNull(source, nameof(source));
             Check.NotNull(insertExpression, nameof(insertExpression));
+            var inner = CreateSourceTable(set, new[] { source });
+            var outer = (IQueryable<TTarget>)set;
 
-            var context = set.GetService<ICurrentDbContext>().Context;
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.Upsert(context, set, new[] { source }, insertExpression, updateExpression);
+            return outer.Provider.Execute<int>(
+                Expression.Call(
+                    BatchOperationMethods.UpsertCollapsed.MakeGenericMethod(typeof(TTarget), typeof(TSource)),
+                    outer.Expression,
+                    inner.Expression,
+                    Expression.Quote(insertExpression),
+                    Expression.Quote(updateExpression ?? ((_, __) => null!))));
         }
 
         /// <summary>
@@ -610,10 +629,17 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(set, nameof(set));
             Check.NotNull(source, nameof(source));
             Check.NotNull(insertExpression, nameof(insertExpression));
+            var inner = CreateSourceTable(set, new[] { source });
+            var outer = (IQueryable<TTarget>)set;
 
-            var context = set.GetService<ICurrentDbContext>().Context;
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.UpsertAsync(context, set, new[] { source }, insertExpression, updateExpression, cancellationToken);
+            return ((IAsyncQueryProvider)outer.Provider).ExecuteAsync<Task<int>>(
+                Expression.Call(
+                    BatchOperationMethods.UpsertCollapsed.MakeGenericMethod(typeof(TTarget), typeof(TSource)),
+                    outer.Expression,
+                    inner.Expression,
+                    Expression.Quote(insertExpression),
+                    Expression.Quote(updateExpression ?? ((_, __) => null!))),
+                cancellationToken);
         }
     }
 }

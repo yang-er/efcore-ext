@@ -115,6 +115,16 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                         VisitorHelper.RemapBatchUpdateJoin(methodCallExpression, out _, out _));
 
 
+                case nameof(BatchOperationExtensions.Upsert)
+                when genericMethod == BatchOperationMethods.UpsertCollapsed:
+                    return Expression.Call(
+                        methodCallExpression.Method,
+                        Expand(methodCallExpression.Arguments[0]),
+                        Expand(methodCallExpression.Arguments[1]),
+                        methodCallExpression.Arguments[2],
+                        methodCallExpression.Arguments[3]);
+
+
                 default:
                     throw TranslateFailed();
             }

@@ -1,9 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Query.Internal;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using System;
-using System.Linq;
 using System.Linq.Expressions;
 
 #if EFCORE31
@@ -14,11 +10,11 @@ using RelationalQueryCompilationContext = Microsoft.EntityFrameworkCore.Query.Qu
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
-    public class XysQueryTranslationPreprocessor : RelationalQueryTranslationPreprocessor
+    public class RelationalBulkQueryTranslationPreprocessor : RelationalQueryTranslationPreprocessor
     {
         private readonly RelationalQueryCompilationContext _queryCompilationContext;
 
-        public XysQueryTranslationPreprocessor(
+        public RelationalBulkQueryTranslationPreprocessor(
             QueryTranslationPreprocessorDependencies dependencies,
             RelationalQueryTranslationPreprocessorDependencies relationalDependencies,
             QueryCompilationContext queryCompilationContext)
@@ -60,14 +56,14 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
     }
 
-    public class XysQueryTranslationPreprocessorFactory :
+    public class RelationalBulkQueryTranslationPreprocessorFactory :
         IBulkQueryTranslationPreprocessorFactory,
         IServiceAnnotation<IQueryTranslationPreprocessorFactory, RelationalQueryTranslationPreprocessorFactory>
     {
         private readonly QueryTranslationPreprocessorDependencies _dependencies;
         private readonly RelationalQueryTranslationPreprocessorDependencies _relationalDependencies;
 
-        public XysQueryTranslationPreprocessorFactory(
+        public RelationalBulkQueryTranslationPreprocessorFactory(
             QueryTranslationPreprocessorDependencies dependencies,
             RelationalQueryTranslationPreprocessorDependencies relationalDependencies)
         {
@@ -78,21 +74,11 @@ namespace Microsoft.EntityFrameworkCore.Query
         public QueryTranslationPreprocessor Create(QueryCompilationContext queryCompilationContext)
         {
             Check.NotNull(queryCompilationContext, nameof(queryCompilationContext));
-            return new XysQueryTranslationPreprocessor(_dependencies, _relationalDependencies, queryCompilationContext);
-        }
 
-        private static readonly Type _parentPreprocessorType = typeof(RelationalQueryTranslationPreprocessorFactory);
-
-        public static void TryReplace(IServiceCollection services)
-        {
-            var factory = services
-                .Where(s => s.ServiceType == typeof(IQueryTranslationPreprocessorFactory))
-                .ToList();
-
-            if (factory.Count != 1 || factory[0].ImplementationType != _parentPreprocessorType)
-                throw new InvalidOperationException($"Implementation of IQueryTranslationPreprocessorFactory is not supported.");
-
-            services.Replace(ServiceDescriptor.Singleton<IQueryTranslationPreprocessorFactory, XysQueryTranslationPreprocessorFactory>());
+            return new RelationalBulkQueryTranslationPreprocessor(
+                _dependencies,
+                _relationalDependencies,
+                queryCompilationContext);
         }
     }
 }
