@@ -127,13 +127,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return excludedTableColumnExpression;
         }
 
-        public virtual IRelationalCommand GetCommand(SelectIntoExpression selectIntoExpression)
-        {
-            RelationalInternals.InitQuerySqlGenerator(this);
-            VisitSelectInto(selectIntoExpression);
-            return Sql.Build();
-        }
-
         protected virtual Expression VisitSelectInto(SelectIntoExpression selectIntoExpression)
         {
             Sql.Append("INSERT INTO ")
@@ -148,13 +141,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             VisitSelect(selectIntoExpression.Expression);
             return selectIntoExpression;
-        }
-
-        public virtual IRelationalCommand GetCommand(UpdateExpression updateExpression)
-        {
-            RelationalInternals.InitQuerySqlGenerator(this);
-            VisitUpdate(updateExpression);
-            return Sql.Build();
         }
 
         protected virtual Expression VisitUpdate(UpdateExpression updateExpression)
@@ -191,13 +177,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
 
             return original;
-        }
-
-        public virtual IRelationalCommand GetCommand(DeleteExpression deleteExpression)
-        {
-            RelationalInternals.InitQuerySqlGenerator(this);
-            VisitDelete(deleteExpression);
-            return Sql.Build();
         }
 
         protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
@@ -294,28 +273,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             }
 
             return Sql.Build();
-        }
-
-        public object CreateParameter(QueryContext context, TypeMappedRelationalParameter parInfo)
-        {
-            var typeMap = RelationalInternals.AccessRelationalTypeMapping(parInfo);
-            var value = context.ParameterValues[parInfo.InvariantName];
-            if (typeMap.Converter != null)
-                value = typeMap.Converter.ConvertToProvider(value);
-            var nullable = RelationalInternals.AccessIsNullable(parInfo);
-
-            var parameter = new NpgsqlParameter
-            {
-                ParameterName = parInfo.Name,
-                Direction = ParameterDirection.Input,
-                Value = value ?? DBNull.Value,
-            };
-
-            if (nullable.HasValue)
-                parameter.IsNullable = nullable.Value;
-            if (typeMap.DbType.HasValue)
-                parameter.DbType = typeMap.DbType.Value;
-            return parameter;
         }
 
         public IRelationalCommand GetCommand(MergeExpression mergeExpression)

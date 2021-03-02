@@ -61,12 +61,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var generator = CreateGenerator();
             var command = expression switch
             {
-                SelectExpression selectExpression => generator.GetCommand(selectExpression),
-                UpdateExpression updateExpression => generator.GetCommand(updateExpression),
                 UpsertExpression upsertExpression => generator.GetCommand(upsertExpression),
                 MergeExpression mergeExpression => generator.GetCommand(mergeExpression),
-                DeleteExpression deleteExpression => generator.GetCommand(deleteExpression),
-                SelectIntoExpression selectIntoExpression => generator.GetCommand(selectIntoExpression),
                 _ => throw new ArgumentNullException(nameof(expression)),
             };
 
