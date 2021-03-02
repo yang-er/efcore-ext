@@ -86,6 +86,14 @@ namespace Microsoft.EntityFrameworkCore.Query
             return TableExpressionConstructor(table);
         }
 
+        internal static Expression AddCrossJoinForMerge(
+            this SelectExpression outerSelectExpression,
+            ShapedQueryExpression innerSource,
+            Expression outerShaper)
+        {
+            return outerSelectExpression.AddCrossJoin(innerSource, outerShaper);
+        }
+
 #elif EFCORE31
 
         public static TableExpression Table(
@@ -110,9 +118,93 @@ namespace Microsoft.EntityFrameworkCore.Query
             return factory.Function(name, arguments, returnType, typeMapping);
         }
 
+        internal static Expression AddCrossJoinForMerge(
+            this SelectExpression outerSelectExpression,
+            ShapedQueryExpression innerSource,
+            Expression outerShaper)
+        {
+            Check.NotNull(outerSelectExpression, nameof(outerSelectExpression));
+            Check.NotNull(innerSource, nameof(innerSource));
+            Check.NotNull(outerShaper, nameof(outerShaper));
+
+            var transparentIdentifierType = TransparentIdentifierFactory.Create(
+                outerShaper.Type,
+                innerSource.ShaperExpression.Type);
+            var outerMemberInfo = transparentIdentifierType.GetTypeInfo().GetDeclaredField("Outer");
+            var innerMemberInfo = transparentIdentifierType.GetTypeInfo().GetDeclaredField("Inner");
+
+            var innerSelectExpression = (SelectExpression)innerSource.QueryExpression;
+            var innerShaper = innerSource.ShaperExpression;
+            outerSelectExpression.AddCrossJoin(innerSelectExpression, transparentIdentifierType);
+
+            if (outerSelectExpression.Projection.Count > 0
+                || innerSelectExpression.Projection.Count > 0)
+            {
+                throw new NotImplementedException("Investigate why outerClientEval or innerClientEval.");
+            }
+
+            var remapper = new ProjectionBindingExpressionRemappingExpressionVisitor(outerSelectExpression);
+            outerShaper = remapper.RemapProjectionMember(outerShaper, outerMemberInfo);
+            innerShaper = remapper.RemapProjectionMember(innerShaper, innerMemberInfo, AccessPendingCollections(outerSelectExpression).Count);
+
+            return Expression.New(
+                transparentIdentifierType.GetConstructors()[0],
+                new[] { outerShaper, innerShaper },
+                new[] { outerMemberInfo, innerMemberInfo });
+        }
+
+        private sealed class ProjectionBindingExpressionRemappingExpressionVisitor : ExpressionVisitor
+        {
+            private readonly Expression _queryExpression;
+            private int _pendingCollectionOffset;
+            private MemberInfo _prependMember;
+
+            public ProjectionBindingExpressionRemappingExpressionVisitor(Expression queryExpression)
+            {
+                _queryExpression = queryExpression;
+            }
+
+            public Expression RemapProjectionMember(
+                Expression expression,
+                MemberInfo prepend,
+                int pendingCollectionOffset = 0)
+            {
+                _pendingCollectionOffset = pendingCollectionOffset;
+                _prependMember = prepend;
+                return Visit(expression);
+            }
+
+            protected override Expression VisitExtension(Expression extensionExpression)
+            {
+                return extensionExpression switch
+                {
+                    ProjectionBindingExpression projectionBindingExpression => Remap(projectionBindingExpression),
+                    CollectionShaperExpression collectionShaperExpression => Remap(collectionShaperExpression),
+                    _ => base.VisitExtension(extensionExpression)
+                };
+            }
+
+            private CollectionShaperExpression Remap(CollectionShaperExpression collectionShaperExpression)
+                => new CollectionShaperExpression(
+                    new ProjectionBindingExpression(
+                        _queryExpression,
+                        ((ProjectionBindingExpression)collectionShaperExpression.Projection).Index.Value + _pendingCollectionOffset,
+                        typeof(object)),
+                    collectionShaperExpression.InnerShaper,
+                    collectionShaperExpression.Navigation,
+                    collectionShaperExpression.ElementType);
+
+            private ProjectionBindingExpression Remap(ProjectionBindingExpression projectionBindingExpression)
+            {
+                var currentProjectionMember = projectionBindingExpression.ProjectionMember;
+                var newBinding = _prependMember == null ? currentProjectionMember : currentProjectionMember.Prepend(_prependMember);
+                return new ProjectionBindingExpression(_queryExpression, newBinding, projectionBindingExpression.Type);
+            }
+        }
+
 #endif
 
-        #region Reflection Getting
+            #region Reflection Getting
 
         private const BindingFlags GeneralBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
@@ -150,6 +242,11 @@ namespace Microsoft.EntityFrameworkCore.Query
                 .GetConstructors(GeneralBindingFlags)[0]
                 .CreateFactory()
               as Func<string, string, string, TableExpression>;
+
+        public static readonly Func<SelectExpression, List<SelectExpression>> AccessPendingCollections
+            = Internals.CreateLambda<SelectExpression, List<SelectExpression>>(
+                param => param.AccessField("_pendingCollections"))
+            .Compile();
 
 #endif
 

@@ -358,7 +358,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     "Are you trying to normally insert one or lost your key fields?");
             }
 
-            var newShaper = targetSelect.AddCrossJoin(sourceShaped, targetShaped.ShaperExpression);
+            var newShaper = targetSelect.AddCrossJoinForMerge(sourceShaped, targetShaped.ShaperExpression);
             if (newShaper is not NewExpression newNewShaper
                 || newNewShaper.Arguments.Count != 2
                 || targetSelect.Tables.Count != 2
