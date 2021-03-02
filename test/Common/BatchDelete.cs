@@ -114,9 +114,9 @@ namespace Testcase_BatchDelete
         public void ConstantCondition()
         {
             using var context = contextFactory();
-            var it2 = items.Where(a => a.ItemId > 500 && a.Price == 3).ToList();
+            var it2 = items.Where(a => a.ItemId > 500 && a.Price == 124).ToList();
             var count = context.Items
-                .Where(a => a.ItemId > 500 && a.Price == 3)
+                .Where(a => a.ItemId > 500 && a.Price == 124)
                 .BatchDelete();
             Assert.Equal(it2.Count, count);
             it2.ForEach(a => items.Remove(a));

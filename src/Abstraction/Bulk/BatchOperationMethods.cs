@@ -113,7 +113,18 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             .GetGenericMethodDefinition();
 
 
-        public static MethodInfo s_Upsert_TTarget_TSource
+        public static MethodInfo UpsertCollapsed { get; }
+            = new Func<IQueryable<object>,
+                       IEnumerable<object>,
+                       Expression<Func<object, object>>,
+                       Expression<Func<object, object, object>>,
+                       int>(
+                BatchOperationExtensions.Upsert)
+            .GetMethodInfo()
+            .GetGenericMethodDefinition();
+
+
+        public static MethodInfo Upsert { get; }
             = new Func<DbSet<object>,
                        IEnumerable<object>,
                        Expression<Func<object, object>>,
@@ -124,7 +135,8 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             .GetGenericMethodDefinition();
 
 
-        public static MethodInfo s_UpsertOne_TTarget_TSource
+        [Obsolete]
+        public static MethodInfo UpsertOne { get; }
             = new Func<DbSet<object>,
                        object,
                        Expression<Func<object, object>>,
