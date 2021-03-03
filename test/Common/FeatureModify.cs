@@ -62,6 +62,15 @@ namespace Check_UseLessJoinsRemoval
         public OwnedAndOwnedAndOwned What { get; set; }
     }
 
+    public class NormalEntity
+    {
+        public int Id { get; set; }
+
+        public string Name { get; set; }
+
+        public int Age { get; set; }
+    }
+
     public class UpdateContext : DbContext
     {
         public DbSet<ChangeLog> ChangeLogs { get; set; }
@@ -69,6 +78,8 @@ namespace Check_UseLessJoinsRemoval
         public DbSet<MiniInfo> MiniInfos { get; set; }
 
         public DbSet<OwnedThree> OwnedThrees { get; set; }
+
+        public DbSet<NormalEntity> NormalEntities { get; set; }
 
         public string DefaultSchema { get; }
 
@@ -157,6 +168,13 @@ namespace Check_UseLessJoinsRemoval
 
                 entity.Property(e => e.Other)
                     .HasColumnName("Other");
+
+                entity.HasKey(e => e.Id);
+            });
+
+            modelBuilder.Entity<NormalEntity>(entity =>
+            {
+                entity.ToTable(nameof(NormalEntity) + "_" + DefaultSchema);
 
                 entity.HasKey(e => e.Id);
             });
@@ -287,6 +305,64 @@ namespace Check_UseLessJoinsRemoval
             var sql = query.ToSQL();
             Assert.Equal(4, sql.Trim().Count(c => c == '\n'));
             query.Load();
+        }
+
+        [ConditionalFact, TestPriority(8)]
+        public void Owned_SkipTrimming()
+        {
+            using var context = contextFactory();
+            var sql = context.NormalEntities
+                .Join(context.NormalEntities, a => a.Id, a => a.Id, (a, b) => a)
+                .TagWith("SkipSelfJoinsPruning")
+                .ToSQL();
+            Assert.Contains("INNER JOIN", sql);
+            context.ChangeLogs.Load();
+        }
+
+        [ConditionalFact, TestPriority(9)]
+        public void ShaperChanged()
+        {
+            using var context = contextFactory();
+
+            var cat1 = context.NormalEntities
+                .Where(a => a.Age > 80);
+
+            var cat2 = context.NormalEntities
+                .Where(a => a.Age < 20);
+
+            var cat3 = context.NormalEntities
+                .Where(a => a.Age == 50);
+
+            var query = cat1.Union(cat2).Union(cat3)
+                .TagWith("hello");
+
+            var sql = query.ToSQL();
+            Assert.DoesNotContain("UNION", sql);
+            query.Load();
+        }
+
+        [ConditionalFact, TestPriority(10)]
+        public void ReallyUnionDistinct()
+        {
+            using var context = contextFactory();
+
+            var cat1 = context.NormalEntities
+                .Where(a => a.Age > 80)
+                .Select(n => new { n.Id, n.Name, n.Age, Type = 1 });
+
+            var cat2 = context.NormalEntities
+                .Where(a => a.Age < 20)
+                .Select(n => new { n.Id, n.Name, n.Age, Type = 2 });
+
+            var cat3 = context.NormalEntities
+                .Where(a => a.Age == 50)
+                .Select(n => new { n.Id, n.Name, n.Age, Type = 3 });
+
+            var query = cat1.Union(cat2).Union(cat3);
+
+            var sql = query.ToSQL();
+            Assert.Contains("UNION", sql);
+            context.ChangeLogs.Load();
         }
     }
 }

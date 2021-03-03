@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+﻿using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,15 +10,18 @@ namespace Microsoft.EntityFrameworkCore.Query
     {
         private readonly SelfJoinsPredicateComparer _comparer;
         private readonly ColumnRewritingExpressionVisitor _columnRewriting;
+        private readonly bool _skipped;
 
         public SelfJoinsPruningExpressionVisitor(
-            IModel model,
+            QueryCompilationContext queryCompilationContext,
             ISqlExpressionFactory sqlExpressionFactory)
         {
-            Check.NotNull(model, nameof(model));
+            Check.NotNull(queryCompilationContext, nameof(queryCompilationContext));
             Check.NotNull(sqlExpressionFactory, nameof(sqlExpressionFactory));
 
-            _comparer = new SelfJoinsPredicateComparer(model);
+            _skipped = queryCompilationContext.Tags.Contains("SkipSelfJoinsPruning");
+            if (_skipped) queryCompilationContext.Tags.Remove("SkipSelfJoinsPruning");
+            _comparer = new SelfJoinsPredicateComparer(queryCompilationContext.Model);
             _columnRewriting = new ColumnRewritingExpressionVisitor(sqlExpressionFactory);
         }
 
@@ -56,15 +58,28 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         public Expression Reduce(Expression query)
         {
+            if (_skipped) return query;
+
             if (query is not ShapedQueryExpression shaped)
             {
                 throw new InvalidOperationException("Only shaped query expressions can be passed here.");
             }
 
-            var newQuery = Visit(shaped.QueryExpression);
-            if (newQuery != shaped.QueryExpression)
+            var originQuery = (SelectExpression)shaped.QueryExpression;
+            var newQuery = (SelectExpression)VisitSelect(originQuery);
+
+            if (!ReferenceEquals(newQuery, originQuery))
             {
-                throw new NotImplementedException();
+                // Only appears when SELECT ( UNION (..) ), so the shaping result is the same.
+                if (originQuery.Projection.Count == 0)
+                {
+                    ((List<ProjectionExpression>)newQuery.Projection).Clear();
+                    // In fact we need to process on newQuery's _projectionMapping
+                    // However it's already the final state
+                }
+
+                var newShaper = new ShaperQueryExpressionReplacingVisitor(originQuery, newQuery).Visit(shaped.ShaperExpression);
+                shaped = shaped.Update(newQuery, newShaper);
             }
 
             return shaped;
@@ -81,9 +96,14 @@ namespace Microsoft.EntityFrameworkCore.Query
             // SELECT ( UNION ( SELECT , SELECT ) )
             if (selectExpression.Tables.Count == 1
                 && selectExpression.Tables[0] is UnionExpression
-                && newTables[0] is SelectExpression unionToSelect)
+                && newTables[0] is SelectExpression unionToSelect
+                && unionToSelect.Orderings.Count == 0
+                && !unionToSelect.IsDistinct
+                && unionToSelect.GroupBy.Count == 0
+                && unionToSelect.Having == null
+                && unionToSelect.Limit == null
+                && unionToSelect.Offset == null)
             {
-                // should here update the shaper expression?
                 return unionToSelect;
             }
 
@@ -186,7 +206,22 @@ namespace Microsoft.EntityFrameworkCore.Query
                 && unionExpression.Source2.Tables.Count == 1
                 && unionExpression.Source1.Tables[0] is TableExpression table1
                 && unionExpression.Source2.Tables[0] is TableExpression table2
-                && table1.Name == table2.Name)
+                && table1.Name == table2.Name
+                && unionExpression.Source1.Orderings.Count == 0
+                && unionExpression.Source2.Orderings.Count == 0
+                && !unionExpression.Source1.IsDistinct
+                && !unionExpression.Source2.IsDistinct
+                && unionExpression.Source1.GroupBy.Count == 0
+                && unionExpression.Source2.GroupBy.Count == 0
+                && unionExpression.Source1.Having == null
+                && unionExpression.Source2.Having == null
+                && unionExpression.Source1.Limit == null
+                && unionExpression.Source2.Limit == null
+                && unionExpression.Source1.Offset == null
+                && unionExpression.Source2.Offset == null
+                && unionExpression.Source1.Projection.Count == unionExpression.Source2.Projection.Count
+                && unionExpression.Source1.Projection.Count != 0
+                && SameSelectFields(select1, select2, table1, table2))
             {
                 var selectExpression = unionExpression.Source1;
                 var predicate2 = unionExpression.Source2.Predicate;
@@ -203,6 +238,31 @@ namespace Microsoft.EntityFrameworkCore.Query
             else
             {
                 return unionExpression;
+            }
+
+            bool SameSelectFields(SelectExpression select1, SelectExpression select2, TableExpression table1, TableExpression table2)
+            {
+                using (_columnRewriting.Setup(table2, table1))
+                {
+                    for (int i = 0; i < select1.Projection.Count; i++)
+                    {
+                        var projA = select1.Projection[i];
+                        var projB = select2.Projection[i];
+
+                        if (projA.Alias != projB.Alias)
+                        {
+                            return false;
+                        }
+
+                        var tmpExprB = _columnRewriting.Visit(projB.Expression);
+                        if (!projA.Expression.Equals(tmpExprB))
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
             }
         }
     }
