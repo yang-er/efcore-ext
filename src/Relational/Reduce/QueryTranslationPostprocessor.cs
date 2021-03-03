@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq.Expressions;
 
@@ -8,7 +7,7 @@ namespace Microsoft.EntityFrameworkCore.Query
     public class TableSplittingJoinsRemovalWrappingQueryTranslationPostprocessor : QueryTranslationPostprocessor
     {
         private readonly ISqlExpressionFactory _sqlExpressionFactory;
-        private readonly IModel _model;
+        private readonly QueryCompilationContext _queryCompilationContext;
         private readonly QueryTranslationPostprocessor _queryTranslationPostprocessor;
 
         public TableSplittingJoinsRemovalWrappingQueryTranslationPostprocessor(
@@ -23,13 +22,13 @@ namespace Microsoft.EntityFrameworkCore.Query
 #endif
         {
             _queryTranslationPostprocessor = queryTranslationPostprocessor;
-            _model = queryCompilationContext.Model;
+            _queryCompilationContext = queryCompilationContext;
             _sqlExpressionFactory = sqlExpressionFactory;
         }
 
         public override Expression Process(Expression query)
         {
-            query = new SelfJoinsPruningExpressionVisitor(_model, _sqlExpressionFactory).Reduce(query);
+            query = new SelfJoinsPruningExpressionVisitor(_queryCompilationContext, _sqlExpressionFactory).Reduce(query);
             query = _queryTranslationPostprocessor.Process(query);
             return query;
         }

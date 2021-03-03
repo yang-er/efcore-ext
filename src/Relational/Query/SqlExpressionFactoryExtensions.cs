@@ -68,6 +68,16 @@ namespace Microsoft.EntityFrameworkCore.Query
             ApplyPredicate(selectExpression, predicate);
         }
 
+        public static void CopyIdentifiersFrom(
+            this SelectExpression selectExpression,
+            SelectExpression otherSelectExpression)
+        {
+            Check.NotNull(selectExpression, nameof(selectExpression));
+            Check.NotNull(otherSelectExpression, nameof(otherSelectExpression));
+
+            ApplyCopyIdentifiersFrom(selectExpression, otherSelectExpression);
+        }
+
         public static void SetAlias(
             this TableExpressionBase tableExpressionBase,
             string alias)
@@ -116,6 +126,19 @@ namespace Microsoft.EntityFrameworkCore.Query
             RelationalTypeMapping typeMapping = null)
         {
             return factory.Function(name, arguments, returnType, typeMapping);
+        }
+
+        public static ShapedQueryExpression Update(
+            this ShapedQueryExpression shaped,
+            Expression queryExpression,
+            Expression shaperExpression)
+        {
+            Check.NotNull(queryExpression, nameof(queryExpression));
+            Check.NotNull(shaperExpression, nameof(shaperExpression));
+
+            shaped.QueryExpression = queryExpression;
+            shaped.ShaperExpression = shaperExpression;
+            return shaped;
         }
 
         internal static Expression AddCrossJoinForMerge(
@@ -204,7 +227,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
 #endif
 
-            #region Reflection Getting
+        #region Reflection Getting
 
         private const BindingFlags GeneralBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
@@ -279,6 +302,20 @@ namespace Microsoft.EntityFrameworkCore.Query
                 var para2 = Expression.Parameter(typeof(string), "alias");
                 var body = Expression.Assign(para1.AccessProperty("Alias"), para2);
                 return Expression.Lambda<Action<TableExpressionBase, string>>(body, para1, para2);
+            })
+            .Invoke().Compile();
+
+        public static readonly Action<SelectExpression, SelectExpression> ApplyCopyIdentifiersFrom
+            = new Func<Expression<Action<SelectExpression, SelectExpression>>>(delegate
+            {
+                var para1 = Expression.Parameter(typeof(SelectExpression), "left");
+                var para2 = Expression.Parameter(typeof(SelectExpression), "right");
+                var left = para1.AccessField("_identifier");
+                var right = para2.AccessField("_identifier");
+                var clearup = Expression.Call(left, left.Type.GetMethod("Clear"));
+                var addrange = Expression.Call(left, left.Type.GetMethod("AddRange"), right);
+                var body = Expression.Block(clearup, addrange);
+                return Expression.Lambda<Action<SelectExpression, SelectExpression>>(body, para1, para2);
             })
             .Invoke().Compile();
 
