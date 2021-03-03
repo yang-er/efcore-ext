@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Metadata
 {
@@ -57,6 +58,13 @@ namespace Microsoft.EntityFrameworkCore.Metadata
 
             DiscoverOwnedEntity(entityType, "");
             return result;
+        }
+
+        public static IEntityType FindEntityTypeByTable(this IModel model, string tableName)
+        {
+            return model.GetEntityTypes()
+                .Where(e => e.GetTableName() == tableName && !e.IsOwned())
+                .FirstOrDefault();
         }
     }
 }
