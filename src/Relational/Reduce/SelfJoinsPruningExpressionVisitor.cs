@@ -87,15 +87,16 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         protected override Expression VisitSelect(SelectExpression selectExpression)
         {
-            var newTables = selectExpression.Tables
+            var selectTables = (List<TableExpressionBase>)selectExpression.Tables;
+            var newTables = selectTables
                 .Select(i => Visit(i))
                 .Cast<TableExpressionBase>()
                 .ToList();
 
             // For UNION sequences, it is likely to be:
             // SELECT ( UNION ( SELECT , SELECT ) )
-            if (selectExpression.Tables.Count == 1
-                && selectExpression.Tables[0] is UnionExpression
+            if (selectTables.Count == 1
+                && selectTables[0] is UnionExpression
                 && newTables[0] is SelectExpression unionToSelect
                 && unionToSelect.Orderings.Count == 0
                 && !unionToSelect.IsDistinct
@@ -107,9 +108,66 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return unionToSelect;
             }
 
-            for (int _i = 0; _i < selectExpression.Tables.Count; _i++)
+            for (int i = selectTables.Count - 1; i >= 0; i--)
             {
-                var pendingTable = selectExpression.Tables[_i] switch
+                if (newTables[i] == selectTables[i]) continue;
+                var resulting = newTables[i];
+
+                if (newTables[i] is SelectExpression newSelect
+                    && newSelect.Orderings.Count == 0
+                    && !newSelect.IsDistinct
+                    && newSelect.GroupBy.Count == 0
+                    && newSelect.Having == null
+                    && newSelect.Limit == null
+                    && newSelect.Offset == null
+                    && newSelect.Tables.Count == 1
+                    && newSelect.Tables[0] is TableExpression table
+                    && i == 0)
+                {
+                    resulting = table;
+                    using (_columnRewriting.Setup(selectTables[i], table))
+                    {
+                        UpdateParent();
+
+                        selectExpression.SetPredicate(
+                            MergePredicate(
+                                ExpressionType.AndAlso,
+                                newSelect.Predicate,
+                                selectExpression.Predicate));
+                    }
+                }
+                else if (newTables[i] is JoinExpressionBase joinNew && selectTables[i] is JoinExpressionBase joinOld)
+                {
+                    if (joinNew.Table != joinOld.Table)
+                    {
+                        using (_columnRewriting.Setup(joinOld.Table, joinNew.Table))
+                        {
+                            UpdateParent();
+                        }
+                    }
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+
+                ((List<TableExpressionBase>)selectExpression.Tables)[i] = resulting;
+
+                void UpdateParent()
+                {
+                    selectExpression.SetPredicate(_columnRewriting.Visit(selectExpression.Predicate));
+                    selectExpression.SetHaving(_columnRewriting.Visit(selectExpression.Having));
+                    _columnRewriting.Visit((List<TableExpressionBase>)selectExpression.Tables);
+                    _columnRewriting.Visit((List<OrderingExpression>)selectExpression.Orderings);
+                    _columnRewriting.Visit((List<SqlExpression>)selectExpression.GroupBy);
+                    _columnRewriting.Visit((List<ProjectionExpression>)selectExpression.Projection);
+                    _columnRewriting.Visit(selectExpression.GetProjectionMapping());
+                }
+            }
+
+            for (int _i = 0; _i < selectTables.Count; _i++)
+            {
+                var pendingTable = selectTables[_i] switch
                 {
                     TableExpression _table1 => _table1,
                     PredicateJoinExpressionBase _join when _join.Table is TableExpression _table2 => _table2,
@@ -119,9 +177,9 @@ namespace Microsoft.EntityFrameworkCore.Query
                 if (pendingTable == null) continue;
                 int startId = _i + 1;
 
-                for (int i = startId; i < selectExpression.Tables.Count; i++)
+                for (int i = startId; i < selectTables.Count; i++)
                 {
-                    if (selectExpression.Tables[i] is not PredicateJoinExpressionBase join)
+                    if (selectTables[i] is not PredicateJoinExpressionBase join)
                     {
                         continue;
                     }
@@ -143,7 +201,6 @@ namespace Microsoft.EntityFrameworkCore.Query
                             _columnRewriting.Visit((List<ProjectionExpression>)selectExpression.Projection);
                         }
 
-                        var selectTables = (List<TableExpressionBase>)selectExpression.Tables;
                         var newJoin = join switch
                         {
                             LeftJoinExpression left => left.Update(newTable, joinPredicate),
@@ -264,6 +321,36 @@ namespace Microsoft.EntityFrameworkCore.Query
                     return true;
                 }
             }
+        }
+
+        protected override Expression VisitInnerJoin(InnerJoinExpression innerJoinExpression)
+        {
+            var result = (InnerJoinExpression)base.VisitInnerJoin(innerJoinExpression);
+            if (result.Table == innerJoinExpression.Table) return result;
+
+            if (result.Table.Alias == null) result.Table.SetAlias(innerJoinExpression.Table.Alias);
+
+            using (_columnRewriting.Setup(innerJoinExpression.Table, result.Table))
+            {
+                result = result.Update(result.Table, _columnRewriting.Visit(result.JoinPredicate));
+            }
+
+            return result;
+        }
+
+        protected override Expression VisitLeftJoin(LeftJoinExpression leftJoinExpression)
+        {
+            var result = (LeftJoinExpression)base.VisitLeftJoin(leftJoinExpression);
+            if (result.Table == leftJoinExpression.Table) return result;
+
+            if (result.Table.Alias == null) result.Table.SetAlias(leftJoinExpression.Table.Alias);
+
+            using (_columnRewriting.Setup(leftJoinExpression.Table, result.Table))
+            {
+                result = result.Update(result.Table, _columnRewriting.Visit(result.JoinPredicate));
+            }
+
+            return result;
         }
     }
 }

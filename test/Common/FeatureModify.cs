@@ -364,5 +364,26 @@ namespace Check_UseLessJoinsRemoval
             Assert.Contains("UNION", sql);
             context.ChangeLogs.Load();
         }
+
+        [ConditionalFact, TestPriority(11)]
+        public void OwnedThenUnionDistinct()
+        {
+            using var context = contextFactory();
+
+            var cat1 = context.ChangeLogs
+                .Where(a => a.ChangeLogId > 80);
+
+            var cat2 = context.ChangeLogs
+                .Where(a => a.ChangeLogId < 20);
+
+            var cat3 = context.ChangeLogs
+                .Where(a => a.ChangeLogId == 50);
+
+            var query = cat1.Union(cat2).Union(cat3);
+
+            var sql = query.ToSQL();
+            Assert.DoesNotContain("UNION", sql);
+            query.Load();
+        }
     }
 }
