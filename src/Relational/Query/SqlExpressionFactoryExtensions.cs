@@ -68,6 +68,14 @@ namespace Microsoft.EntityFrameworkCore.Query
             ApplyPredicate(selectExpression, predicate);
         }
 
+        public static void SetHaving(
+            this SelectExpression selectExpression,
+            SqlExpression predicate)
+        {
+            Check.NotNull(selectExpression, nameof(selectExpression));
+            ApplyHaving(selectExpression, predicate);
+        }
+
         public static void CopyIdentifiersFrom(
             this SelectExpression selectExpression,
             SelectExpression otherSelectExpression)
@@ -291,6 +299,16 @@ namespace Microsoft.EntityFrameworkCore.Query
                 var para1 = Expression.Parameter(typeof(SelectExpression), "select");
                 var para2 = Expression.Parameter(typeof(SqlExpression), "sql");
                 var body = Expression.Assign(para1.AccessProperty("Predicate"), para2);
+                return Expression.Lambda<Action<SelectExpression, SqlExpression>>(body, para1, para2);
+            })
+            .Invoke().Compile();
+
+        public static readonly Action<SelectExpression, SqlExpression> ApplyHaving
+            = new Func<Expression<Action<SelectExpression, SqlExpression>>>(delegate
+            {
+                var para1 = Expression.Parameter(typeof(SelectExpression), "select");
+                var para2 = Expression.Parameter(typeof(SqlExpression), "sql");
+                var body = Expression.Assign(para1.AccessProperty("Having"), para2);
                 return Expression.Lambda<Action<SelectExpression, SqlExpression>>(body, para1, para2);
             })
             .Invoke().Compile();
