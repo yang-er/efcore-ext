@@ -15,7 +15,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         public DateTimeOffset TimeUpdated { get; set; }
     }
 
-    public class DeleteContext : DbContext
+    public class DeleteContext : DbContext, IDbContextWithSeeds
     {
         public DbSet<Item> Items { get; set; }
         public string DefaultSchema { get; }
@@ -33,16 +33,10 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
                 entity.ToTable(nameof(Item) + "_" + DefaultSchema);
             });
         }
-    }
 
-    public class DataFixture<TFactory> : IClassFixture<TFactory>
-        where TFactory : class, IDbContextFactory<DeleteContext>
-    {
-        public List<Item> Items { get; }
-
-        public DataFixture(TFactory factory)
+        public object Seed()
         {
-            Items = new List<Item>();
+            var entities = new List<Item>();
             for (int i = 1; i <= 1000; i++)
             {
                 var entity = new Item
@@ -54,28 +48,23 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
                     TimeUpdated = DateTime.Now,
                 };
 
-                Items.Add(entity);
+                entities.Add(entity);
             }
 
-            using var context = factory.Create();
-            context.Items.AddRange(Items);
-            context.SaveChanges();
+            Items.AddRange(entities);
+            SaveChanges();
+            return entities;
         }
     }
 
-    public abstract class DeleteTestBase<TFactory> :
-        QueryTestBase<DeleteContext, TFactory>,
-        IClassFixture<DataFixture<TFactory>>
+    public abstract class DeleteTestBase<TFactory> : QueryTestBase<DeleteContext, TFactory>
         where TFactory : class, IDbContextFactory<DeleteContext>
     {
         private readonly List<Item> Items;
 
-        protected DeleteTestBase(
-            TFactory factory,
-            DataFixture<TFactory> dataFixture)
-            : base(factory)
+        protected DeleteTestBase(TFactory factory) : base(factory)
         {
-            Items = dataFixture.Items;
+            Items = (List<Item>)factory.Seed;
         }
 
         [ConditionalFact, TestPriority(0)]

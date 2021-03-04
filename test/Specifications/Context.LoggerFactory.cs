@@ -2,13 +2,8 @@
 
 namespace Microsoft.EntityFrameworkCore.Tests
 {
-    public class ContextLoggerFactory
+    public static class ContextLoggerFactory
     {
-        public ILoggerFactory Instance { get; }
-
-        public ContextLoggerFactory()
-        {
-            Instance = LoggerFactory.Create(l => l.AddConsole().AddDebug());
-        }
+        public static ILoggerFactory Singleton { get; } = LoggerFactory.Create(l => l.AddConsole().AddDebug());
     }
 }

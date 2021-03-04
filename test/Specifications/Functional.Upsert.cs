@@ -81,8 +81,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
         }
     }
 
-    public abstract class UpsertTestBase<TFactory> :
-        QueryTestBase<UpsertContext, TFactory>
+    public abstract class UpsertTestBase<TFactory> : QueryTestBase<UpsertContext, TFactory>
         where TFactory : class, IDbContextFactory<UpsertContext>
     {
         protected UpsertTestBase(TFactory factory) : base(factory)
@@ -176,9 +175,10 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
             using (CatchCommand())
             {
                 using var context = CreateContext();
+                var sql = context.RankSource.ToSQL();
 
                 context.RankCache.Upsert(
-                    GetSqlRawForRankSource(),
+                    context.RankSource.FromSqlRaw(sql),
                     rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
                     (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.TotalTimePublic, });
             }
@@ -188,8 +188,6 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
                 Assert.Equal(3, context.RankCache.Count());
             }
         }
-
-        protected abstract IQueryable<RankSource> GetSqlRawForRankSource();
 
         [ConditionalFact, TestPriority(3)]
         public void Upsert_SubSelect()

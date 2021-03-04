@@ -22,7 +22,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
         public bool Public { get; set; }
     }
 
-    public class MergeContext : DbContext
+    public class MergeContext : DbContext, IDbContextWithSeeds
     {
         public DbSet<RankCache> RankCache { get; set; }
         public DbSet<RankSource> RankSource { get; set; }
@@ -48,20 +48,14 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
                 entity.HasKey(e => new { e.ContestId, e.TeamId });
             });
         }
-    }
 
-    public class DataFixture<TFactory> : IClassFixture<TFactory>
-        where TFactory : class, IDbContextFactory<MergeContext>
-    {
-        public DataFixture(TFactory factory)
+        public object Seed()
         {
-            using var context = factory.Create();
-
-            context.RankSource.AddRange(
+            RankSource.AddRange(
                 new RankSource { ContestId = 2, TeamId = 1, Public = true, Time = 100 },
                 new RankSource { ContestId = 1, TeamId = 2, Public = false, Time = 77 });
 
-            context.RankCache.AddRange(
+            RankCache.AddRange(
                 new RankCache
                 {
                     TeamId = 2,
@@ -81,14 +75,13 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
                     TotalTimeRestricted = 9
                 });
 
-            context.SaveChanges();
+            SaveChanges();
+            return null;
         }
     }
 
     [DatabaseProviderSkipCondition(DatabaseProvider.PostgreSQL)]
-    public abstract class MergeIntoTestBase<TFactory> :
-        QueryTestBase<MergeContext, TFactory>,
-        IClassFixture<DataFixture<TFactory>>
+    public abstract class MergeIntoTestBase<TFactory> : QueryTestBase<MergeContext, TFactory>
         where TFactory : class, IDbContextFactory<MergeContext>
     {
         protected MergeIntoTestBase(TFactory factory) : base(factory)
@@ -187,9 +180,10 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
         {
             using var scope = CatchCommand();
             using var context = CreateContext();
+            var sql = context.RankSource.ToSQL();
 
-            var ans = context.RankCache.Merge(
-                sourceTable: GetSqlRawForRankSource(),
+            context.RankCache.Merge(
+                sourceTable: context.RankSource.FromSqlRaw(sql),
                 targetKey: rc => new { rc.ContestId, rc.TeamId },
                 sourceKey: rc => new { rc.ContestId, rc.TeamId },
                 updateExpression:
@@ -212,7 +206,5 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
                     },
                 delete: true);
         }
-
-        protected abstract IQueryable<RankSource> GetSqlRawForRankSource();
     }
 }

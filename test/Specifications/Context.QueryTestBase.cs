@@ -4,7 +4,7 @@ using Xunit;
 namespace Microsoft.EntityFrameworkCore.Tests
 {
     [Collection("DatabaseCollection")]
-    public class QueryTestBase<TContext, TFactory> : IClassFixture<TFactory>
+    public abstract class QueryTestBase<TContext, TFactory> : IClassFixture<TFactory>
         where TContext : DbContext
         where TFactory : class, IDbContextFactory<TContext>
     {
@@ -25,7 +25,7 @@ namespace Microsoft.EntityFrameworkCore.Tests
             return _factory.CommandTracer.BeginScope();
         }
 
-        public QueryTestBase(TFactory factory)
+        protected QueryTestBase(TFactory factory)
         {
             _factory = factory;
         }

@@ -10,10 +10,5 @@ namespace Microsoft.EntityFrameworkCore.Tests
             : base(factory)
         {
         }
-
-        protected override IQueryable<RankSource> GetSqlRawForRankSource()
-        {
-            throw new System.NotImplementedException();
-        }
     }
 }
