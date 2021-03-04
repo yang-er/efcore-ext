@@ -518,6 +518,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 _model = model;
 #if EFCORE50
                 _parameterize = parameterize;
+#elif EFCORE31
+                _parameterize = false;
 #endif
             }
 
