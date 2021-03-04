@@ -13,7 +13,7 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
         public void AssertSql(string sql)
         {
-            sql = sql.Replace("\r", string.Empty).Replace("\n", Environment.NewLine);
+            sql = sql.Trim().Replace("\r", string.Empty).Replace("\n", Environment.NewLine);
             Assert.Equal(sql, ((ICommandNotifier)this).LastCommand);
         }
 

@@ -15,9 +15,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             return _factory.Create();
         }
 
-        protected virtual void AssertSql(string sql)
+        protected void AssertSql(string sql)
         {
-            _factory.CommandTracer.AssertSql(sql);
+            _factory.CommandTracer.AssertSql(sql.Replace("{{schema}}", _factory.UniqueId));
         }
 
         protected IDisposable CatchCommand()

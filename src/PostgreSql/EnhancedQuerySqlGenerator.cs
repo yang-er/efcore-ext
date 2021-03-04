@@ -182,7 +182,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
         {
-            Sql.Append("DELETE ");
+            Sql.Append("DELETE");
 
             if (deleteExpression.JoinedTables.Any())
             {
