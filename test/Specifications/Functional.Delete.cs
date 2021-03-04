@@ -68,7 +68,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(0)]
-        public void WithTop_MustFail()
+        public virtual void WithTop_MustFail()
         {
             using var context = CreateContext();
 
@@ -86,7 +86,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(1)]
-        public void ConstantCondition()
+        public virtual void ConstantCondition()
         {
             var it2 = Items.Where(a => a.ItemId > 500 && a.Price == 124).ToList();
             it2.ForEach(a => Items.Remove(a));
@@ -104,7 +104,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(2)]
-        public void ParameteredCondition()
+        public virtual void ParameteredCondition()
         {
             var nameToDelete = "N4";
 
@@ -115,7 +115,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(3)]
-        public void ContainsSomething()
+        public virtual void ContainsSomething()
         {
             var descriptionsToDelete = new List<string> { "info", "aaa" };
 
@@ -126,7 +126,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(4)]
-        public void ContainsAndAlsoEqual()
+        public virtual void ContainsAndAlsoEqual()
         {
             var descriptionsToDelete = new List<string> { "info" };
             var nameToDelete = "N4";
@@ -139,7 +139,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(5)]
-        public void EmptyContains()
+        public virtual void EmptyContains()
         {
             var descriptionsToDelete = new List<string>();
             using var context = CreateContext();
@@ -148,7 +148,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(6)]
-        public void ListAny()
+        public virtual void ListAny()
         {
             var descriptionsToDelete = new List<string> { "info" };
             using var context = CreateContext();
@@ -157,7 +157,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(7)]
-        public void CompiledQuery_ConstantCondition()
+        public virtual void CompiledQuery_ConstantCondition()
         {
             var compiledQuery = EF.CompileQuery(
                 (DeleteContext ctx) =>
@@ -179,7 +179,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(8)]
-        public void CompiledQuery_ParameteredCondition()
+        public virtual void CompiledQuery_ParameteredCondition()
         {
             var compiledQuery = EF.CompileQuery(
                 (DeleteContext ctx, string nameToDelete) =>
@@ -199,7 +199,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchDelete
         }
 
         [ConditionalFact, TestPriority(9)]
-        public void CompiledQuery_ContainsSomething()
+        public virtual void CompiledQuery_ContainsSomething()
         {
             var compiledQuery = EF.CompileQuery(
                 (DeleteContext ctx, List<string> descriptionsToDelete) =>
