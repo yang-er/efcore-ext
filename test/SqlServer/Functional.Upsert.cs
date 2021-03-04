@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore.Tests.Upsert;
-using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Tests
 {

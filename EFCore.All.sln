@@ -42,19 +42,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{2EBA01C1-A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.SqlServer.Tests-5.0", "test\SqlServer\EFCore.Bulk.SqlServer.Tests-5.0.csproj", "{51324660-BA06-44FC-BDAA-4F8CF24C8B5F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.InMemory-5.0", "test\InMemory\BulkTest.InMemory-5.0.csproj", "{EB12C163-E844-4227-AA9F-ACFDE436B597}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.InMemory.Tests-5.0", "test\InMemory\EFCore.Bulk.InMemory.Tests-5.0.csproj", "{EB12C163-E844-4227-AA9F-ACFDE436B597}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.Cacheable-5.0", "test\Cacheable\BulkTest.Cacheable-5.0.csproj", "{1702DE10-AB47-448A-8833-FFC673EC6F47}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Cacheable.Tests-5.0", "test\Cacheable\EFCore.Cacheable.Tests-5.0.csproj", "{1702DE10-AB47-448A-8833-FFC673EC6F47}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.PostgreSql-5.0", "test\PostgreSql\BulkTest.PostgreSql-5.0.csproj", "{07F11C5F-155C-4C91-B6B4-32AB3310488D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.PostgreSql.Tests-5.0", "test\PostgreSql\EFCore.Bulk.PostgreSql.Tests-5.0.csproj", "{07F11C5F-155C-4C91-B6B4-32AB3310488D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.SqlServer.Tests-3.1", "test\SqlServer\EFCore.Bulk.SqlServer.Tests-3.1.csproj", "{09C08241-6214-45C4-85A6-02C3AF4C0AA7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.InMemory-3.1", "test\InMemory\BulkTest.InMemory-3.1.csproj", "{01AEFEE8-46F9-4588-A15E-FF9167A7547F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.InMemory.Tests-3.1", "test\InMemory\EFCore.Bulk.InMemory.Tests-3.1.csproj", "{01AEFEE8-46F9-4588-A15E-FF9167A7547F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.Cacheable-3.1", "test\Cacheable\BulkTest.Cacheable-3.1.csproj", "{44BD5A8F-4375-450E-85B2-19C5BD31140D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Cacheable.Tests-3.1", "test\Cacheable\EFCore.Cacheable.Tests-3.1.csproj", "{44BD5A8F-4375-450E-85B2-19C5BD31140D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkTest.PostgreSql-3.1", "test\PostgreSql\BulkTest.PostgreSql-3.1.csproj", "{078CDE20-534A-4249-9D74-36F1E7312BCA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.PostgreSql.Tests-3.1", "test\PostgreSql\EFCore.Bulk.PostgreSql.Tests-3.1.csproj", "{078CDE20-534A-4249-9D74-36F1E7312BCA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "origin-3.1", "origin-3.1", "{5DE8CF12-D891-4CE0-9F0D-F1D359346E95}"
 EndProject
