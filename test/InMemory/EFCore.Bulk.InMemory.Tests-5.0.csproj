@@ -1,8 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.InMemory.Tests</AssemblyName>
+    <RootNamespace>Microsoft.EntityFrameworkCore.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TestUtilities\EFCore.TestUtilities.csproj" />
     <ProjectReference Include="..\..\src\InMemory\Microsoft.EntityFrameworkCore.Bulk.InMemory-5.0.csproj" />
+    <ProjectReference Include="..\Specifications\EFCore.Bulk.Tests-5.0.csproj" />
   </ItemGroup>
 
   <ItemGroup>

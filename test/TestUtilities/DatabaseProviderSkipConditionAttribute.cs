@@ -19,13 +19,13 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
         {
             var dir = method.Method.Type.Assembly.Name;
 
-            var dp = dir.Contains("InMemory") ? DatabaseProvider.InMemory
-                : dir.Contains("PostgreSql") ? DatabaseProvider.PostgreSQL
-                : dir.Contains("SqlServer") ? DatabaseProvider.SqlServer
+            var dp = dir.Contains("InMemory", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.InMemory
+                : dir.Contains("PostgreSql", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.PostgreSQL
+                : dir.Contains("SqlServer", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.SqlServer
                 : DatabaseProvider.None;
 
-            var ver = dir.Contains("3.1") ? DatabaseProvider.Version_31
-                : dir.Contains("5.0") ? DatabaseProvider.Version_50
+            var ver = dir.Contains("3.1", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.Version_31
+                : dir.Contains("5.0", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.Version_50
                 : DatabaseProvider.None;
 
             return dp & ver;

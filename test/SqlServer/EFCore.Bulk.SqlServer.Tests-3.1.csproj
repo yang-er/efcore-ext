@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <IsPackable>false</IsPackable>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.SqlServer.Tests</AssemblyName>
+    <RootNamespace>Microsoft.EntityFrameworkCore.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,14 +15,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="obj\**" />
-    <EmbeddedResource Remove="obj\**" />
-    <None Remove="obj\**" />
+    <ProjectReference Include="..\..\src\SqlServer\Microsoft.EntityFrameworkCore.Bulk.SqlServer-3.1.csproj" />
+    <ProjectReference Include="..\Relational\EFCore.Bulk.Relational.Tests-3.1.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SqlServer\Microsoft.EntityFrameworkCore.Bulk.SqlServer-3.1.csproj" />
-    <ProjectReference Include="..\Relational\EFCore.Bulk.Relational.Tests-3.1.csproj" />
+    <Compile Remove="obj\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="obj\**" />
   </ItemGroup>
 
 </Project>
