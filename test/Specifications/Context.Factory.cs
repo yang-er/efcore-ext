@@ -16,12 +16,18 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
         DbContextOptions Options { get; }
 
+        object Seed { get; }
+
         TContext Create();
     }
 
+    public interface IDbContextWithSeeds
+    {
+        object Seed();
+    }
+
     public abstract class ContextFactoryBase<TContext> :
-        IDbContextFactory<TContext>,
-        IClassFixture<ContextLoggerFactory>
+        IDbContextFactory<TContext>
         where TContext : DbContext
     {
         private Func<TContext> _factory;
@@ -30,6 +36,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
         public ILoggerFactory LoggerFactory { get; }
 
         public CommandTracer CommandTracer { get; }
+
+        public object Seed { get; }
 
         public string UniqueId { get; }
 
@@ -40,16 +48,16 @@ namespace Microsoft.EntityFrameworkCore.Tests
             return _factory();
         }
 
-        protected ContextFactoryBase(ContextLoggerFactory loggerFactory)
+        protected ContextFactoryBase()
         {
             var contextType = typeof(TContext);
-            var constructor = contextType.GetConstructor(new[] { typeof(DbContextOptions), typeof(string) });
+            var constructor = contextType.GetConstructor(new[] { typeof(string), typeof(DbContextOptions) });
             if (constructor == null)
             {
                 throw new InvalidOperationException("The DbContext type must have a constructor of .ctor(string schema, DbContextOptions options).");
             }
 
-            LoggerFactory = loggerFactory.Instance;
+            LoggerFactory = ContextLoggerFactory.Singleton;
             CommandTracer = new CommandTracer();
             UniqueId = Guid.NewGuid().ToString()[0..6];
 
@@ -61,13 +69,18 @@ namespace Microsoft.EntityFrameworkCore.Tests
             _factory = Expression.Lambda<Func<TContext>>(
                 Expression.New(
                     constructor,
-                    Expression.Constant(_options),
-                    Expression.Constant(UniqueId)))
+                    Expression.Constant(UniqueId),
+                    Expression.Constant(_options)))
                 .Compile();
 
             using (var context = _factory())
             {
                 EnsureCreated(context);
+            }
+
+            using (var context = _factory())
+            {
+                Seed = (context as IDbContextWithSeeds)?.Seed();
             }
         }
 

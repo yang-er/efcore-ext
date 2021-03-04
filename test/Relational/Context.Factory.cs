@@ -4,11 +4,6 @@
         ContextFactoryBase<TContext>
         where TContext : DbContext
     {
-        protected RelationalContextFactoryBase(ContextLoggerFactory loggerFactory)
-            : base(loggerFactory)
-        {
-        }
-
         protected override void PostConfigure(DbContextOptionsBuilder optionsBuilder)
         {
             base.PostConfigure(optionsBuilder);

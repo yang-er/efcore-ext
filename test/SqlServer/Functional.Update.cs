@@ -5,9 +5,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
     public class SqlServerUpdateTest : UpdateTestBase<SqlServerContextFactory<UpdateContext>>
     {
         public SqlServerUpdateTest(
-            SqlServerContextFactory<UpdateContext> factory,
-            DataFixture<SqlServerContextFactory<UpdateContext>> dataFixture)
-            : base(factory, dataFixture)
+            SqlServerContextFactory<UpdateContext> factory)
+            : base(factory)
         {
         }
     }

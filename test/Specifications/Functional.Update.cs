@@ -57,7 +57,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         public int JudgingId { get; set; }
     }
 
-    public class UpdateContext : DbContext
+    public class UpdateContext : DbContext, IDbContextWithSeeds
     {
         public DbSet<Item> Items { get; set; }
         public DbSet<ChangeLog> ChangeLogs { get; set; }
@@ -96,48 +96,37 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
                 entity.ToTable(nameof(Item) + "_" + DefaultSchema);
             });
         }
-    }
 
-    public sealed class DataFixture<TFactory> : IClassFixture<TFactory>
-        where TFactory : class, IDbContextFactory<UpdateContext>
-    {
-        public List<Item> Items { get; }
-
-        public DataFixture(TFactory factory)
+        public object Seed()
         {
-            Items = new List<Item>();
+            var entities = new List<Item>();
             for (int i = 1; i <= 500; i++)
             {
-                var entity = new Item
+                entities.Add(new Item
                 {
                     Name = "name " + Guid.NewGuid().ToString().Substring(0, 3),
                     Description = "info",
                     Quantity = i % 10,
                     Price = i / (i % 5 + 1),
                     TimeUpdated = DateTime.Now,
-                };
-
-                Items.Add(entity);
+                });
             }
 
-            using var context = factory.Create();
-            context.Items.AddRange(Items);
-            context.Details.Add(new Detail { Judging = new Judging { } });
-            context.SaveChanges();
+            Items.AddRange(entities);
+            Details.Add(new Detail { Judging = new Judging { } });
+            SaveChanges();
+            return entities;
         }
     }
 
-    public abstract class UpdateTestBase<TFactory> :
-        QueryTestBase<UpdateContext, TFactory>,
-        IClassFixture<DataFixture<TFactory>>
+    public abstract class UpdateTestBase<TFactory> : QueryTestBase<UpdateContext, TFactory>
         where TFactory : class, IDbContextFactory<UpdateContext>
     {
         private readonly List<Item> Items;
 
-        public UpdateTestBase(TFactory factory, DataFixture<TFactory> dataFixture)
-            : base(factory)
+        public UpdateTestBase(TFactory factory) : base(factory)
         {
-            Items = dataFixture.Items;
+            Items = (List<Item>)factory.Seed;
         }
 
         [ConditionalFact, TestPriority(-1)]

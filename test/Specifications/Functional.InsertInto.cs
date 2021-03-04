@@ -109,8 +109,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
         }
     }
 
-    public abstract class InsertIntoTestBase<TFactory> :
-        QueryTestBase<SelectIntoContext, TFactory>
+    public abstract class InsertIntoTestBase<TFactory> : QueryTestBase<SelectIntoContext, TFactory>
         where TFactory : class, IDbContextFactory<SelectIntoContext>
     {
         protected InsertIntoTestBase(TFactory factory) : base(factory)

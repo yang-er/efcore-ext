@@ -29,9 +29,7 @@ namespace Microsoft.EntityFrameworkCore.Tests
     }
 
     [CollectionDefinition("DatabaseCollection")]
-    public abstract class DatabaseCollection<TFactory> :
-        ICollectionFixture<TFactory>,
-        IDisposable
+    public abstract class DatabaseCollection<TFactory> : IDisposable
         where TFactory : class, IDbContextFactory<PrepareContext>
     {
         private readonly TFactory _factory;

@@ -1,17 +1,10 @@
 ﻿using System;
-using Xunit;
 
 namespace Microsoft.EntityFrameworkCore.Tests
 {
-    public class SqlServerContextFactory<TContext> :
-        RelationalContextFactoryBase<TContext>,
-        IClassFixture<ContextLoggerFactory>
+    public class SqlServerContextFactory<TContext> : RelationalContextFactoryBase<TContext>
         where TContext : DbContext
     {
-        public SqlServerContextFactory(ContextLoggerFactory loggerFactory) : base(loggerFactory)
-        {
-        }
-
         protected override void Configure(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer(

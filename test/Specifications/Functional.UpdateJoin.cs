@@ -15,7 +15,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdateJoin
         public int Value { get; set; }
     }
 
-    public class UpdateContext : DbContext
+    public class UpdateContext : DbContext, IDbContextWithSeeds
     {
         public DbSet<ItemA> A { get; set; }
         public DbSet<ItemB> B { get; set; }
@@ -41,39 +41,23 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdateJoin
                 entity.ToTable(nameof(ItemB) + "_" + DefaultSchema);
             });
         }
-    }
 
-    public sealed class DataFixture<TFactory> :
-        IClassFixture<IDbContextFactory<UpdateContext>>
-        where TFactory : class, IDbContextFactory<UpdateContext>
-    {
-        public DataFixture(TFactory factory)
+        public object Seed()
         {
-            using var context = factory.Create();
-            context.A.Add(new ItemA { Id = 1, Value = 1 });
-            context.B.Add(new ItemB { Id = 1, Value = 2 });
-            context.A.Add(new ItemA { Id = 2, Value = 1 });
-            context.B.Add(new ItemB { Id = 2, Value = 2 });
-            context.SaveChanges();
+            A.Add(new ItemA { Id = 1, Value = 1 });
+            B.Add(new ItemB { Id = 1, Value = 2 });
+            A.Add(new ItemA { Id = 2, Value = 1 });
+            B.Add(new ItemB { Id = 2, Value = 2 });
+            SaveChanges();
+            return null;
         }
     }
 
-    public abstract class UpdateJoinTestBase<TFactory> :
-        QueryTestBase<UpdateContext, TFactory>,
-        IClassFixture<DataFixture<TFactory>>
+    public abstract class UpdateJoinTestBase<TFactory> : QueryTestBase<UpdateContext, TFactory>
         where TFactory : class, IDbContextFactory<UpdateContext>
     {
-        protected UpdateJoinTestBase(
-            TFactory factory,
-            DataFixture<TFactory> dataFixture)
-            : base(factory)
+        protected UpdateJoinTestBase(TFactory factory) : base(factory)
         {
-            using var context = factory.Create();
-            context.A.Add(new ItemA { Id = 1, Value = 1 });
-            context.B.Add(new ItemB { Id = 1, Value = 2 });
-            context.A.Add(new ItemA { Id = 2, Value = 1 });
-            context.B.Add(new ItemB { Id = 2, Value = 2 });
-            context.SaveChanges();
         }
 
         [ConditionalFact, TestPriority(-1)]
