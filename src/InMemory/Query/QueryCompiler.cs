@@ -20,9 +20,6 @@ namespace Microsoft.EntityFrameworkCore.Query
     {
         private readonly IBulkQueryCompilationContextFactory _qccFactory;
 
-        /// <summary>
-        /// Instantiates the <see cref="InMemoryBulkQueryCompiler"/>.
-        /// </summary>
         public InMemoryBulkQueryCompiler(
             IBulkQueryCompilationContextFactory qccFactory,
             IQueryContextFactory queryContextFactory,
@@ -45,75 +42,70 @@ namespace Microsoft.EntityFrameworkCore.Query
             _qccFactory = qccFactory;
         }
 
-        public override Func<QueryContext, TResult> CompileQueryCore<TResult>(
+        protected override Func<QueryContext, TResult> CompileBulkCore<TResult>(
             IDatabase database,
-            Expression query,
+            MethodCallExpression methodCallExpression,
             IModel model,
             bool async)
         {
-            if (query is MethodCallExpression methodCallExpression
-                && methodCallExpression.Method.DeclaringType == typeof(BatchOperationExtensions))
+            // methodCallExpression.Method.DeclaringType == typeof(BatchOperationExtensions) holds
+            var genericMethod = methodCallExpression.Method.GetGenericMethodDefinition();
+            var root = methodCallExpression.Arguments[0];
+            var rootType = methodCallExpression.Method.GetGenericArguments()[0];
+
+            switch (genericMethod.Name)
             {
-                var genericMethod = methodCallExpression.Method.GetGenericMethodDefinition();
-                var root = methodCallExpression.Arguments[0];
-                var rootType = methodCallExpression.Method.GetGenericArguments()[0];
-
-                switch (genericMethod.Name)
-                {
-                    case nameof(BatchOperationExtensions.BatchDelete)
-                    when genericMethod == BatchOperationMethods.BatchDelete:
-                        EnsureQueryExpression(root);
-                        var queryingEnumerable = TranslateQueryingEnumerable(root);
-                        return CompileDeleteCore<TResult>(queryingEnumerable, rootType);
+                case nameof(BatchOperationExtensions.BatchDelete)
+                when genericMethod == BatchOperationMethods.BatchDelete:
+                    EnsureQueryExpression(root);
+                    var queryingEnumerable = TranslateQueryingEnumerable(root);
+                    return CompileDeleteCore<TResult>(queryingEnumerable, rootType);
 
 
-                    case nameof(BatchOperationExtensions.BatchUpdate)
-                    when genericMethod == BatchOperationMethods.BatchUpdate:
-                        EnsureQueryExpression(root);
-                        var updateSelector = methodCallExpression.Arguments[1].UnwrapLambdaFromQuote();
-                        ReshapeForUpdate(model, ref updateSelector, updateSelector.Parameters[0], out var updateShaper);
-                        queryingEnumerable = TranslateQueryingEnumerable(ApplySelect(root, updateSelector));
-                        return CompileUpdateCore<TResult>(queryingEnumerable, updateShaper.Body.Type, updateShaper);
+                case nameof(BatchOperationExtensions.BatchUpdate)
+                when genericMethod == BatchOperationMethods.BatchUpdate:
+                    EnsureQueryExpression(root);
+                    var updateSelector = methodCallExpression.Arguments[1].UnwrapLambdaFromQuote();
+                    ReshapeForUpdate(model, ref updateSelector, updateSelector.Parameters[0], out var updateShaper);
+                    queryingEnumerable = TranslateQueryingEnumerable(ApplySelect(root, updateSelector));
+                    return CompileUpdateCore<TResult>(queryingEnumerable, updateShaper.Body.Type, updateShaper);
 
 
-                    case nameof(BatchOperationExtensions.BatchInsertInto)
-                    when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
-                        queryingEnumerable = TranslateQueryingEnumerable(root);
-                        return CompileSelectIntoCore<TResult>(queryingEnumerable, rootType);
+                case nameof(BatchOperationExtensions.BatchInsertInto)
+                when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
+                    queryingEnumerable = TranslateQueryingEnumerable(root);
+                    return CompileSelectIntoCore<TResult>(queryingEnumerable, rootType);
 
 
-                    case nameof(BatchOperationExtensions.BatchUpdateJoin)
-                    when genericMethod == BatchOperationMethods.BatchUpdateJoin:
-                        // The second parameter is update shaper.
-                        var newBatchJoin = VisitorHelper.RemapBatchUpdateJoin(methodCallExpression, out var outerMember, out _);
-                        updateSelector = newBatchJoin.Arguments[1].UnwrapLambdaFromQuote();
-                        ReshapeForUpdate(model, ref updateSelector, updateSelector.Parameters[0].MakeMemberAccess(outerMember), out updateShaper);
-                        queryingEnumerable = TranslateQueryingEnumerable(ApplySelect(newBatchJoin.Arguments[0], updateSelector));
-                        return CompileUpdateCore<TResult>(queryingEnumerable, updateShaper.Body.Type, updateShaper);
+                case nameof(BatchOperationExtensions.BatchUpdateJoin)
+                when genericMethod == BatchOperationMethods.BatchUpdateJoin:
+                    // The second parameter is update shaper.
+                    var newBatchJoin = VisitorHelper.RemapBatchUpdateJoin(methodCallExpression, out var outerMember, out _);
+                    updateSelector = newBatchJoin.Arguments[1].UnwrapLambdaFromQuote();
+                    ReshapeForUpdate(model, ref updateSelector, updateSelector.Parameters[0].MakeMemberAccess(outerMember), out updateShaper);
+                    queryingEnumerable = TranslateQueryingEnumerable(ApplySelect(newBatchJoin.Arguments[0], updateSelector));
+                    return CompileUpdateCore<TResult>(queryingEnumerable, updateShaper.Body.Type, updateShaper);
 
 
-                    case nameof(BatchOperationExtensions.Upsert)
-                    when genericMethod == BatchOperationMethods.UpsertCollapsed:
-                        if (!TryReshapeForUpsert(model.FindEntityType(rootType), methodCallExpression, out root, out var insertShaper, out var updateExtractor)) goto default;
-                        queryingEnumerable = TranslateQueryingEnumerable(root);
-                        return CompileUpsertCore<TResult>(queryingEnumerable, rootType, methodCallExpression.Method.GetGenericArguments()[1], insertShaper, updateExtractor);
+                case nameof(BatchOperationExtensions.Upsert)
+                when genericMethod == BatchOperationMethods.UpsertCollapsed:
+                    if (!TryReshapeForUpsert(model.FindEntityType(rootType), methodCallExpression, out root, out var insertShaper, out var updateExtractor)) goto default;
+                    queryingEnumerable = TranslateQueryingEnumerable(root);
+                    return CompileUpsertCore<TResult>(queryingEnumerable, rootType, methodCallExpression.Method.GetGenericArguments()[1], insertShaper, updateExtractor);
 
 
-                    case nameof(BatchOperationExtensions.Merge)
-                    when genericMethod == BatchOperationMethods.MergeCollapsed:
-                        if (!TryReshapeForMerge(model.FindEntityType(rootType), methodCallExpression, out root, out insertShaper, out updateExtractor, out var deleteDo)) goto default;
-                        queryingEnumerable = TranslateQueryingEnumerable(root);
-                        return CompileMergeCore<TResult>(queryingEnumerable, rootType, methodCallExpression.Method.GetGenericArguments()[1], insertShaper, updateExtractor, deleteDo);
+                case nameof(BatchOperationExtensions.Merge)
+                when genericMethod == BatchOperationMethods.MergeCollapsed:
+                    if (!TryReshapeForMerge(model.FindEntityType(rootType), methodCallExpression, out root, out insertShaper, out updateExtractor, out var deleteDo)) goto default;
+                    queryingEnumerable = TranslateQueryingEnumerable(root);
+                    return CompileMergeCore<TResult>(queryingEnumerable, rootType, methodCallExpression.Method.GetGenericArguments()[1], insertShaper, updateExtractor, deleteDo);
 
 
-                    default:
-                        throw new InvalidOperationException(
-                            CoreStrings.TranslationFailed(
-                                methodCallExpression.Print()));
-                }
+                default:
+                    throw new InvalidOperationException(
+                        CoreStrings.TranslationFailed(
+                            methodCallExpression.Print()));
             }
-
-            return base.CompileQueryCore<TResult>(database, query, model, async);
 
             static Expression ApplySelect(Expression innerQuery, LambdaExpression selector)
                 => Expression.Call(

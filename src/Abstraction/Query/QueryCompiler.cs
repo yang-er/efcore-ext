@@ -126,5 +126,33 @@ namespace Microsoft.EntityFrameworkCore.Query
                     generateContextAccessors);
             }
         }
+
+        /// <inheritdoc />
+        public override Func<QueryContext, TResult> CompileQueryCore<TResult>(
+            IDatabase database,
+            Expression query,
+            IModel model,
+            bool async)
+        {
+            if (query is MethodCallExpression methodCallExpression
+                && methodCallExpression.Method.DeclaringType == typeof(BatchOperationExtensions))
+            {
+                return CompileBulkCore<TResult>(database, methodCallExpression, model, async);
+            }
+            else
+            {
+                return base.CompileQueryCore<TResult>(database, query, model, async);
+            }
+        }
+
+        /// <inheritdoc cref="QueryCompiler.CompileQueryCore{TResult}(IDatabase, Expression, IModel, bool)" />
+        protected virtual Func<QueryContext, TResult> CompileBulkCore<TResult>(
+            IDatabase database,
+            MethodCallExpression methodCallExpression,
+            IModel model,
+            bool async)
+        {
+            return base.CompileQueryCore<TResult>(database, methodCallExpression, model, async);
+        }
     }
 }
