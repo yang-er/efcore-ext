@@ -206,5 +206,49 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
                     },
                 delete: true);
         }
+
+        [ConditionalFact, TestPriority(3)]
+        public void Synchronize_LocalTable()
+        {
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+
+                var table = new[]
+                {
+                    new { ContestId = 1, TeamId = 2 },
+                    new { ContestId = 1, TeamId = 1 },
+                };
+
+                context.RankSource.Merge(
+                    sourceTable: table,
+                    targetKey: rc => new { rc.ContestId, rc.TeamId },
+                    sourceKey: rc => new { rc.ContestId, rc.TeamId },
+                    updateExpression:
+                        (rc, rc2) => new RankSource
+                        {
+                            Time = 536,
+                        },
+                    insertExpression:
+                        rc2 => new RankSource
+                        {
+                            Time = 366,
+                            ContestId = rc2.ContestId,
+                            TeamId = rc2.TeamId,
+                        },
+                    delete: true);
+            }
+
+            using (var context = CreateContext())
+            {
+                var contents = context.RankSource
+                    .OrderBy(rc => rc.ContestId)
+                    .ThenBy(rc => rc.TeamId)
+                    .ToList();
+                Assert.Equal(2, contents.Count);
+                Assert.Equal(366, contents[0].Time);
+                Assert.Equal(536, contents[1].Time);
+            }
+        }
     }
 }

@@ -30,12 +30,32 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             .GetMethodInfo()
             .GetGenericMethodDefinition();
 
+        public static MethodInfo Queryable2 { get; }
+            = new Func<IQueryable<object>,
+                       IQueryable<object>,
+                       Expression<Func<object, object>>,
+                       Expression<Func<object, object>>,
+                       Expression<Func<object, object, object>>,
+                       Expression<Func<object, object>>,
+                       IQueryable<object>>(MergeJoin)
+            .GetMethodInfo()
+            .GetGenericMethodDefinition();
+
         public static IQueryable<TResult> MergeJoin<TOuter, TInner, TKey, TResult>(
             this IQueryable<TOuter> outer,
             IQueryable<TInner> inner,
             Expression<Func<TOuter, TKey>> outerKeySelector,
             Expression<Func<TInner, TKey>> innerKeySelector,
             Expression<Func<TOuter, TInner, TResult>> resultSelector)
+            => throw new InvalidOperationException("Only created from QueryCompiler.");
+
+        public static IQueryable<TResult> MergeJoin<TOuter, TInner, TKey, TResult, TFinalResult>(
+            this IQueryable<TOuter> outer,
+            IQueryable<TInner> inner,
+            Expression<Func<TOuter, TKey>> outerKeySelector,
+            Expression<Func<TInner, TKey>> innerKeySelector,
+            Expression<Func<TOuter, TInner, TResult>> resultSelector,
+            Expression<Func<TResult, TFinalResult>> finalizeSelector)
             => throw new InvalidOperationException("Only created from QueryCompiler.");
 
         public static IEnumerable<TResult> MergeJoin<TOuter, TInner, TKey, TResult>(
