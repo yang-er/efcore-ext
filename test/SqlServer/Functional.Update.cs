@@ -14,6 +14,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.CompiledQuery_ConcatenateBody();
 
+            LogSql(nameof(CompiledQuery_ConcatenateBody));
+
             AssertSql31(@"
 UPDATE [i]
 SET [i].[Name] = [i].[Name] + @__suffix, [i].[Quantity] = [i].[Quantity] + @__incrementStep
@@ -33,6 +35,8 @@ WHERE ([i].[ItemId] <= 500) AND ([i].[Price] >= @__price)
         {
             base.CompiledQuery_ConstantUpdateBody();
 
+            LogSql(nameof(CompiledQuery_ConstantUpdateBody));
+
             AssertSql(@"
 UPDATE [i]
 SET [i].[Description] = N'Updated', [i].[Price] = 1.5
@@ -41,9 +45,41 @@ WHERE ([i].[ItemId] <= 388) AND ([i].[Price] >= @__price)
 ");
         }
 
+        public override void CompiledQuery_HasOwnedType()
+        {
+            base.CompiledQuery_HasOwnedType();
+
+            LogSql(nameof(CompiledQuery_HasOwnedType));
+
+            AssertSql31(@"
+UPDATE [c]
+SET [c].[Audit_IsDeleted] = CASE
+    WHEN [t].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
+    ELSE CAST(0 AS bit)
+END
+FROM [ChangeLog_{{schema}}] AS [c]
+LEFT JOIN (
+    SELECT [c0].[ChangeLogId], [c0].[ChangedBy], [c0].[Audit_IsDeleted]
+    FROM [ChangeLog_{{schema}}] AS [c0]
+    WHERE [c0].[Audit_IsDeleted] IS NOT NULL
+) AS [t] ON [c].[ChangeLogId] = [t].[ChangeLogId]
+");
+
+            AssertSql50(@"
+UPDATE [c]
+SET [c].[Audit_IsDeleted] = CASE
+    WHEN [c].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
+    ELSE CAST(0 AS bit)
+END
+FROM [ChangeLog_{{schema}}] AS [c]
+");
+        }
+
         public override void CompiledQuery_NavigationSelect()
         {
             base.CompiledQuery_NavigationSelect();
+
+            LogSql(nameof(CompiledQuery_NavigationSelect));
 
             AssertSql(@"
 UPDATE [d]
@@ -56,6 +92,8 @@ INNER JOIN [Judging_{{schema}}] AS [j] ON [d].[JudgingId] = [j].[JudgingId]
         public override void CompiledQuery_NavigationWhere()
         {
             base.CompiledQuery_NavigationWhere();
+
+            LogSql(nameof(CompiledQuery_NavigationWhere));
 
             AssertSql(@"
 UPDATE [d]
@@ -70,6 +108,8 @@ WHERE [j].[PreviousJudgingId] = @__x
         {
             base.CompiledQuery_ParameterUpdateBody();
 
+            LogSql(nameof(CompiledQuery_ParameterUpdateBody));
+
             AssertSql(@"
 UPDATE [i]
 SET [i].[Description] = @__desc, [i].[Price] = @__pri
@@ -81,6 +121,8 @@ WHERE ([i].[ItemId] <= 388) AND ([i].[Price] >= @__price)
         public override void CompiledQuery_ScalarSubquery()
         {
             base.CompiledQuery_ScalarSubquery();
+
+            LogSql(nameof(CompiledQuery_ScalarSubquery));
 
             AssertSql(@"
 UPDATE [d]
@@ -95,6 +137,8 @@ FROM [Detail_{{schema}}] AS [d]
         {
             base.CompiledQuery_SetNull();
 
+            LogSql(nameof(CompiledQuery_SetNull));
+
             AssertSql(@"
 UPDATE [j]
 SET [j].[CompileError] = NULL, [j].[ExecuteMemory] = NULL, [j].[PreviousJudgingId] = NULL, [j].[TotalScore] = NULL, [j].[StartTime] = SYSDATETIMEOFFSET(), [j].[Server] = NULL, [j].[Status] = CASE
@@ -108,6 +152,8 @@ FROM [Judging_{{schema}}] AS [j]
         public override void ConcatenateBody()
         {
             base.ConcatenateBody();
+
+            LogSql(nameof(ConcatenateBody));
 
             AssertSql31(@"
 UPDATE [i]
@@ -128,6 +174,8 @@ WHERE ([i].[ItemId] <= 500) AND ([i].[Price] >= @__price_0)
         {
             base.ConstantUpdateBody();
 
+            LogSql(nameof(ConstantUpdateBody));
+
             AssertSql(@"
 UPDATE [i]
 SET [i].[Description] = N'Updated', [i].[Price] = 1.5
@@ -136,9 +184,41 @@ WHERE ([i].[ItemId] <= 388) AND ([i].[Price] >= @__price_0)
 ");
         }
 
+        public override void HasOwnedType()
+        {
+            base.HasOwnedType();
+
+            LogSql(nameof(HasOwnedType));
+
+            AssertSql31(@"
+UPDATE [c]
+SET [c].[Audit_IsDeleted] = CASE
+    WHEN [t].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
+    ELSE CAST(0 AS bit)
+END
+FROM [ChangeLog_{{schema}}] AS [c]
+LEFT JOIN (
+    SELECT [c0].[ChangeLogId], [c0].[ChangedBy], [c0].[Audit_IsDeleted]
+    FROM [ChangeLog_{{schema}}] AS [c0]
+    WHERE [c0].[Audit_IsDeleted] IS NOT NULL
+) AS [t] ON [c].[ChangeLogId] = [t].[ChangeLogId]
+");
+
+            AssertSql50(@"
+UPDATE [c]
+SET [c].[Audit_IsDeleted] = CASE
+    WHEN [c].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
+    ELSE CAST(0 AS bit)
+END
+FROM [ChangeLog_{{schema}}] AS [c]
+");
+        }
+
         public override void NavigationSelect()
         {
             base.NavigationSelect();
+
+            LogSql(nameof(NavigationSelect));
 
             AssertSql(@"
 UPDATE [d]
@@ -151,6 +231,8 @@ INNER JOIN [Judging_{{schema}}] AS [j] ON [d].[JudgingId] = [j].[JudgingId]
         public override void NavigationWhere()
         {
             base.NavigationWhere();
+
+            LogSql(nameof(NavigationWhere));
 
             AssertSql(@"
 UPDATE [d]
@@ -165,6 +247,8 @@ WHERE [j].[PreviousJudgingId] = @__x_0
         {
             base.ParameterUpdateBody();
 
+            LogSql(nameof(ParameterUpdateBody));
+
             AssertSql(@"
 UPDATE [i]
 SET [i].[Description] = @__desc_1, [i].[Price] = @__pri_2
@@ -176,6 +260,8 @@ WHERE ([i].[ItemId] <= 388) AND ([i].[Price] >= @__price_0)
         public override void ScalarSubquery()
         {
             base.ScalarSubquery();
+
+            LogSql(nameof(ScalarSubquery));
 
             AssertSql(@"
 UPDATE [d]
@@ -190,6 +276,8 @@ FROM [Detail_{{schema}}] AS [d]
         {
             base.SetNull();
 
+            LogSql(nameof(SetNull));
+
             AssertSql(@"
 UPDATE [j]
 SET [j].[CompileError] = NULL, [j].[ExecuteMemory] = NULL, [j].[PreviousJudgingId] = NULL, [j].[TotalScore] = NULL, [j].[StartTime] = SYSDATETIMEOFFSET(), [j].[Server] = NULL, [j].[Status] = CASE
@@ -197,62 +285,6 @@ SET [j].[CompileError] = NULL, [j].[ExecuteMemory] = NULL, [j].[PreviousJudgingI
     ELSE 8
 END
 FROM [Judging_{{schema}}] AS [j]
-");
-        }
-
-        public override void CompiledQuery_HasOwnedType()
-        {
-            base.CompiledQuery_HasOwnedType();
-
-            AssertSql31(@"
-UPDATE [c]
-SET [c].[Audit_IsDeleted] = CASE
-    WHEN [t].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
-    ELSE CAST(0 AS bit)
-END
-FROM [ChangeLog_{{schema}}] AS [c]
-LEFT JOIN (
-    SELECT [c0].[ChangeLogId], [c0].[ChangedBy], [c0].[Audit_IsDeleted]
-    FROM [ChangeLog_{{schema}}] AS [c0]
-    WHERE [c0].[Audit_IsDeleted] IS NOT NULL
-) AS [t] ON [c].[ChangeLogId] = [t].[ChangeLogId]
-");
-
-            AssertSql50(@"
-UPDATE [c]
-SET [c].[Audit_IsDeleted] = CASE
-    WHEN [c].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
-    ELSE CAST(0 AS bit)
-END
-FROM [ChangeLog_{{schema}}] AS [c]
-");
-        }
-
-        public override void HasOwnedType()
-        {
-            base.HasOwnedType();
-
-            AssertSql31(@"
-UPDATE [c]
-SET [c].[Audit_IsDeleted] = CASE
-    WHEN [t].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
-    ELSE CAST(0 AS bit)
-END
-FROM [ChangeLog_{{schema}}] AS [c]
-LEFT JOIN (
-    SELECT [c0].[ChangeLogId], [c0].[ChangedBy], [c0].[Audit_IsDeleted]
-    FROM [ChangeLog_{{schema}}] AS [c0]
-    WHERE [c0].[Audit_IsDeleted] IS NOT NULL
-) AS [t] ON [c].[ChangeLogId] = [t].[ChangeLogId]
-");
-
-            AssertSql50(@"
-UPDATE [c]
-SET [c].[Audit_IsDeleted] = CASE
-    WHEN [c].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
-    ELSE CAST(0 AS bit)
-END
-FROM [ChangeLog_{{schema}}] AS [c]
 ");
         }
     }
