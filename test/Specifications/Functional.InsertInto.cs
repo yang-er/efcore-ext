@@ -117,7 +117,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
         }
 
         [ConditionalFact, TestPriority(0)]
-        public void NormalSelectInto()
+        public virtual void NormalSelectInto()
         {
             string hh = "HHH";
             using var scope = CatchCommand();
@@ -137,7 +137,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
         }
 
         [ConditionalFact, TestPriority(1)]
-        public void WithAbstractType()
+        public virtual void WithAbstractType()
         {
             using var scope = CatchCommand();
             using var context = CreateContext();
@@ -152,7 +152,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
         }
 
         [ConditionalFact, TestPriority(2)]
-        public void WithComputedColumn()
+        public virtual void WithComputedColumn()
         {
             using var scope = CatchCommand();
             using var context = CreateContext();
@@ -166,7 +166,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
         }
 
         [ConditionalFact, TestPriority(3)]
-        public void CompiledQuery_NormalSelectInto()
+        public virtual void CompiledQuery_NormalSelectInto()
         {
             var compiledQuery = EF.CompileQuery(
                 (SelectIntoContext ctx, string hh)
@@ -196,7 +196,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
         }
 
         [ConditionalFact, TestPriority(4)]
-        public void CompiledQuery_WithAbstractType()
+        public virtual void CompiledQuery_WithAbstractType()
         {
             var compiledQuery = EF.CompileQuery(
                 (SelectIntoContext ctx)
@@ -222,7 +222,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
         }
 
         [ConditionalFact, TestPriority(5)]
-        public void CompiledQuery_WithComputedColumn()
+        public virtual void CompiledQuery_WithComputedColumn()
         {
             var compiledQuery = EF.CompileQuery(
                 (SelectIntoContext ctx)
