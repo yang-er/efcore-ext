@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System;
 using System.Linq.Expressions;
 
@@ -77,7 +78,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
             }
 
             var method = methodCallExpression.Method;
-            if (method.DeclaringType != typeof(BatchOperationExtensions))
+            if (method.DeclaringType != typeof(BatchOperationExtensions)
+                && method.DeclaringType != typeof(MergeJoinExtensions))
             {
                 return base.Expand(query);
             }
@@ -125,6 +127,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                         methodCallExpression.Arguments[3]);
 
 
+                case nameof(MergeJoinExtensions.MergeJoin)
+                when genericMethod == MergeJoinExtensions.Queryable:
+                    return MergeJoinExpand(methodCallExpression);
+
+
                 default:
                     throw TranslateFailed();
             }
@@ -147,6 +154,30 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     BatchOperationMethods.BatchUpdateExpanded.MakeGenericMethod(newSelectTypes),
                     fakeSelect.Arguments[0],
                     Expression.Quote(fakeSelect.Arguments[1].UnwrapLambdaFromQuote()));
+            }
+
+            Expression MergeJoinExpand(MethodCallExpression mergeJoinCall)
+            {
+                var innerJoin = Expression.Call(
+                    QueryableMethods.Join.MakeGenericMethod(genericArguments),
+                    mergeJoinCall.Arguments);
+
+                var expanded = base.Expand(innerJoin);
+
+                if (expanded is not MethodCallExpression afterJoinSelect
+                    || afterJoinSelect.Method.Name != nameof(QueryableMethods.Select)
+                    || afterJoinSelect.Method.GetGenericMethodDefinition() != QueryableMethods.Select
+                    || afterJoinSelect.Arguments[0] is not MethodCallExpression currentJoin
+                    || currentJoin.Method.Name != nameof(QueryableMethods.Join)
+                    || currentJoin.Method.GetGenericMethodDefinition() != QueryableMethods.Join)
+                    throw TranslateFailed();
+
+                return Expression.Call(
+                    afterJoinSelect.Method,
+                    Expression.Call(
+                        MergeJoinExtensions.Queryable.MakeGenericMethod(currentJoin.Method.GetGenericArguments()),
+                        currentJoin.Arguments),
+                    afterJoinSelect.Arguments[1]);
             }
         }
     }

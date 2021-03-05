@@ -26,8 +26,22 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             .GetGenericMethodDefinition();
 
 
-        public static MethodInfo s_Merge_TTarget_TSource_TJoinKey
+        public static MethodInfo Merge { get; }
             = new Func<DbSet<object>,
+                       IEnumerable<object>,
+                       Expression<Func<object, object>>,
+                       Expression<Func<object, object>>,
+                       Expression<Func<object, object, object>>,
+                       Expression<Func<object, object>>,
+                       bool,
+                       int>(
+                BatchOperationExtensions.Merge)
+            .GetMethodInfo()
+            .GetGenericMethodDefinition();
+
+
+        public static MethodInfo MergeCollapsed { get; }
+            = new Func<IQueryable<object>,
                        IQueryable<object>,
                        Expression<Func<object, object>>,
                        Expression<Func<object, object>>,

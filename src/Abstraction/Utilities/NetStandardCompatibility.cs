@@ -25,6 +25,10 @@ internal static partial class Internals
             ? unary.Operand
             : expression);
 
+    public static bool IsBodyConstantNull(this LambdaExpression lambdaExpression)
+        => lambdaExpression.Body is ConstantExpression constantExpression
+            && constantExpression.Value == null;
+
     public static MemberExpression AccessPrivateMember(this Expression expression, string name)
     {
         var member = expression.Type.GetMember(name, bindingFlags).Single();

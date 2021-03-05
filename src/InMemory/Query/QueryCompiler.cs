@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -96,6 +97,13 @@ namespace Microsoft.EntityFrameworkCore.Query
                         if (!TryReshapeForUpsert(model.FindEntityType(rootType), methodCallExpression, out root, out var insertShaper, out var updateExtractor)) goto default;
                         queryingEnumerable = TranslateQueryingEnumerable(root);
                         return CompileUpsertCore<TResult>(queryingEnumerable, rootType, methodCallExpression.Method.GetGenericArguments()[1], insertShaper, updateExtractor);
+
+
+                    case nameof(BatchOperationExtensions.Merge)
+                    when genericMethod == BatchOperationMethods.MergeCollapsed:
+                        if (!TryReshapeForMerge(model.FindEntityType(rootType), methodCallExpression, out root, out insertShaper, out updateExtractor, out var deleteDo)) goto default;
+                        queryingEnumerable = TranslateQueryingEnumerable(root);
+                        return CompileMergeCore<TResult>(queryingEnumerable, rootType, methodCallExpression.Method.GetGenericArguments()[1], insertShaper, updateExtractor, deleteDo);
 
 
                     default:
@@ -296,28 +304,16 @@ namespace Microsoft.EntityFrameworkCore.Query
             var defaultIfEmptyWithoutArgument = typeof(Enumerable).GetMethods()
                 .Single(mi => mi.Name == nameof(Enumerable.DefaultIfEmpty) && mi.GetParameters().Length == 1);
 
-            if (updateExpression.Body is ConstantExpression constantExpression
-                && constantExpression.Value == null)
-            {
-                updateExtractor = Expression.Constant(null, updateExtractorType);
-            }
-            else
-            {
-                var newUpdateBody = QueryContextParameterVisitor.Process(updateExpression.Body, updateExpression.Parameters);
-                var sentences = new List<Expression>();
-                ReshapeForUpdate(newUpdateBody, updateExpression.Parameters[0], updateExpression.Parameters[0], entityType, sentences, (_, expr) => expr);
-                sentences.Add(updateExpression.Parameters[0]);
-
-                updateExtractor =
-                    Expression.Constant(
-                        Expression.Lambda(
-                            updateExtractorType,
-                            Expression.Block(sentences),
-                            QueryCompilationContext.QueryContextParameter,
-                            updateExpression.Parameters[0],
-                            updateExpression.Parameters[1])
-                        .Compile());
-            }
+            updateExtractor = updateExpression.IsBodyConstantNull()
+                ? Expression.Constant(null, updateExtractorType)
+                : Expression.Constant(
+                    Expression.Lambda(
+                        updateExtractorType,
+                        CreateUpdateBody(updateExpression, entityType),
+                        QueryCompilationContext.QueryContextParameter,
+                        updateExpression.Parameters[0],
+                        updateExpression.Parameters[1])
+                    .Compile());
 
             reshaped =
                 Expression.Call(
@@ -384,6 +380,95 @@ namespace Microsoft.EntityFrameworkCore.Query
                 .Compile();
         }
 
+        protected static BlockExpression CreateUpdateBody(LambdaExpression updateExpression, IEntityType entityType)
+        {
+            var newUpdateBody = QueryContextParameterVisitor.Process(updateExpression.Body, updateExpression.Parameters);
+            var sentences = new List<Expression>();
+            ReshapeForUpdate(newUpdateBody, updateExpression.Parameters[0], updateExpression.Parameters[0], entityType, sentences, (_, expr) => expr);
+            sentences.Add(updateExpression.Parameters[0]);
+            return Expression.Block(sentences);
+        }
+
+        protected virtual bool TryReshapeForMerge(IEntityType entityType, MethodCallExpression merge, out Expression reshaped, out Expression insertShaper, out Expression updateExtractor, out Expression deleteDo)
+        {
+            var updateExpression = merge.Arguments[4].UnwrapLambdaFromQuote();
+            var insertExpression = merge.Arguments[5].UnwrapLambdaFromQuote();
+            var outerType = merge.Method.GetGenericArguments()[0];
+            var innerType = merge.Method.GetGenericArguments()[1];
+            var joinKeyType = merge.Method.GetGenericArguments()[2];
+            var mergeJoinResultType = typeof(MergeRemapper<,>).MakeGenericType(outerType, innerType);
+            var outerParameter = Expression.Parameter(outerType, "outer");
+            var innerParameter = Expression.Parameter(innerType, "inner");
+            var updateExtractorType = typeof(Func<,,,>).MakeGenericType(typeof(QueryContext), outerType, innerType, outerType);
+            var insertShaperType = typeof(Func<,,>).MakeGenericType(typeof(QueryContext), innerType, outerType);
+
+            if (insertExpression.Body is not MemberInitExpression insertInit
+                || insertInit.NewExpression.Arguments.Count != 0
+                || merge.Arguments[6] is not ConstantExpression deleteDodo)
+            {
+                reshaped = insertShaper = updateExtractor = deleteDo = null;
+                return false;
+            }
+
+            reshaped =
+                Expression.Call(
+                    MergeJoinExtensions.Queryable.MakeGenericMethod(outerType, innerType, joinKeyType, mergeJoinResultType),
+                    merge.Arguments[0],
+                    merge.Arguments[1],
+                    merge.Arguments[2].UnwrapLambdaFromQuote(),
+                    merge.Arguments[3].UnwrapLambdaFromQuote(),
+                    Expression.Quote(
+                        Expression.Lambda(
+                            Expression.New(
+                                mergeJoinResultType.GetConstructors().Single(),
+                                outerParameter,
+                                innerParameter),
+                            outerParameter,
+                            innerParameter)));
+
+            updateExtractor = updateExpression.IsBodyConstantNull()
+                ? Expression.Constant(null, updateExtractorType)
+                : Expression.Constant(
+                    Expression.Lambda(
+                        updateExtractorType,
+                        CreateUpdateBody(updateExpression, entityType),
+                        QueryCompilationContext.QueryContextParameter,
+                        updateExpression.Parameters[0],
+                        updateExpression.Parameters[1])
+                    .Compile());
+
+            insertShaper = insertExpression.IsBodyConstantNull()
+                ? Expression.Constant(null, insertShaperType)
+                : Expression.Constant(
+                    Expression.Lambda(
+                        insertShaperType,
+                        QueryContextParameterVisitor.Process(insertInit, insertExpression.Parameters),
+                        QueryCompilationContext.QueryContextParameter,
+                        insertExpression.Parameters[0])
+                    .Compile());
+
+            deleteDo = deleteDodo;
+            return true;
+        }
+
+        protected virtual Func<QueryContext, TResult> CompileMergeCore<TResult>(InvocationExpression queryingEnumerable, Type targetType, Type sourceType, Expression insertShaper, Expression updateExtractor, Expression deleteDo)
+        {
+            return Expression.Lambda<Func<QueryContext, TResult>>(
+                Expression.Call(
+                    Expression.New(
+                        typeof(MergeOperation<,>).MakeGenericType(targetType, sourceType).GetConstructors()[0],
+                        QueryCompilationContext.QueryContextParameter,
+                        queryingEnumerable,
+                        insertShaper,
+                        updateExtractor,
+                        deleteDo),
+                    typeof(TResult) == typeof(Task<int>)
+                        ? BulkQueryExecutorExecuteAsync
+                        : BulkQueryExecutorExecute),
+                QueryCompilationContext.QueryContextParameter)
+                .Compile();
+        }
+
         private static void EnsureQueryExpression(Expression expression)
         {
             while (expression.NodeType == ExpressionType.Call)
@@ -407,7 +492,6 @@ namespace Microsoft.EntityFrameworkCore.Query
                         case nameof(Queryable.ThenByDescending):
                         case "TakeLast":
                         case "SkipLast":
-
                             throw new InvalidOperationException("Batch update/delete doesn't support take, skip, order.");
 
                         case nameof(Queryable.Select)
