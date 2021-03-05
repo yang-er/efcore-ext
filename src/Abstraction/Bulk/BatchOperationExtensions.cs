@@ -1,9 +1,7 @@
 ﻿#nullable enable
 using Microsoft.EntityFrameworkCore.Bulk;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,6 +53,19 @@ namespace Microsoft.EntityFrameworkCore
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
             Expression<Func<TTarget, TTarget, TTarget>> updateExpression)
+            => throw new InvalidOperationException();
+
+        /// <summary>
+        /// Expression type for query generation.
+        /// </summary>
+        internal static int Merge<TTarget, TSource, TJoinKey>(
+            IQueryable<TTarget> targetTable,
+            IQueryable<TSource> sourceTable,
+            Expression<Func<TTarget, TJoinKey>> targetKey,
+            Expression<Func<TSource, TJoinKey>> sourceKey,
+            Expression<Func<TTarget, TSource, TTarget>> updateExpression,
+            Expression<Func<TSource, TTarget>>? insertExpression,
+            [NotParameterized] bool delete)
             => throw new InvalidOperationException();
 
         #endregion
@@ -134,12 +145,21 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(targetKey, nameof(targetKey));
             Check.NotNull(sourceKey, nameof(sourceKey));
 
-            var context = targetTable.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.Merge(context,
-                targetTable, sourceTable,
-                targetKey, sourceKey,
-                updateExpression, insertExpression, delete);
+            var targetQueryable = (IQueryable<TTarget>)targetTable;
+            var sourceQueryable = CreateSourceTable(targetTable, sourceTable);
+            updateExpression ??= ((_, _) => null!);
+            insertExpression ??= (_ => null!);
+
+            return targetQueryable.Provider.Execute<int>(
+                Expression.Call(
+                    BatchOperationMethods.MergeCollapsed.MakeGenericMethod(typeof(TTarget), typeof(TSource), typeof(TJoinKey)),
+                    targetQueryable.Expression,
+                    sourceQueryable.Expression,
+                    Expression.Quote(targetKey),
+                    Expression.Quote(sourceKey),
+                    Expression.Quote(updateExpression),
+                    Expression.Quote(insertExpression),
+                    Expression.Constant(delete)));
         }
 
         /// <summary>
@@ -174,12 +194,21 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(targetKey, nameof(targetKey));
             Check.NotNull(sourceKey, nameof(sourceKey));
 
-            var context = targetTable.GetDbContext();
-            var provider = context.GetService<IBatchOperationProvider>();
-            return provider.MergeAsync(context,
-                targetTable, sourceTable,
-                targetKey, sourceKey,
-                updateExpression, insertExpression, delete,
+            var targetQueryable = (IQueryable<TTarget>)targetTable;
+            var sourceQueryable = CreateSourceTable(targetTable, sourceTable);
+            updateExpression ??= ((_, _) => null!);
+            insertExpression ??= (_ => null!);
+
+            return ((IAsyncQueryProvider)targetQueryable.Provider).ExecuteAsync<Task<int>>(
+                Expression.Call(
+                    BatchOperationMethods.MergeCollapsed.MakeGenericMethod(typeof(TTarget), typeof(TSource), typeof(TJoinKey)),
+                    targetQueryable.Expression,
+                    sourceQueryable.Expression,
+                    Expression.Quote(targetKey),
+                    Expression.Quote(sourceKey),
+                    Expression.Quote(updateExpression),
+                    Expression.Quote(insertExpression),
+                    Expression.Constant(delete)),
                 cancellationToken);
         }
 
