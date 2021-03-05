@@ -27,8 +27,6 @@ namespace Microsoft.EntityFrameworkCore
 
         internal override void ApplyServices(BatchServicesBuilder services)
         {
-            services.TryAdd<IBatchOperationProvider, InMemoryBatchOperationProvider>();
-
             services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, BulkInMemoryQueryableMethodTranslatingExpressionVisitorFactory>();
             services.TryAdd<IBulkQueryTranslationPreprocessorFactory, BulkQueryTranslationPreprocessorFactory>();
             services.TryAdd<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();

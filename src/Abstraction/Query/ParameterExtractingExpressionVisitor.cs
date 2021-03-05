@@ -549,8 +549,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 _evaluatable = IsEvaluatableNodeType(expression)
                     // Extension point to disable funcletization
                     && _evaluatableExpressionFilter.IsEvaluatableExpression(expression, _model)
-                    // Don't evaluate QueryableMethods if in compiled query
-                    && (_parameterize || !IsQueryableMethod(expression));
+                    // Don't evaluate QueryableMethods even if not in compiled query
+                    && !IsQueryableMethod(expression);
                 _containsClosure = false;
 
                 base.Visit(expression);
