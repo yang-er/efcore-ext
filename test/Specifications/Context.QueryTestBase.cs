@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using Xunit;
 
 namespace Microsoft.EntityFrameworkCore.Tests
@@ -19,6 +20,12 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             _factory.CommandTracer.AssertSql(sql.Replace("{{schema}}", _factory.UniqueId));
         }
+
+        [Conditional("EFCORE31")]
+        protected void AssertSql31(string sql) => AssertSql(sql);
+
+        [Conditional("EFCORE50")]
+        protected void AssertSql50(string sql) => AssertSql(sql);
 
         protected IDisposable CatchCommand()
         {

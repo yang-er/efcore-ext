@@ -130,7 +130,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(-1)]
-        public void ConstantUpdateBody()
+        public virtual void ConstantUpdateBody()
         {
             using var scope = CatchCommand();
             using var context = CreateContext();
@@ -153,7 +153,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(0)]
-        public void ParameterUpdateBody()
+        public virtual void ParameterUpdateBody()
         {
             decimal price = 0;
             var desc = "Updated";
@@ -178,7 +178,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(1)]
-        public void WithTakeTopSkip_MustFail()
+        public virtual void WithTakeTopSkip_MustFail()
         {
             using var context = CreateContext();
             decimal price = 0;
@@ -198,7 +198,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
 
         [ConditionalFact, TestPriority(2)]
         [DatabaseProviderSkipCondition(DatabaseProvider.PostgreSQL_31)]
-        public void HasOwnedType()
+        public virtual void HasOwnedType()
         {
             using (var initctx = CreateContext())
             {
@@ -237,7 +237,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(3)]
-        public void ConcatenateBody()
+        public virtual void ConcatenateBody()
         {
             using var scope = CatchCommand();
             using var context = CreateContext();
@@ -263,7 +263,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(4)]
-        public void SetNull()
+        public virtual void SetNull()
         {
             using var scope = CatchCommand();
             using var context = CreateContext();
@@ -282,7 +282,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(5)]
-        public void NavigationWhere()
+        public virtual void NavigationWhere()
         {
             int x = 10;
             using var scope = CatchCommand();
@@ -294,7 +294,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(6)]
-        public void NavigationSelect()
+        public virtual void NavigationSelect()
         {
             int x = 10;
             using var scope = CatchCommand();
@@ -304,7 +304,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(7)]
-        public void ScalarSubquery()
+        public virtual void ScalarSubquery()
         {
             using var scope = CatchCommand();
             using var context = CreateContext();
@@ -313,7 +313,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(8)]
-        public void CompiledQuery_ConstantUpdateBody()
+        public virtual void CompiledQuery_ConstantUpdateBody()
         {
             var compiledQuery = EF.CompileQuery(
                 (UpdateContext ctx, decimal price)
@@ -336,7 +336,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(9)]
-        public void CompiledQuery_ParameterUpdateBody()
+        public virtual void CompiledQuery_ParameterUpdateBody()
         {
             var compiledQuery = EF.CompileQuery(
                 (UpdateContext ctx, decimal price, string desc, decimal pri)
@@ -359,7 +359,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
 
         [ConditionalFact, TestPriority(11)]
         [DatabaseProviderSkipCondition(DatabaseProvider.PostgreSQL_31)]
-        public void CompiledQuery_HasOwnedType()
+        public virtual void CompiledQuery_HasOwnedType()
         {
             var compiledQuery = EF.CompileQuery(
                 (UpdateContext ctx) =>
@@ -385,7 +385,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(12)]
-        public void CompiledQuery_ConcatenateBody()
+        public virtual void CompiledQuery_ConcatenateBody()
         {
             var compiledQuery = EF.CompileQuery(
                 (UpdateContext ctx, decimal price, int incrementStep, string suffix)
@@ -407,7 +407,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(13)]
-        public void CompiledQuery_SetNull()
+        public virtual void CompiledQuery_SetNull()
         {
             var compiledQuery = EF.CompileQuery(
                 (UpdateContext ctx) =>
@@ -436,7 +436,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(14)]
-        public void CompiledQuery_NavigationWhere()
+        public virtual void CompiledQuery_NavigationWhere()
         {
             var compiledQuery = EF.CompileQuery(
                 (UpdateContext ctx, int x)
@@ -458,7 +458,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(15)]
-        public void CompiledQuery_NavigationSelect()
+        public virtual void CompiledQuery_NavigationSelect()
         {
             var compiledQuery = EF.CompileQuery(
                 (UpdateContext ctx, int x)
@@ -479,7 +479,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(16)]
-        public void CompiledQuery_ScalarSubquery()
+        public virtual void CompiledQuery_ScalarSubquery()
         {
             var compiledQuery = EF.CompileQuery(
                 (UpdateContext ctx)

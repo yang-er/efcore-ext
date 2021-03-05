@@ -76,48 +76,17 @@ WHERE [i].[Description] IN (N'info', N'aaa')
 ");
         }
 
-#if EFCORE31
-
         public override void ListAny()
         {
             base.ListAny();
 
-            AssertSql(@"
+            AssertSql31(@"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE [i].[Description] IN (N'info')
 ");
-        }
 
-        public override void EmptyContains()
-        {
-            base.EmptyContains();
-
-            AssertSql(@"
-DELETE [i]
-FROM [Item_{{schema}}] AS [i]
-WHERE CAST(1 AS bit) = CAST(0 AS bit)
-");
-        }
-
-        public override void ContainsAndAlsoEqual()
-        {
-            base.ContainsAndAlsoEqual();
-
-            AssertSql(@"
-DELETE [i]
-FROM [Item_{{schema}}] AS [i]
-WHERE [i].[Description] IN (N'info') OR ([i].[Name] = @__nameToDelete_1)
-");
-        }
-
-#elif EFCORE50
-
-        public override void ListAny()
-        {
-            base.ListAny();
-
-            AssertSql(@"
+            AssertSql50(@"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE [i].[Description] = N'info'
@@ -128,7 +97,13 @@ WHERE [i].[Description] = N'info'
         {
             base.EmptyContains();
 
-            AssertSql(@"
+            AssertSql31(@"
+DELETE [i]
+FROM [Item_{{schema}}] AS [i]
+WHERE CAST(1 AS bit) = CAST(0 AS bit)
+");
+
+            AssertSql50(@"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE 0 = 1
@@ -139,13 +114,17 @@ WHERE 0 = 1
         {
             base.ContainsAndAlsoEqual();
 
-            AssertSql(@"
+            AssertSql31(@"
+DELETE [i]
+FROM [Item_{{schema}}] AS [i]
+WHERE [i].[Description] IN (N'info') OR ([i].[Name] = @__nameToDelete_1)
+");
+
+            AssertSql50(@"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE ([i].[Description] = N'info') OR ([i].[Name] = @__nameToDelete_1)
 ");
         }
-
-#endif
     }
 }
