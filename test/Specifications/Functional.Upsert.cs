@@ -120,7 +120,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
         }
 
         [ConditionalFact, TestPriority(0)]
-        public void Upsert_NewAnonymousObject()
+        public virtual void Upsert_NewAnonymousObject()
         {
             EnsureRank(Array.Empty<RankSource>());
 
@@ -146,7 +146,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
         }
 
         [ConditionalFact, TestPriority(1)]
-        public void Upsert_AnotherTable()
+        public virtual void Upsert_AnotherTable()
         {
             EnsureRank();
 
@@ -168,7 +168,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
 
         [ConditionalFact, TestPriority(2)]
         [DatabaseProviderSkipCondition(DatabaseProvider.InMemory)]
-        public void Upsert_FromSql()
+        public virtual void Upsert_FromSql()
         {
             EnsureRank();
 
@@ -190,7 +190,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
         }
 
         [ConditionalFact, TestPriority(3)]
-        public void Upsert_SubSelect()
+        public virtual void Upsert_SubSelect()
         {
             EnsureRank();
 
@@ -211,7 +211,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
         }
 
         [ConditionalFact, TestPriority(4)]
-        public void InsertIfNotExists_AnotherTable()
+        public virtual void InsertIfNotExists_AnotherTable()
         {
             EnsureRank();
 
@@ -231,7 +231,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
         }
 
         [ConditionalFact, TestPriority(5)]
-        public void Translation_Parameterize()
+        public virtual void Translation_Parameterize()
         {
             using (var context = CreateContext())
             {
@@ -254,7 +254,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
         }
 
         [ConditionalFact, TestPriority(6)]
-        public void Upsert_AlternativeKey()
+        public virtual void Upsert_AlternativeKey()
         {
             using (var context = CreateContext())
             {

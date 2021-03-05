@@ -61,7 +61,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdateJoin
         }
 
         [ConditionalFact, TestPriority(-1)]
-        public void NormalUpdate()
+        public virtual void NormalUpdate()
         {
             using (CatchCommand())
             {
@@ -87,7 +87,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdateJoin
         }
 
         [ConditionalFact, TestPriority(0)]
-        public void LocalTableJoin()
+        public virtual void LocalTableJoin()
         {
             var lst = new[]
             {
@@ -120,7 +120,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdateJoin
         }
 
         [ConditionalFact, TestPriority(1)]
-        public void CompiledQuery_NormalUpdate()
+        public virtual void CompiledQuery_NormalUpdate()
         {
             var compiledQuery = EF.CompileQuery(
                 (UpdateContext ctx, int aa, int bb, int cc)

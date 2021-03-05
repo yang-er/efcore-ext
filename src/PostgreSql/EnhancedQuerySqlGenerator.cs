@@ -211,41 +211,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         protected virtual Expression VisitUpsert(UpsertExpression upsertExpression)
         {
-            string cteName = null;
-            if (upsertExpression.SourceTable is not TableExpression)
-            {
-                // WITH temp_table_efcore AS
-                cteName = "temp_table_efcore";
-
-                Sql.Append("WITH ")
-                    .Append(cteName);
-
-                if (upsertExpression.SourceTable is ValuesExpression values)
-                {
-                    Sql.Append(" (");
-
-                    Sql.GenerateList(
-                        values.ColumnNames,
-                        a => Sql.Append(Helper.DelimitIdentifier(a)));
-
-                    Sql.Append(")");
-                }
-
-                Sql.Append(AliasSeparator)
-                    .Append("(")
-                    .IncrementIndent()
-                    .AppendLine();
-
-                var originalAlias = upsertExpression.SourceTable.Alias;
-                upsertExpression.SourceTable.SetAlias(null);
-                Visit(upsertExpression.SourceTable);
-                upsertExpression.SourceTable.SetAlias(originalAlias);
-
-                Sql.DecrementIndent()
-                    .AppendLine()
-                    .AppendLine(")");
-            }
-
             Sql.Append("INSERT INTO ");
             Visit(upsertExpression.TargetTable);
             Sql.AppendLine();
@@ -258,14 +223,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 .GenerateList(upsertExpression.Columns, e => Visit(e))
                 .AppendLine();
 
-            Sql.Append("FROM ")
-                .Append(Helper.DelimitIdentifier(cteName ?? ((TableExpression)upsertExpression.SourceTable).Name))
-                .Append(AliasSeparator)
-                .AppendLine(Helper.DelimitIdentifier(upsertExpression.SourceTable.Alias));
+            Sql.Append("FROM ");
+            Visit(upsertExpression.SourceTable);
+            Sql.AppendLine();
 
             if (upsertExpression.OnConflictUpdate == null)
             {
-                Sql.AppendLine("ON CONFLICT DO NOTHING");
+                Sql.Append("ON CONFLICT DO NOTHING");
             }
             else
             {
