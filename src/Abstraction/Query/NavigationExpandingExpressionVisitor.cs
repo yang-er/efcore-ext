@@ -158,11 +158,10 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
             Expression MergeJoinExpand(MethodCallExpression mergeJoinCall)
             {
-                var innerJoin = Expression.Call(
-                    QueryableMethods.Join.MakeGenericMethod(genericArguments),
-                    mergeJoinCall.Arguments);
-
-                var expanded = base.Expand(innerJoin);
+                var expanded = base.Expand(
+                    Expression.Call(
+                        QueryableMethods.Join.MakeGenericMethod(genericArguments),
+                        mergeJoinCall.Arguments));
 
                 if (expanded is not MethodCallExpression afterJoinSelect
                     || afterJoinSelect.Method.Name != nameof(QueryableMethods.Select)
@@ -172,11 +171,17 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     || currentJoin.Method.GetGenericMethodDefinition() != QueryableMethods.Join)
                     throw TranslateFailed();
 
+                var T = currentJoin.Method.GetGenericArguments();
+                var T2 = afterJoinSelect.Method.GetGenericArguments();
+                Check.DebugAssert(T[3] == T2[0], "Should be the same");
+
                 return Expression.Call(
-                    afterJoinSelect.Method,
-                    Expression.Call(
-                        MergeJoinExtensions.Queryable.MakeGenericMethod(currentJoin.Method.GetGenericArguments()),
-                        currentJoin.Arguments),
+                    MergeJoinExtensions.Queryable2.MakeGenericMethod(T[0], T[1], T[2], T[3], T2[1]),
+                    currentJoin.Arguments[0],
+                    currentJoin.Arguments[1],
+                    currentJoin.Arguments[2],
+                    currentJoin.Arguments[3],
+                    currentJoin.Arguments[4],
                     afterJoinSelect.Arguments[1]);
             }
         }

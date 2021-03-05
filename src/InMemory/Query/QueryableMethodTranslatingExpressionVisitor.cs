@@ -141,31 +141,17 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
             return shapedQueryExpression;
         }
 
-        private static readonly Func<InMemoryQueryExpression, IDictionary<ProjectionMember, Expression>> AccessProjectionMapping
-            = Internals.CreateLambda<InMemoryQueryExpression, IDictionary<ProjectionMember, Expression>>(
-                param => param.AccessField("_projectionMapping"))
-            .Compile();
-
-        private Expression GetDefaultExpression(ShapedQueryExpression shapedQueryExpression)
+        private struct NullableBox<T>
         {
-            var queryExpression = (InMemoryQueryExpression)shapedQueryExpression.QueryExpression;
-            var _projectionMapping = AccessProjectionMapping(queryExpression);
+            public T Entity;
 
-            var index = 0;
-            foreach (var projection in _projectionMapping)
+            public bool IsNotNull;
+
+            public NullableBox(T entity, bool isNotNull)
             {
-                index += projection.Value is EntityProjectionExpression entityProjection
-                    ? GetAllPropertiesInHierarchy(entityProjection.EntityType).Count()
-                    : 1;
+                Entity = entity;
+                IsNotNull = isNotNull;
             }
-
-            return Expression.New(
-                typeof(ValueBuffer).GetConstructors().Single(),
-                Expression.NewArrayInit(
-                    typeof(object),
-                    Enumerable.Repeat(
-                        Expression.Constant(null, typeof(object)),
-                        index)));
         }
 
         protected virtual ShapedQueryExpression TranslateMergeJoin(
@@ -173,37 +159,106 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
             Expression innerOriginal,
             LambdaExpression outerKeySelector,
             LambdaExpression innerKeySelector,
-            LambdaExpression resultSelector)
+            LambdaExpression resultSelector,
+            LambdaExpression finalizeSelector)
         {
-            if (outerOriginal is not ShapedQueryExpression outer ||
-                innerOriginal is not ShapedQueryExpression inner)
+            // Just check the finalizer is correctly processed.
+            if (finalizeSelector.Body is not NewExpression finalizeNew ||
+                finalizeNew.Arguments.Count != 2 ||
+                finalizeNew.Arguments[0] is not MemberExpression finalizeNewLeft ||
+                finalizeNew.Arguments[1] is not MemberExpression finalizeNewRight ||
+                finalizeNewLeft.Member.Name != "Outer" ||
+                finalizeNewRight.Member.Name != "Inner")
                 return null;
 
-            var outerDefault = GetDefaultExpression(outer);
-            var innerDefault = GetDefaultExpression(inner);
+            // Use one more field to mark whether the inner one is really null?
+            // new ValueBuffer( new [] { null, null, null, ... } )
+
+            var outerType = resultSelector.Parameters[0].Type;
+            var innerType = resultSelector.Parameters[1].Type;
+            var outerInnerTransIdType = resultSelector.Body.Type;
+            var innerBoxedType = typeof(NullableBox<>).MakeGenericType(innerType);
+            var innerBoxedParameter = Expression.Parameter(innerBoxedType, "innerBoxed");
+            var innerBoxedEntityFI = innerBoxedType.GetField(nameof(NullableBox<object>.Entity));
+            var innerBoxedIsNotNullFI = innerBoxedType.GetField(nameof(NullableBox<object>.IsNotNull));
+            var innerBoxedAccess = Expression.Field(innerBoxedParameter, innerBoxedEntityFI);
+            var innerBoxedIsNotNull = Expression.Field(innerBoxedParameter, innerBoxedIsNotNullFI);
+            var outerInnerBoxedTransIdType = TransparentIdentifierFactory.Create(outerType, innerBoxedType);
+            var outerInnerBoxedTransIdParam = Expression.Parameter(outerInnerBoxedTransIdType, "ti");
+            var outerInnerBoxedTransIdOuterFI = outerInnerBoxedTransIdType.GetField("Outer");
+            var outerInnerBoxedTransIdInnerFI = outerInnerBoxedTransIdType.GetField("Inner");
+            var outerInnerBoxedTransIdAccess = Expression.Field(outerInnerBoxedTransIdParam, outerInnerBoxedTransIdInnerFI);
+
+            innerOriginal = Expression.Call(
+                QueryableMethods.Select.MakeGenericMethod(innerType, innerBoxedType),
+                innerOriginal,
+                Expression.Quote(
+                    Expression.Lambda(
+                        Expression.New(
+                            innerBoxedType.GetConstructors().Single(),
+                            new Expression[] { resultSelector.Parameters[1], Expression.Constant(true) },
+                            new MemberInfo[] { innerBoxedEntityFI, innerBoxedIsNotNullFI }),
+                        resultSelector.Parameters[1])));
+
+            innerKeySelector = Expression.Lambda(
+                ReplacingExpressionVisitor.Replace(
+                    innerKeySelector.Parameters[0],
+                    innerBoxedAccess,
+                    innerKeySelector.Body),
+                innerBoxedParameter);
+
+            resultSelector = Expression.Lambda(
+                Expression.New(
+                    outerInnerBoxedTransIdType.GetConstructors()[0],
+                    new Expression[] { resultSelector.Parameters[0], innerBoxedParameter },
+                    new[] { outerInnerBoxedTransIdOuterFI, outerInnerBoxedTransIdInnerFI }),
+                resultSelector.Parameters[0],
+                innerBoxedParameter);
+
+            finalizeSelector = Expression.Lambda(
+                Expression.New(
+                    finalizeNew.Constructor,
+                    Expression.Field(outerInnerBoxedTransIdParam, "Outer"),
+                    Expression.Condition(
+                        Expression.Field(outerInnerBoxedTransIdAccess, innerBoxedIsNotNullFI),
+                        Expression.Field(outerInnerBoxedTransIdAccess, innerBoxedEntityFI),
+                        Expression.Constant(null, innerBoxedEntityFI.FieldType))),
+                outerInnerBoxedTransIdParam);
+
+            if (Visit(outerOriginal) is not ShapedQueryExpression outer ||
+                Visit(innerOriginal) is not ShapedQueryExpression inner)
+                return null;
+
+            outer = TranslateDefaultIfEmpty(outer, null);
+            inner = TranslateDefaultIfEmpty(inner, null);
 
             var shaped = TranslateJoin(outer, inner, outerKeySelector, innerKeySelector, resultSelector);
 
             if (shaped == null ||
                 shaped.QueryExpression is not InMemoryQueryExpression queryExpression ||
                 queryExpression.ServerQueryExpression is not MethodCallExpression serverJoin ||
-                serverJoin.Method.DeclaringType != typeof(Enumerable) ||
-                serverJoin.Method.Name != nameof(Enumerable.Join))
+                serverJoin.Method.Name != nameof(Enumerable.Join) ||
+                serverJoin.Arguments[0] is not MethodCallExpression outerDefaultIfEmpty ||
+                serverJoin.Arguments[1] is not MethodCallExpression innerDefaultIfEmpty ||
+                outerDefaultIfEmpty.Method.Name != nameof(Enumerable.DefaultIfEmpty) ||
+                innerDefaultIfEmpty.Method.Name != nameof(Enumerable.DefaultIfEmpty) ||
+                innerDefaultIfEmpty.Arguments[0] is not MethodCallExpression innerSelect ||
+                innerSelect.Method.Name != nameof(Enumerable.Select))
                 return null;
 
             var mergeJoinExpression =
                 Expression.Call(
                     MergeJoinExtensions.Enumerable.MakeGenericMethod(serverJoin.Method.GetGenericArguments()),
-                    serverJoin.Arguments[0],
-                    serverJoin.Arguments[1],
+                    outerDefaultIfEmpty.Arguments[0],
+                    innerDefaultIfEmpty.Arguments[0],
                     serverJoin.Arguments[2],
                     serverJoin.Arguments[3],
                     serverJoin.Arguments[4],
-                    outerDefault,
-                    innerDefault);
+                    outerDefaultIfEmpty.Arguments[1],
+                    innerDefaultIfEmpty.Arguments[1]);
 
             UpdateQueryExpression(queryExpression, mergeJoinExpression);
-            return shaped;
+            return TranslateSelect(shaped, finalizeSelector);
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
@@ -222,14 +277,15 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
 
 
                     case nameof(MergeJoinExtensions.MergeJoin)
-                    when genericMethod == MergeJoinExtensions.Queryable:
+                    when genericMethod == MergeJoinExtensions.Queryable2:
                         return CheckTranslated(
                             TranslateMergeJoin(
-                                Visit(methodCallExpression.Arguments[0]),
-                                Visit(methodCallExpression.Arguments[1]),
+                                methodCallExpression.Arguments[0],
+                                methodCallExpression.Arguments[1],
                                 GetLambdaExpressionFromArgument(2),
                                 GetLambdaExpressionFromArgument(3),
-                                GetLambdaExpressionFromArgument(4)));
+                                GetLambdaExpressionFromArgument(4),
+                                GetLambdaExpressionFromArgument(5)));
                 }
             }
 
