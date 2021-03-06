@@ -15,6 +15,7 @@ namespace Microsoft.EntityFrameworkCore.Query
     {
         private readonly Type _contextType;
         private readonly IEvaluatableExpressionFilter _evaluatableExpressionFilter;
+        private readonly IBulkQueryCompilationContextFactory _bulkQueryCompilationContextFactory;
         private readonly IModel _model;
 
         /// <summary>
@@ -40,6 +41,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             IDiagnosticsLogger<DbLoggerCategory.Query> logger,
             ICurrentDbContext currentContext,
             IEvaluatableExpressionFilter evaluatableExpressionFilter,
+            IBulkQueryCompilationContextFactory bulkQueryCompilationContextFactory,
             IModel model)
             : base(queryContextFactory,
                   compiledQueryCache,
@@ -52,6 +54,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             _contextType = currentContext.Context.GetType();
             _evaluatableExpressionFilter = evaluatableExpressionFilter;
+            _bulkQueryCompilationContextFactory = bulkQueryCompilationContextFactory;
             _model = model;
         }
 
@@ -148,11 +151,11 @@ namespace Microsoft.EntityFrameworkCore.Query
         /// <inheritdoc cref="QueryCompiler.CompileQueryCore{TResult}(IDatabase, Expression, IModel, bool)" />
         protected virtual Func<QueryContext, TResult> CompileBulkCore<TResult>(
             IDatabase database,
-            MethodCallExpression methodCallExpression,
+            Expression query,
             IModel model,
             bool async)
         {
-            return base.CompileQueryCore<TResult>(database, methodCallExpression, model, async);
+            return _bulkQueryCompilationContextFactory.CreateQueryExecutor<TResult>(async, query);
         }
     }
 }

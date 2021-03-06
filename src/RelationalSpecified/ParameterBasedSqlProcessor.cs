@@ -1,28 +1,25 @@
 ﻿#if EFCORE50
 
-namespace Microsoft.EntityFrameworkCore.Query
-{
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Linq.Expressions;
-    using Microsoft.EntityFrameworkCore.Bulk;
-    using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Microsoft.EntityFrameworkCore.Bulk;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using System.Collections.Generic;
+using System.Linq;
 
 #if SQL_SERVER
-    using ThisSqlNullabilityProcessor = Microsoft.EntityFrameworkCore.Query.SqlNullabilityProcessor;
-    using ThisParameterBasedSqlProcessor = Microsoft.EntityFrameworkCore.SqlServer.Query.Internal.SqlServerParameterBasedSqlProcessor;
-    using ThisParameterBasedSqlProcessorFactory = Microsoft.EntityFrameworkCore.SqlServer.Query.Internal.SqlServerParameterBasedSqlProcessorFactory;
+using ThisSqlNullabilityProcessor = Microsoft.EntityFrameworkCore.Query.SqlNullabilityProcessor;
+using ThisParameterBasedSqlProcessor = Microsoft.EntityFrameworkCore.SqlServer.Query.Internal.SqlServerParameterBasedSqlProcessor;
+using ThisParameterBasedSqlProcessorFactory = Microsoft.EntityFrameworkCore.SqlServer.Query.Internal.SqlServerParameterBasedSqlProcessorFactory;
 #elif POSTGRE_SQL
-    using ThisSqlNullabilityProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlSqlNullabilityProcessor;
-    using ThisParameterBasedSqlProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessor;
-    using ThisParameterBasedSqlProcessorFactory = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessorFactory;
+using ThisSqlNullabilityProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlSqlNullabilityProcessor;
+using ThisParameterBasedSqlProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessor;
+using ThisParameterBasedSqlProcessorFactory = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessorFactory;
 #endif
 
-    public class XysSqlNullabilityProcessor : ThisSqlNullabilityProcessor
+namespace Microsoft.EntityFrameworkCore.Query
+{
+    public class RelationalBulkSqlNullabilityProcessor : ThisSqlNullabilityProcessor
     {
-        public XysSqlNullabilityProcessor(
+        public RelationalBulkSqlNullabilityProcessor(
             RelationalParameterBasedSqlProcessorDependencies dependencies,
             bool useRelationalNulls)
             : base(dependencies, useRelationalNulls)
@@ -150,12 +147,6 @@ namespace Microsoft.EntityFrameworkCore.Query
                 : upsertExpression;
         }
 
-        private static bool? TryGetBoolConstantValue(SqlExpression expression)
-            => expression is SqlConstantExpression constantExpression
-                && constantExpression.Value is bool boolValue
-                    ? boolValue
-                    : (bool?)null;
-
         protected override SqlExpression VisitCustomSqlExpression(
             SqlExpression sqlExpression,
             bool allowOptimizedExpansion,
@@ -178,11 +169,17 @@ namespace Microsoft.EntityFrameworkCore.Query
                 allowOptimizedExpansion,
                 out nullable);
         }
+
+        private static bool? TryGetBoolConstantValue(SqlExpression expression)
+            => expression is SqlConstantExpression constantExpression
+                && constantExpression.Value is bool boolValue
+                    ? boolValue
+                    : (bool?)null;
     }
 
-    public class XysParameterBasedSqlProcessor : ThisParameterBasedSqlProcessor
+    public class RelationalBulkParameterBasedSqlProcessor : ThisParameterBasedSqlProcessor
     {
-        public XysParameterBasedSqlProcessor(
+        public RelationalBulkParameterBasedSqlProcessor(
             RelationalParameterBasedSqlProcessorDependencies dependencies,
             bool useRelationalNulls)
             : base(dependencies, useRelationalNulls)
@@ -197,7 +194,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             Check.NotNull(selectExpression, nameof(selectExpression));
             Check.NotNull(parametersValues, nameof(parametersValues));
 
-            return new XysSqlNullabilityProcessor(Dependencies, UseRelationalNulls)
+            return new RelationalBulkSqlNullabilityProcessor(Dependencies, UseRelationalNulls)
                 .Process(selectExpression, parametersValues, out canCache);
         }
 
@@ -220,13 +217,13 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
     }
 
-    public class XysParameterBasedSqlProcessorFactory :
-        IRelationalParameterBasedSqlProcessorFactory,
+    public class RelationalBulkParameterBasedSqlProcessorFactory :
+        IRelationalBulkParameterBasedSqlProcessorFactory,
         IServiceAnnotation<IRelationalParameterBasedSqlProcessorFactory, ThisParameterBasedSqlProcessorFactory>
     {
         private readonly RelationalParameterBasedSqlProcessorDependencies _dependencies;
 
-        public XysParameterBasedSqlProcessorFactory(
+        public RelationalBulkParameterBasedSqlProcessorFactory(
             RelationalParameterBasedSqlProcessorDependencies dependencies)
         {
             Check.NotNull(dependencies, nameof(dependencies));
@@ -235,7 +232,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
 
         public virtual RelationalParameterBasedSqlProcessor Create(bool useRelationalNulls)
-            => new XysParameterBasedSqlProcessor(_dependencies, useRelationalNulls);
+            => new RelationalBulkParameterBasedSqlProcessor(_dependencies, useRelationalNulls);
     }
 }
 

@@ -2,34 +2,41 @@
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
+using Microsoft.EntityFrameworkCore.SqlServer.Query;
 using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.EntityFrameworkCore
 {
     public static class SqlServerBatchExtensions
     {
-        private static void ConfigureServices(IServiceCollection services)
-        {
-            services.AddSingleton<IMethodCallTranslatorPlugin, MathTranslation>();
-            SearchConditionBooleanGuard.AddTypeField(typeof(SearchConditionConvertingExpressionVisitor), "_isSearchCondition");
-#if EFCORE50
-            services.Replace(ServiceDescriptor.Singleton<IRelationalParameterBasedSqlProcessorFactory, XysParameterBasedSqlProcessorFactory>());
-#elif EFCORE31
-            SearchConditionBooleanGuard.AddTypeField(typeof(NullSemanticsRewritingExpressionVisitor), "_canOptimize");
-#endif
-        }
-
         public static SqlServerDbContextOptionsBuilder UseBulk(this SqlServerDbContextOptionsBuilder builder)
         {
             var builder1 = ((IRelationalDbContextOptionsBuilderInfrastructure)builder).OptionsBuilder;
-            var ext = new RelationalBatchDbContextOptionsExtension<
-                EnhancedQuerySqlGeneratorFactory,
-                SqlServerQuerySqlGeneratorFactory,
-                SqlServerBatchOperationProvider>("SqlServerBatchExtension", ConfigureServices);
+            var ext = new SqlServerBatchOptionsExtension();
             ((IDbContextOptionsBuilderInfrastructure)builder1).AddOrUpdateExtension(ext);
             return builder;
+        }
+    }
+
+    public class SqlServerBatchOptionsExtension : RelationalBatchOptionsExtension
+    {
+        public override string Name => "SqlServerBatchExtension";
+
+        protected override void ApplyServices(BatchServicesBuilder services)
+        {
+            base.ApplyServices(services);
+
+            services.TryAdd<IMethodCallTranslatorPlugin, MathTranslationPlugin>();
+            services.TryAdd<IBulkQuerySqlGeneratorFactory, SqlServerBulkQuerySqlGeneratorFactory>();
+            services.TryAdd<IQueryCompiler, SqlServerBulkQueryCompiler>();
+#if EFCORE50
+            services.TryAdd<IRelationalBulkParameterBasedSqlProcessorFactory, RelationalBulkParameterBasedSqlProcessorFactory>();
+            services.TryAdd<IBulkQueryCompilationContextFactory, SqlServerBulkQueryCompilationContextFactory>();
+#elif EFCORE31
+            services.TryAdd<IBulkQueryCompilationContextFactory, BulkQueryCompilationContextFactory>();
+            SearchConditionBooleanGuard.AddTypeField(typeof(NullSemanticsRewritingExpressionVisitor), "_canOptimize");
+#endif
+            SearchConditionBooleanGuard.AddTypeField(typeof(SearchConditionConvertingExpressionVisitor), "_isSearchCondition");
         }
     }
 }

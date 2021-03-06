@@ -92,7 +92,7 @@ namespace Microsoft.EntityFrameworkCore.Query
     }
 
     public class RelationalBulkShapedQueryCompilingExpressionVisitorFactory :
-        IShapedQueryCompilingExpressionVisitorFactory,
+        IBulkShapedQueryCompilingExpressionVisitorFactory,
         IServiceAnnotation<IShapedQueryCompilingExpressionVisitorFactory, RelationalShapedQueryCompilingExpressionVisitorFactory>
     {
         private readonly ShapedQueryCompilingExpressionVisitorDependencies _dependencies;
@@ -100,10 +100,22 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         public RelationalBulkShapedQueryCompilingExpressionVisitorFactory(
             ShapedQueryCompilingExpressionVisitorDependencies dependencies,
-            RelationalShapedQueryCompilingExpressionVisitorDependencies relationalDependencies)
+            RelationalShapedQueryCompilingExpressionVisitorDependencies relationalDependencies,
+#if EFCORE50
+            IRelationalBulkParameterBasedSqlProcessorFactory parameterBasedSqlProcessorFactory,
+#endif
+            IBulkQuerySqlGeneratorFactory querySqlGeneratorFactory)
         {
             Check.NotNull(dependencies, nameof(dependencies));
             Check.NotNull(relationalDependencies, nameof(relationalDependencies));
+
+#if EFCORE50
+            Check.NotNull(parameterBasedSqlProcessorFactory, nameof(parameterBasedSqlProcessorFactory));
+            relationalDependencies = relationalDependencies.With(parameterBasedSqlProcessorFactory);
+#endif
+
+            Check.NotNull(querySqlGeneratorFactory, nameof(querySqlGeneratorFactory));
+            relationalDependencies = relationalDependencies.With(querySqlGeneratorFactory);
 
             _dependencies = dependencies;
             _relationalDependencies = relationalDependencies;

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
@@ -21,18 +22,49 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         /// <summary> The name of extension. </summary>
         public abstract string Name { get; }
 
-        /// <summary> Whether the current database provider is relational. </summary>
-        public abstract bool Relational { get; }
-
         /// <inheritdoc cref="IDbContextOptionsExtension.ApplyServices(IServiceCollection)" />
-        internal abstract void ApplyServices(BatchServicesBuilder services);
+        protected abstract void ApplyServices(BatchServicesBuilder services);
 
         /// <inheritdoc />
         public void ApplyServices(IServiceCollection services)
         {
-            var builder = new BatchServicesBuilder(services, Relational);
+            services.AddScoped<BulkQueryCompilationContextDependencies>();
+            var builder = new BatchServicesBuilder(services, GetRequiredServices(), GetServiceLifetimes());
             ApplyServices(builder);
             builder.Validate();
+        }
+
+        /// <summary>
+        /// Gets the service lifetime mapping.
+        /// </summary>
+        internal virtual Dictionary<Type, ServiceLifetime> GetServiceLifetimes()
+        {
+            return new Dictionary<Type, ServiceLifetime>
+            {
+                { typeof(IBatchOperationProvider), ServiceLifetime.Singleton },
+                { typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory), ServiceLifetime.Singleton },
+                { typeof(IBulkQueryTranslationPostprocessorFactory), ServiceLifetime.Singleton },
+                { typeof(IBulkQueryTranslationPreprocessorFactory), ServiceLifetime.Singleton },
+                { typeof(IBulkShapedQueryCompilingExpressionVisitorFactory), ServiceLifetime.Singleton },
+                { typeof(IBulkQueryCompilationContextFactory), ServiceLifetime.Scoped },
+                { typeof(IQueryCompiler), ServiceLifetime.Scoped },
+            };
+        }
+
+        /// <summary>
+        /// Gets the services that required a <see cref="IServiceAnnotation{TService, TImplementation}"/>.
+        /// </summary>
+        internal virtual HashSet<Type> GetRequiredServices()
+        {
+            return new HashSet<Type>
+            {
+                typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory),
+                typeof(IBulkQueryTranslationPostprocessorFactory),
+                typeof(IBulkQueryTranslationPreprocessorFactory),
+                typeof(IBulkShapedQueryCompilingExpressionVisitorFactory),
+                typeof(IBulkQueryCompilationContextFactory),
+                typeof(IQueryCompiler),
+            };
         }
 
         /// <inheritdoc />
@@ -40,62 +72,31 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         {
         }
 
-        internal sealed class BatchServicesBuilder
+        /// <summary>
+        /// Build the services.
+        /// </summary>
+        protected sealed class BatchServicesBuilder
         {
-            private const string IRelationalParameterBasedSqlProcessorFactory = nameof(IRelationalParameterBasedSqlProcessorFactory);
-            private const string IMethodCallTranslatorPlugin = nameof(IMethodCallTranslatorPlugin);
-            private const string IMemberTranslatorPlugin = nameof(IMemberTranslatorPlugin);
-            private const string IQueryCompiler = nameof(IQueryCompiler);
-            private const string IQuerySqlGeneratorFactory = nameof(IQuerySqlGeneratorFactory);
+            private IReadOnlyDictionary<Type, ServiceLifetime> ServiceLifetimes { get; }
 
-            private static readonly Dictionary<string, ServiceLifetime> ServiceLifetimes
-                = new Dictionary<string, ServiceLifetime>
-                {
-                    { nameof(IBatchOperationProvider), ServiceLifetime.Singleton },
-                    { nameof(IBulkQueryableMethodTranslatingExpressionVisitorFactory), ServiceLifetime.Singleton },
-                    { nameof(IBulkQueryTranslationPostprocessorFactory), ServiceLifetime.Singleton },
-                    { nameof(IBulkQueryTranslationPreprocessorFactory), ServiceLifetime.Singleton },
-                    { nameof(IBulkShapedQueryCompilingExpressionVisitorFactory), ServiceLifetime.Singleton },
-                    { IRelationalParameterBasedSqlProcessorFactory, ServiceLifetime.Singleton },
-                    { IQuerySqlGeneratorFactory, ServiceLifetime.Singleton },
-                    { IMethodCallTranslatorPlugin, ServiceLifetime.Singleton },
-                    { IMemberTranslatorPlugin, ServiceLifetime.Singleton },
-                    { nameof(IBulkQueryCompilationContextFactory), ServiceLifetime.Scoped },
-                    { IQueryCompiler, ServiceLifetime.Scoped },
-                };
+            private HashSet<Type> ShouldHaveAnnotation { get; }
 
-            private static readonly HashSet<string> ShouldHaveAnnotation
-                = new HashSet<string>
-                {
-                    nameof(IBulkQueryableMethodTranslatingExpressionVisitorFactory),
-                    nameof(IBulkQueryCompilationContextFactory),
-                    nameof(IBulkQueryTranslationPostprocessorFactory),
-                    nameof(IBulkQueryTranslationPreprocessorFactory),
-                    nameof(IBulkShapedQueryCompilingExpressionVisitorFactory),
-                    IQueryCompiler,
-                    IQuerySqlGeneratorFactory,
-#if EFCORE50
-                    IRelationalParameterBasedSqlProcessorFactory,
-#endif
-                };
-
-            private HashSet<string> NonHandledServices { get; }
+            private HashSet<Type> NonHandledServices { get; }
 
             private IServiceCollection ServiceCollection { get; }
 
-            public BatchServicesBuilder(IServiceCollection services, bool relational)
+            internal BatchServicesBuilder(
+                IServiceCollection services,
+                HashSet<Type> unhandled,
+                IReadOnlyDictionary<Type, ServiceLifetime> serviceLifetimes)
             {
                 ServiceCollection = services;
-                NonHandledServices = new HashSet<string>(ShouldHaveAnnotation);
-
-                if (!relational)
-                {
-                    NonHandledServices.Remove(IQuerySqlGeneratorFactory);
-                    NonHandledServices.Remove(IRelationalParameterBasedSqlProcessorFactory);
-                }
+                ShouldHaveAnnotation = unhandled;
+                NonHandledServices = new HashSet<Type>(unhandled);
+                ServiceLifetimes = serviceLifetimes;
             }
 
-            public void Validate()
+            internal void Validate()
             {
                 if (NonHandledServices.Count > 0)
                 {
@@ -105,6 +106,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 }
             }
 
+            /// <summary>
+            /// Try add the service with implementation into EFCore's DIC.
+            /// </summary>
             public void TryAdd<TService, TImplementation>()
                 where TService : class
                 where TImplementation : TService
@@ -112,13 +116,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 var serviceType = typeof(TService);
                 var implementationType = typeof(TImplementation);
 
-                if (!ServiceLifetimes.TryGetValue(serviceType.Name, out var lifetime))
+                if (!ServiceLifetimes.TryGetValue(serviceType, out var lifetime))
                 {
                     throw new InvalidOperationException("Unknown service type.");
                 }
 
                 var iface = implementationType.GetInterface("IServiceAnnotation`2");
-                if (ShouldHaveAnnotation.Contains(serviceType.Name)
+                if (ShouldHaveAnnotation.Contains(serviceType)
                     && implementationType != typeof(BypassBulkQueryTranslationPostprocessorFactory)
                     && implementationType != typeof(BypassBulkShapedQueryCompilingExpressionVisitorFactory)
                     && iface == null)
@@ -141,7 +145,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 }
 
                 var descriptor = ServiceDescriptor.Describe(serviceType, implementationType, lifetime);
-                NonHandledServices.Remove(serviceType.Name);
+                NonHandledServices.Remove(serviceType);
                 if (useReplace)
                 {
                     ServiceCollection.Replace(descriptor);

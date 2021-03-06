@@ -5,17 +5,17 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Microsoft.EntityFrameworkCore.Bulk
+namespace Microsoft.EntityFrameworkCore.SqlServer.Query
 {
-    public class MathTranslation : IMethodCallTranslator, IMethodCallTranslatorPlugin
+    public class MathTranslationPlugin : IMethodCallTranslator, IMethodCallTranslatorPlugin
     {
-        private MathTranslation[] Translators { get; }
+        private MathTranslationPlugin[] Translators { get; }
 
         IEnumerable<IMethodCallTranslator> IMethodCallTranslatorPlugin.Translators => Translators;
 
         ISqlExpressionFactory Sql { get; }
 
-        public MathTranslation(ISqlExpressionFactory sqlExpressionFactory)
+        public MathTranslationPlugin(ISqlExpressionFactory sqlExpressionFactory)
         {
             Sql = sqlExpressionFactory;
             Translators = new[] { this };

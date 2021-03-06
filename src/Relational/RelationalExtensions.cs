@@ -1,75 +1,44 @@
-﻿using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.Internal;
+﻿using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
-    internal class RelationalBatchDbContextOptionsExtension<TNewFactory, TOldFactory, TProvider> :
-        IDbContextOptionsExtension
-        where TOldFactory : class, IQuerySqlGeneratorFactory
-        where TNewFactory : class, IEnhancedQuerySqlGeneratorFactory<TOldFactory>
-        where TProvider : RelationalBatchOperationProvider
+    public abstract class RelationalBatchOptionsExtension : BatchOptionsExtension
     {
-        private DbContextOptionsExtensionInfo _info;
-        private readonly string _name;
-        private readonly Action<IServiceCollection> _configureServices;
-
-        public RelationalBatchDbContextOptionsExtension(
-            string name,
-            Action<IServiceCollection> configureServices = null)
+        protected override void ApplyServices(BatchServicesBuilder services)
         {
-            _name = name;
-            _configureServices = configureServices ?? (_ => { });
+            services.TryAdd<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
+
+            services.TryAdd<IBulkShapedQueryCompilingExpressionVisitorFactory, RelationalBulkShapedQueryCompilingExpressionVisitorFactory>();
+            services.TryAdd<IBulkQueryTranslationPreprocessorFactory, RelationalBulkQueryTranslationPreprocessorFactory>();
+            services.TryAdd<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();
+            services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory>();
         }
 
-        public DbContextOptionsExtensionInfo Info =>
-            _info ??= new BatchDbContextOptionsExtensionInfo(this);
-
-        public void ApplyServices(IServiceCollection services)
+        internal override HashSet<Type> GetRequiredServices()
         {
-            var sd = services.FirstOrDefault(d => d.ServiceType == typeof(IQuerySqlGeneratorFactory));
-            if (sd?.ImplementationType != typeof(TOldFactory))
-                throw new InvalidOperationException("No such IQuerySqlGeneratorFactory.");
-            services[services.IndexOf(sd)] = ServiceDescriptor.Singleton(sd.ServiceType, typeof(TNewFactory));
-
-            services.AddSingleton<IBatchOperationProvider, TProvider>();
-            services.AddSingleton<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
-            services.Replace(ServiceDescriptor.Scoped<IQueryCompiler, BulkQueryCompiler>());
-            services.Replace(ServiceDescriptor.Singleton<IShapedQueryCompilingExpressionVisitorFactory, RelationalBulkShapedQueryCompilingExpressionVisitorFactory>());
-            services.Replace(ServiceDescriptor.Singleton<IQueryTranslationPreprocessorFactory, RelationalBulkQueryTranslationPreprocessorFactory>());
-            services.Replace(ServiceDescriptor.Singleton<IQueryableMethodTranslatingExpressionVisitorFactory, RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory>());
-            _configureServices.Invoke(services);
+            var set = base.GetRequiredServices();
+            set.Add(typeof(IBulkQuerySqlGeneratorFactory));
+#if EFCORE50
+            set.Add(typeof(IRelationalBulkParameterBasedSqlProcessorFactory));
+#endif
+            return set;
         }
 
-        public void Validate(IDbContextOptions options)
+        internal override Dictionary<Type, ServiceLifetime> GetServiceLifetimes()
         {
-        }
-
-        private class BatchDbContextOptionsExtensionInfo : DbContextOptionsExtensionInfo
-        {
-            private readonly string _name;
-
-            public BatchDbContextOptionsExtensionInfo(
-                RelationalBatchDbContextOptionsExtension<TNewFactory, TOldFactory, TProvider> extension) : base(extension)
-            {
-                _name = extension._name;
-                LogFragment = $"using {_name} ";
-            }
-
-            public override bool IsDatabaseProvider => false;
-
-            public override string LogFragment { get; }
-
-            public override long GetServiceProviderHashCode() => 0;
-
-            public override void PopulateDebugInfo(IDictionary<string, string> debugInfo)
-                => debugInfo[_name] = "1";
+            var dict = base.GetServiceLifetimes();
+            dict.Add(typeof(IMethodCallTranslatorPlugin), ServiceLifetime.Singleton);
+            dict.Add(typeof(IMemberTranslatorPlugin), ServiceLifetime.Singleton);
+            dict.Add(typeof(IBulkQuerySqlGeneratorFactory), ServiceLifetime.Singleton);
+            dict.Add(typeof(IAnonymousExpressionFactory), ServiceLifetime.Singleton);
+#if EFCORE50
+            dict.Add(typeof(IRelationalBulkParameterBasedSqlProcessorFactory), ServiceLifetime.Singleton);
+#endif
+            return dict;
         }
     }
 }
