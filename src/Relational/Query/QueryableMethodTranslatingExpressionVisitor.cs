@@ -24,6 +24,12 @@ namespace Microsoft.EntityFrameworkCore.Query
 {
     public class RelationalBulkQueryableMethodTranslatingExpressionVisitor : RelationalQueryableMethodTranslatingExpressionVisitor
     {
+        private static readonly Func<RelationalQueryableMethodTranslatingExpressionVisitor, RelationalSqlTranslatingExpressionVisitor> _sqlTranslatorAccessor
+            = ExpressionBuilder
+                .Begin<RelationalQueryableMethodTranslatingExpressionVisitor>()
+                .AccessField("_sqlTranslator")
+                .Compile<Func<RelationalQueryableMethodTranslatingExpressionVisitor, RelationalSqlTranslatingExpressionVisitor>>();
+
         private readonly RelationalSqlTranslatingExpressionVisitor _sqlTranslator;
         private readonly ISqlExpressionFactory _sqlExpressionFactory;
         private readonly IAnonymousExpressionFactory _anonymousExpressionFactory;
@@ -39,7 +45,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             _sqlExpressionFactory = relationalDependencies.SqlExpressionFactory;
             _anonymousExpressionFactory = anonymousExpressionFactory;
             _model = AccessModel(thirdParameter);
-            _sqlTranslator = RelationalInternals.AccessTranslator(this);
+            _sqlTranslator = _sqlTranslatorAccessor(this);
         }
 
         public RelationalBulkQueryableMethodTranslatingExpressionVisitor(
@@ -59,7 +65,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         private IModel AccessModel(ThirdParameter thirdParameter) => thirdParameter;
 
         private void UpdateAffectedRowsCardinality(ref ShapedQueryExpression newShaped)
-            => newShaped.ResultCardinality = VisitorHelper.AffectedRows;
+            => newShaped.ResultCardinality = BulkQueryCompiler.AffectedRows;
 
         private bool IsSameTable(IEntityType entityType, TableExpression tableExpression)
             => entityType.GetTableName() == tableExpression.Name && entityType.GetSchema() == tableExpression.Schema;
@@ -71,7 +77,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         private IModel AccessModel(ThirdParameter thirdParameter) => thirdParameter.Model;
 
         private void UpdateAffectedRowsCardinality(ref ShapedQueryExpression newShaped)
-            => newShaped = newShaped.UpdateResultCardinality(VisitorHelper.AffectedRows);
+            => newShaped = newShaped.UpdateResultCardinality(BulkQueryCompiler.AffectedRows);
 
         private bool IsSameTable(IEntityType entityType, TableExpression tableExpression)
             => entityType.GetViewOrTableMappings().Single().Table == tableExpression.Table;
@@ -270,10 +276,10 @@ namespace Microsoft.EntityFrameworkCore.Query
             var setFields = new List<ProjectionExpression>(projectionMapping.Count);
             var columnNames = entityType.GetColumns();
 
-            foreach (var (member, projection) in projectionMapping)
+            foreach (var mapping in projectionMapping)
             {
-                if (projection is not SqlExpression sqlExpression
-                    || !columnNames.TryGetValue(member.ToString(), out var fieldName))
+                if (mapping.Value is not SqlExpression sqlExpression
+                    || !columnNames.TryGetValue(mapping.Key.ToString(), out var fieldName))
                 {
                     throw new NotImplementedException("Unknown projection mapping failed.");
                 }
@@ -318,15 +324,15 @@ namespace Microsoft.EntityFrameworkCore.Query
                 throw new NotImplementedException("Why is projection here expanded?");
             }
 
-            foreach (var (member, projection) in projectionMapping)
+            foreach (var mapping in projectionMapping)
             {
-                if (projection is not SqlExpression sqlExpression
-                    || !columnNames.TryGetValue(member.ToString(), out var fieldName))
+                if (mapping.Value is not SqlExpression sqlExpression
+                    || !columnNames.TryGetValue(mapping.Key.ToString(), out var fieldName))
                 {
                     throw new NotImplementedException("Unknown projection mapping failed.");
                 }
 
-                newProjectionMapping.Add(member, Expression.Constant(projections.Count));
+                newProjectionMapping.Add(mapping.Key, Expression.Constant(projections.Count));
                 projections.Add(_sqlExpressionFactory.Projection(sqlExpression, fieldName));
             }
 

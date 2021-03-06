@@ -100,7 +100,7 @@ namespace Microsoft.EntityFrameworkCore.Utilities
                 }
             }
 
-            foreach (var (_, value) in mergeResult)
+            foreach (var value in mergeResult.Values)
             {
                 if (value.Inner.Count == 0)
                 {

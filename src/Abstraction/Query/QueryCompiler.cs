@@ -13,6 +13,7 @@ namespace Microsoft.EntityFrameworkCore.Query
     /// <inheritdoc />
     public class BulkQueryCompiler : QueryCompiler, IServiceAnnotation<IQueryCompiler, QueryCompiler>
     {
+        internal const ResultCardinality AffectedRows = (ResultCardinality)998244353;
         private readonly Type _contextType;
         private readonly IEvaluatableExpressionFilter _evaluatableExpressionFilter;
         private readonly IBulkQueryCompilationContextFactory _bulkQueryCompilationContextFactory;

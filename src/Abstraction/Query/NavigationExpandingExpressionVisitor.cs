@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System;
+using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore.Query.Internal
 {
@@ -46,12 +48,12 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                         when genericMethod == BatchOperationMethods.CreateCommonTable &&
                              methodCallExpression.Arguments[1] is ParameterExpression parameter:
 
-                        result = VisitorHelper.CreateDirect(
+                        result = NavigationExpansionExpressionFactory(
                             methodCallExpression,
                             Expression.Call(
                                 parameter,
                                 parameter.Type.GetMethod("get_Item"),
-                                Expression.Constant(0))); ;
+                                Expression.Constant(0)));
                         break;
                 }
 
@@ -114,7 +116,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 case nameof(BatchOperationExtensions.BatchUpdateJoin)
                 when genericMethod == BatchOperationMethods.BatchUpdateJoin:
                     return BatchUpdateExpand(
-                        VisitorHelper.RemapBatchUpdateJoin(methodCallExpression, out _, out _));
+                        RemapBatchUpdateJoin(methodCallExpression, out _, out _));
 
 
                 case nameof(BatchOperationExtensions.Upsert)
@@ -197,6 +199,80 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     currentJoin.Arguments[4],
                     afterJoinSelect.Arguments[1]);
             }
+        }
+
+        private static readonly Func<Expression, Expression, Expression> NavigationExpansionExpressionFactory
+            = new Func<Expression<Func<Expression, Expression, Expression>>>(delegate
+            {
+                var origin = Expression.Parameter(typeof(Expression), "origin");
+                var entity = Expression.Parameter(typeof(Expression), "entity");
+                var treeExp = typeof(NavigationExpandingExpressionVisitor).GetNestedType("NavigationTreeExpression", BindingFlags.NonPublic);
+                var navExp = typeof(NavigationExpandingExpressionVisitor).GetNestedType("NavigationExpansionExpression", BindingFlags.NonPublic);
+
+                var node = Expression.Variable(treeExp, "node");
+                var treeLeaf = Expression.New(treeExp.GetConstructors()[0], entity);
+                var nodeAssign = Expression.Assign(node, treeLeaf);
+
+                var exp = Expression.New(navExp.GetConstructors()[0], origin, node, node, Expression.Constant("cte", typeof(string)));
+                var block = Expression.Block(new[] { node }, nodeAssign, exp);
+                return Expression.Lambda<Func<Expression, Expression, Expression>>(block, origin, entity);
+            })
+            .Invoke().Compile();
+
+        internal static MethodCallExpression RemapBatchUpdateJoin(MethodCallExpression methodCallExpression, out MemberInfo outer, out MemberInfo inner)
+        {
+            var genericArguments = methodCallExpression.Method.GetGenericArguments();
+            var outerType = genericArguments[0];
+            var innerType = genericArguments[1];
+            var joinKeyType = genericArguments[2];
+
+            var transparentIdentifierType = TransparentIdentifierFactory.Create(outerType, innerType);
+            var transparentIdentifierOuterMemberInfo = transparentIdentifierType.GetTypeInfo().GetDeclaredField("Outer");
+            var transparentIdentifierInnerMemberInfo = transparentIdentifierType.GetTypeInfo().GetDeclaredField("Inner");
+            var transparentIdentifierParameter = Expression.Parameter(transparentIdentifierType, "tree");
+            var transparentIdentifierReplacement = new[]
+            {
+                Expression.Field(transparentIdentifierParameter, transparentIdentifierOuterMemberInfo),
+                Expression.Field(transparentIdentifierParameter, transparentIdentifierInnerMemberInfo),
+            };
+
+            var outerParameter = Expression.Parameter(outerType, "outer");
+            var innerParameter = Expression.Parameter(innerType, "inner");
+            var predicate = methodCallExpression.Arguments[5].UnwrapLambdaFromQuote();
+            var selector = methodCallExpression.Arguments[4].UnwrapLambdaFromQuote();
+            outer = transparentIdentifierOuterMemberInfo;
+            inner = transparentIdentifierInnerMemberInfo;
+
+            return Expression.Call(
+                QueryableMethods.Select.MakeGenericMethod(transparentIdentifierType, outerType),
+                Expression.Call(
+                    QueryableMethods.Where.MakeGenericMethod(transparentIdentifierType),
+                    Expression.Call(
+                        QueryableMethods.Join.MakeGenericMethod(outerType, innerType, joinKeyType, transparentIdentifierType),
+                        methodCallExpression.Arguments[0],
+                        methodCallExpression.Arguments[1],
+                        methodCallExpression.Arguments[2],
+                        methodCallExpression.Arguments[3],
+                        Expression.Quote(
+                            Expression.Lambda(
+                                Expression.New(
+                                    transparentIdentifierType.GetConstructors().Single(),
+                                    new[] { outerParameter, innerParameter },
+                                    new[] { transparentIdentifierOuterMemberInfo, transparentIdentifierInnerMemberInfo }),
+                                outerParameter,
+                                innerParameter))),
+                    Expression.Quote(
+                        Expression.Lambda(
+                            new ReplacingExpressionVisitor(
+                                predicate.Parameters.ToArray(),
+                                transparentIdentifierReplacement).Visit(predicate.Body),
+                            transparentIdentifierParameter))),
+                Expression.Quote(
+                    Expression.Lambda(
+                        new ReplacingExpressionVisitor(
+                            selector.Parameters.ToArray(),
+                            transparentIdentifierReplacement).Visit(selector.Body),
+                        transparentIdentifierParameter)));
         }
     }
 }

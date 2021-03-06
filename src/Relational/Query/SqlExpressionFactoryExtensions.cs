@@ -7,7 +7,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.SqlServer")]
+[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.PostgreSql")]
 namespace Microsoft.EntityFrameworkCore.Query
 {
     public static class BulkSqlExpressionFactoryExtensions
@@ -276,9 +279,10 @@ namespace Microsoft.EntityFrameworkCore.Query
               as Func<string, string, string, TableExpression>;
 
         public static readonly Func<SelectExpression, List<SelectExpression>> AccessPendingCollections
-            = Internals.CreateLambda<SelectExpression, List<SelectExpression>>(
-                param => param.AccessField("_pendingCollections"))
-            .Compile();
+            = ExpressionBuilder
+                .Begin<SelectExpression>()
+                .AccessField("_pendingCollections")
+                .Compile<Func<SelectExpression, List<SelectExpression>>>();
 
 #endif
 
@@ -290,16 +294,17 @@ namespace Microsoft.EntityFrameworkCore.Query
               as Func<string, List<ProjectionExpression>, List<TableExpressionBase>, List<SqlExpression>, List<OrderingExpression>, SelectExpression>;
 
         public static readonly Func<SelectExpression, IDictionary<ProjectionMember, Expression>> AccessProjectionMapping
-            = Internals.CreateLambda<SelectExpression, IDictionary<ProjectionMember, Expression>>(
-                param => param.AccessField("_projectionMapping"))
-            .Compile();
+            = ExpressionBuilder
+                .Begin<SelectExpression>()
+                .AccessField("_projectionMapping")
+                .Compile<Func<SelectExpression, IDictionary<ProjectionMember, Expression>>>();
 
         public static readonly Action<SelectExpression, SqlExpression> ApplyPredicate
             = new Func<Expression<Action<SelectExpression, SqlExpression>>>(delegate
             {
                 var para1 = Expression.Parameter(typeof(SelectExpression), "select");
                 var para2 = Expression.Parameter(typeof(SqlExpression), "sql");
-                var body = Expression.Assign(para1.AccessProperty("Predicate"), para2);
+                var body = Expression.Assign(Expression.Property(para1, "Predicate"), para2);
                 return Expression.Lambda<Action<SelectExpression, SqlExpression>>(body, para1, para2);
             })
             .Invoke().Compile();
@@ -309,7 +314,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             {
                 var para1 = Expression.Parameter(typeof(SelectExpression), "select");
                 var para2 = Expression.Parameter(typeof(SqlExpression), "sql");
-                var body = Expression.Assign(para1.AccessProperty("Having"), para2);
+                var body = Expression.Assign(Expression.Property(para1, "Having"), para2);
                 return Expression.Lambda<Action<SelectExpression, SqlExpression>>(body, para1, para2);
             })
             .Invoke().Compile();
@@ -319,7 +324,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             {
                 var para1 = Expression.Parameter(typeof(TableExpressionBase), "table");
                 var para2 = Expression.Parameter(typeof(string), "alias");
-                var body = Expression.Assign(para1.AccessProperty("Alias"), para2);
+                var body = Expression.Assign(Expression.Property(para1, "Alias"), para2);
                 return Expression.Lambda<Action<TableExpressionBase, string>>(body, para1, para2);
             })
             .Invoke().Compile();
@@ -329,8 +334,9 @@ namespace Microsoft.EntityFrameworkCore.Query
             {
                 var para1 = Expression.Parameter(typeof(SelectExpression), "left");
                 var para2 = Expression.Parameter(typeof(SelectExpression), "right");
-                var left = para1.AccessField("_identifier");
-                var right = para2.AccessField("_identifier");
+                var _identifier = typeof(SelectExpression).GetField("_identifier", GeneralBindingFlags);
+                var left = Expression.Field(para1, _identifier);
+                var right = Expression.Field(para2, _identifier);
                 var clearup = Expression.Call(left, left.Type.GetMethod("Clear"));
                 var addrange = Expression.Call(left, left.Type.GetMethod("AddRange"), right);
                 var body = Expression.Block(clearup, addrange);
