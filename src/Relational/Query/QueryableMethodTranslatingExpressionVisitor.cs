@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
@@ -498,7 +499,9 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
     }
 
-    public class RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory : IQueryableMethodTranslatingExpressionVisitorFactory
+    public class RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory :
+        IBulkQueryableMethodTranslatingExpressionVisitorFactory,
+        IServiceAnnotation<IQueryableMethodTranslatingExpressionVisitorFactory, RelationalQueryableMethodTranslatingExpressionVisitorFactory>
     {
         private readonly QueryableMethodTranslatingExpressionVisitorDependencies _dependencies;
         private readonly RelationalQueryableMethodTranslatingExpressionVisitorDependencies _relationalDependencies;

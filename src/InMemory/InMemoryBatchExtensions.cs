@@ -23,9 +23,7 @@ namespace Microsoft.EntityFrameworkCore
     {
         public override string Name => "InMemoryBatchExtension";
 
-        public override bool Relational => false;
-
-        internal override void ApplyServices(BatchServicesBuilder services)
+        protected override void ApplyServices(BatchServicesBuilder services)
         {
             services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, BulkInMemoryQueryableMethodTranslatingExpressionVisitorFactory>();
             services.TryAdd<IBulkQueryTranslationPreprocessorFactory, BulkQueryTranslationPreprocessorFactory>();

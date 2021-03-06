@@ -6,6 +6,32 @@ using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore.Query
 {
+    /// <inheritdoc cref="QueryCompilationContextDependencies"/>
+    public sealed class BulkQueryCompilationContextDependencies
+    {
+        /// <summary>
+        /// Creates the service dependencies parameter object for a bulk <see cref="QueryCompilationContextDependencies" />.
+        /// </summary>
+        public BulkQueryCompilationContextDependencies(
+            QueryCompilationContextDependencies dependencies,
+            IBulkQueryTranslationPreprocessorFactory queryTranslationPreprocessorFactory,
+            IBulkQueryableMethodTranslatingExpressionVisitorFactory queryableMethodTranslatingExpressionVisitorFactory,
+            IBulkQueryTranslationPostprocessorFactory queryTranslationPostprocessorFactory,
+            IBulkShapedQueryCompilingExpressionVisitorFactory shapedQueryCompilingExpressionVisitorFactory)
+        {
+            Dependencies = dependencies
+                .With(queryTranslationPreprocessorFactory)
+                .With(queryableMethodTranslatingExpressionVisitorFactory)
+                .With(queryTranslationPostprocessorFactory)
+                .With(shapedQueryCompilingExpressionVisitorFactory);
+        }
+
+        /// <summary>
+        /// The shaped <see cref="QueryCompilationContextDependencies"/>.
+        /// </summary>
+        public QueryCompilationContextDependencies Dependencies { get; }
+    }
+
     /// <inheritdoc cref="IQueryCompilationContextFactory" />
     /// <remarks>
     ///     This factory type is designed to replace several services in <see cref="QueryCompilationContextDependencies"/>.
@@ -48,17 +74,9 @@ namespace Microsoft.EntityFrameworkCore.Query
         ///     </para>
         /// </summary>
         public BulkQueryCompilationContextFactory(
-            QueryCompilationContextDependencies dependencies,
-            IBulkQueryTranslationPreprocessorFactory queryTranslationPreprocessorFactory,
-            IBulkQueryableMethodTranslatingExpressionVisitorFactory queryableMethodTranslatingExpressionVisitorFactory,
-            IBulkQueryTranslationPostprocessorFactory queryTranslationPostprocessorFactory,
-            IBulkShapedQueryCompilingExpressionVisitorFactory shapedQueryCompilingExpressionVisitorFactory)
+            BulkQueryCompilationContextDependencies dependencies)
         {
-            Dependencies = dependencies
-                .With(queryTranslationPreprocessorFactory)
-                .With(queryableMethodTranslatingExpressionVisitorFactory)
-                .With(queryTranslationPostprocessorFactory)
-                .With(shapedQueryCompilingExpressionVisitorFactory);
+            Dependencies = dependencies.Dependencies;
         }
 
         /// <inheritdoc />

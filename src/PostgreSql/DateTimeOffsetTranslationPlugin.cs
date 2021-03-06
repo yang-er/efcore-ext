@@ -1,17 +1,17 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Query;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Microsoft.EntityFrameworkCore.Bulk
+namespace Npgsql.EntityFrameworkCore.PostgreSQL.Query
 {
-    public class DateTimeOffsetTranslation : IMemberTranslator, IMethodCallTranslator, IMemberTranslatorPlugin, IMethodCallTranslatorPlugin
+    public class DateTimeOffsetTranslationPlugin : IMemberTranslator, IMethodCallTranslator, IMemberTranslatorPlugin, IMethodCallTranslatorPlugin
     {
-        private DateTimeOffsetTranslation[] Translators { get; }
+        private DateTimeOffsetTranslationPlugin[] Translators { get; }
 
         IEnumerable<IMemberTranslator> IMemberTranslatorPlugin.Translators => Translators;
 
@@ -21,7 +21,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         IReadOnlyList<IReadOnlyList<bool>> TrueArrays { get; }
 
-        public DateTimeOffsetTranslation(ISqlExpressionFactory sqlExpressionFactory)
+        public DateTimeOffsetTranslationPlugin(ISqlExpressionFactory sqlExpressionFactory)
         {
             Sql = (NpgsqlSqlExpressionFactory)sqlExpressionFactory;
             Translators = new[] { this };

@@ -18,10 +18,7 @@ namespace Microsoft.EntityFrameworkCore.Query
     /// <inheritdoc />
     public class InMemoryBulkQueryCompiler : BulkQueryCompiler
     {
-        private readonly IBulkQueryCompilationContextFactory _qccFactory;
-
         public InMemoryBulkQueryCompiler(
-            IBulkQueryCompilationContextFactory qccFactory,
             IQueryContextFactory queryContextFactory,
             ICompiledQueryCache compiledQueryCache,
             ICompiledQueryCacheKeyGenerator compiledQueryCacheKeyGenerator,
@@ -29,6 +26,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             IDiagnosticsLogger<DbLoggerCategory.Query> logger,
             ICurrentDbContext currentContext,
             IEvaluatableExpressionFilter evaluatableExpressionFilter,
+            IBulkQueryCompilationContextFactory qccFactory,
             IModel model)
             : base(queryContextFactory,
                   compiledQueryCache,
@@ -37,17 +35,18 @@ namespace Microsoft.EntityFrameworkCore.Query
                   logger,
                   currentContext,
                   evaluatableExpressionFilter,
+                  qccFactory,
                   model)
         {
-            _qccFactory = qccFactory;
         }
 
         protected override Func<QueryContext, TResult> CompileBulkCore<TResult>(
             IDatabase database,
-            MethodCallExpression methodCallExpression,
+            Expression query,
             IModel model,
             bool async)
         {
+            var methodCallExpression = (MethodCallExpression)query;
             // methodCallExpression.Method.DeclaringType == typeof(BatchOperationExtensions) holds
             var genericMethod = methodCallExpression.Method.GetGenericMethodDefinition();
             var root = methodCallExpression.Arguments[0];
@@ -116,9 +115,11 @@ namespace Microsoft.EntityFrameworkCore.Query
             InvocationExpression TranslateQueryingEnumerable(Expression innerQuery)
                 => Expression.Invoke(
                     Expression.Constant(
-                        _qccFactory.CreateQueryExecutor<object>(
-                            async,
-                            innerQuery)),
+                        base.CompileBulkCore<object>(
+                            database,
+                            innerQuery,
+                            model,
+                            async)),
                     QueryCompilationContext.QueryContextParameter);
         }
 

@@ -1,20 +1,23 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
-using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal;
 using System;
-using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace Microsoft.EntityFrameworkCore.Bulk
+namespace Npgsql.EntityFrameworkCore.PostgreSQL.Query
 {
-    public class EnhancedQuerySqlGenerator : SqlServerQuerySqlGenerator, IEnhancedQuerySqlGenerator
+    public class NpgsqlBulkQuerySqlGenerator : NpgsqlQuerySqlGenerator
     {
-        public EnhancedQuerySqlGenerator(QuerySqlGeneratorDependencies dependencies)
-            : base(dependencies)
+        public NpgsqlBulkQuerySqlGenerator(
+            QuerySqlGeneratorDependencies dependencies,
+            bool reverseNullOrderingEnabled,
+            Version postgresVersion)
+            : base(dependencies, reverseNullOrderingEnabled, postgresVersion)
         {
         }
 
@@ -25,6 +28,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return extensionExpression switch
             {
                 ValuesExpression values => VisitValues(values),
+                ExcludedTableColumnExpression excludedTableColumnExpression => VisitExcludedTableColumn(excludedTableColumnExpression),
                 _ => base.VisitExtension(extensionExpression),
             };
         }
@@ -36,6 +40,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 DeleteExpression deleteExpression => VisitDelete(deleteExpression),
                 UpdateExpression updateExpression => VisitUpdate(updateExpression),
                 SelectIntoExpression selectIntoExpression => VisitSelectInto(selectIntoExpression),
+                UpsertExpression upsertExpression => VisitUpsert(upsertExpression),
                 _ => throw new NotImplementedException(),
             };
         }
@@ -56,9 +61,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         protected virtual Expression VisitValues(ValuesExpression tableExpression)
         {
-            Sql.Append("(")
-                .IncrementIndent()
-                .AppendLine()
+            Sql.Append("(").IncrementIndent();
+
+            Sql.AppendLine()
                 .AppendLine("VALUES");
 
             var paramName = tableExpression.RuntimeParameter;
@@ -74,8 +79,9 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             Sql.DecrementIndent()
                 .AppendLine()
-                .Append(")")
-                .Append(AliasSeparator)
+                .Append(")");
+
+            Sql.Append(AliasSeparator)
                 .Append(Helper.DelimitIdentifier(tableExpression.Alias))
                 .Append(" (");
 
@@ -85,6 +91,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             Sql.Append(")");
             return tableExpression;
+        }
+
+        protected virtual Expression VisitExcludedTableColumn(ExcludedTableColumnExpression excludedTableColumnExpression)
+        {
+            Sql.Append("excluded.").Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name));
+            return excludedTableColumnExpression;
         }
 
         protected virtual Expression VisitSelectInto(SelectIntoExpression selectIntoExpression)
@@ -105,27 +117,26 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
         protected virtual Expression VisitUpdate(UpdateExpression updateExpression)
         {
-            if (updateExpression.Expanded)
+            var original = updateExpression;
+            if (!updateExpression.Expanded)
             {
-                throw new InvalidOperationException("Update expression accidently expanded.");
+                // This is a strange behavior for PostgreSQL. I don't like it.
+                updateExpression = updateExpression.Expand();
             }
 
-            Sql.Append("UPDATE ");
+            Sql.Append("UPDATE ")
+                .Append(Helper.DelimitIdentifier(updateExpression.ExpandedTable.Name))
+                .Append(AliasSeparator)
+                .AppendLine(Helper.DelimitIdentifier(updateExpression.ExpandedTable.Alias))
+                .Append("SET ");
 
-            string tableExp = Helper.DelimitIdentifier(updateExpression.Tables[0].Alias);
+            Sql.GenerateList(
+                updateExpression.Fields,
+                e => Sql.Append(Helper.DelimitIdentifier(e.Alias))
+                    .Append(" = ")
+                    .Then(() => Visit(e.Expression)));
 
-            Sql.AppendLine(tableExp).Append("SET ");
-
-            Sql.GenerateList(updateExpression.Fields, e =>
-            {
-                Sql.Append(tableExp)
-                    .Append(".")
-                    .Append(Helper.DelimitIdentifier(e.Alias))
-                    .Append(" = ");
-                Visit(e.Expression);
-            });
-
-            if (updateExpression.Tables.Any())
+            if (updateExpression.Tables.Count > 0)
             {
                 Sql.AppendLine().Append("FROM ");
                 Sql.GenerateList(updateExpression.Tables, e => Visit(e), sql => sql.AppendLine());
@@ -137,14 +148,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 Visit(updateExpression.Predicate);
             }
 
-            return updateExpression;
+            return original;
         }
 
         protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
         {
-            Sql.Append("DELETE ");
-
-            Sql.Append(Helper.DelimitIdentifier(deleteExpression.Table.Alias));
+            Sql.Append("DELETE");
 
             if (deleteExpression.JoinedTables.Any())
             {
@@ -164,73 +173,62 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             return deleteExpression;
         }
 
-        public virtual IRelationalCommand GetCommand(MergeExpression mergeExpression)
+        protected virtual Expression VisitUpsert(UpsertExpression upsertExpression)
         {
-            RelationalInternals.InitQuerySqlGenerator(this);
+            Sql.Append("INSERT INTO ");
+            Visit(upsertExpression.TargetTable);
+            Sql.AppendLine();
 
-            var targetAlias = mergeExpression.TargetTable.Alias;
-            var sourceAlias = mergeExpression.SourceTable.Alias;
+            Sql.Append("(")
+                .GenerateList(upsertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
+                .AppendLine(")");
 
-            Sql.Append("MERGE INTO ");
-            VisitTable(mergeExpression.TargetTable);
-            Sql.AppendLine().Append("USING ");
-            Visit(mergeExpression.SourceTable);
+            Sql.Append("SELECT ")
+                .GenerateList(upsertExpression.Columns, e => Visit(e))
+                .AppendLine();
 
-            using (Sql.Indent())
+            Sql.Append("FROM ");
+            Visit(upsertExpression.SourceTable);
+            Sql.AppendLine();
+
+            if (upsertExpression.OnConflictUpdate == null)
             {
-                Sql.AppendLine().Append("ON ");
-                Visit(mergeExpression.JoinPredicate);
+                Sql.Append("ON CONFLICT DO NOTHING");
+            }
+            else
+            {
+                Sql.Append("ON CONFLICT ON CONSTRAINT ")
+                    .Append(Helper.DelimitIdentifier(upsertExpression.ConflictConstraintName))
+                    .AppendLine(" DO UPDATE")
+                    .Append("SET ")
+                    .GenerateList(
+                        upsertExpression.OnConflictUpdate,
+                        e => Sql.Append(Helper.DelimitIdentifier(e.Alias)).Append(" = ").Then(() => Visit(e.Expression)));
             }
 
-            if (mergeExpression.Matched != null)
-            {
-                Sql.AppendLine().Append("WHEN MATCHED");
-                using (Sql.Indent())
-                {
-                    Sql.AppendLine().Append("THEN UPDATE SET ");
+            return upsertExpression;
+        }
+    }
 
-                    Sql.GenerateList(mergeExpression.Matched, e =>
-                    {
-                        Sql.Append(Helper.DelimitIdentifier(targetAlias))
-                            .Append(".")
-                            .Append(Helper.DelimitIdentifier(e.Alias))
-                            .Append(" = ");
-                        Visit(e.Expression);
-                    });
-                }
-            }
+    public class NpgsqlBulkQuerySqlGeneratorFactory :
+        IBulkQuerySqlGeneratorFactory,
+        IServiceAnnotation<IQuerySqlGeneratorFactory, NpgsqlQuerySqlGeneratorFactory>
+    {
+        private readonly QuerySqlGeneratorDependencies _dependencies;
+        private readonly INpgsqlOptions _npgsqlOptions;
 
-            if (mergeExpression.NotMatchedByTarget != null)
-            {
-                Sql.AppendLine().Append("WHEN NOT MATCHED BY TARGET");
-                using (Sql.Indent())
-                {
-                    Sql.AppendLine().Append("THEN INSERT (")
-                        .GenerateList(
-                            mergeExpression.NotMatchedByTarget,
-                            e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
-                        .Append(") VALUES (")
-                        .GenerateList(
-                            mergeExpression.NotMatchedByTarget,
-                            e => Visit(e.Expression))
-                        .Append(")");
-                }
-            }
-
-            if (mergeExpression.NotMatchedBySource)
-            {
-                Sql.AppendLine().Append("WHEN NOT MATCHED BY SOURCE");
-                using (Sql.Indent())
-                    Sql.AppendLine().Append("THEN DELETE");
-            }
-
-            Sql.Append(";");
-            return Sql.Build();
+        public NpgsqlBulkQuerySqlGeneratorFactory(
+            QuerySqlGeneratorDependencies dependencies,
+            INpgsqlOptions npgsqlOptions)
+        {
+            _dependencies = dependencies;
+            _npgsqlOptions = npgsqlOptions;
         }
 
-        public IRelationalCommand GetCommand(UpsertExpression upsertExpression)
-        {
-            throw new NotSupportedException();
-        }
+        public virtual QuerySqlGenerator Create()
+            => new NpgsqlBulkQuerySqlGenerator(
+                _dependencies,
+                _npgsqlOptions.ReverseNullOrderingEnabled,
+                _npgsqlOptions.PostgresVersion);
     }
 }
