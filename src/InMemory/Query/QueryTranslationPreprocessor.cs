@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Query.Internal;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query

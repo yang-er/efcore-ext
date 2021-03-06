@@ -55,17 +55,6 @@ namespace Microsoft.EntityFrameworkCore
             sourceKeySelector = Expression.Lambda(outerNew, sourceParam);
         }
 
-
-        internal class Result<T>
-        {
-            public T Insert { get; set; }
-
-            public T Update { get; set; }
-        }
-
-
-        #region private struct GenericJoinKey<>
-
         struct GenericJoinKey<T> : IEquatable<GenericJoinKey<T>>
             where T : IEquatable<T>
         {
@@ -119,6 +108,5 @@ namespace Microsoft.EntityFrameworkCore
             public override int GetHashCode() => HashCode.Combine(Value1, Value2, Value3, Value4);
             public bool Equals(GenericJoinKey<T1, T2, T3, T4> other) => Value1.Equals(other.Value1) && Value2.Equals(other.Value2) && Value3.Equals(other.Value3) && Value4.Equals(other.Value4);
         }
-        #endregion
     }
 }
