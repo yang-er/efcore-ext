@@ -41,7 +41,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         {
             return new Dictionary<Type, ServiceLifetime>
             {
-                { typeof(IBatchOperationProvider), ServiceLifetime.Singleton },
                 { typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory), ServiceLifetime.Singleton },
                 { typeof(IBulkQueryTranslationPostprocessorFactory), ServiceLifetime.Singleton },
                 { typeof(IBulkQueryTranslationPreprocessorFactory), ServiceLifetime.Singleton },
