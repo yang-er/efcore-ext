@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Query;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.EntityFrameworkCore.Bulk
@@ -10,14 +9,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         protected readonly object _queryEnumerable;
         protected readonly DbContext _dbContext;
         protected readonly QueryContext _queryContext;
-        private CancellationToken _cancellationToken;
 
         protected BulkOperationBase(QueryContext queryContext, object queryExecutor)
         {
             _queryEnumerable = queryExecutor;
             _queryContext = queryContext;
             _dbContext = queryContext.Context;
-            _cancellationToken = queryContext.CancellationToken;
         }
 
         protected abstract void Process(TEntity entity);
@@ -39,23 +36,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
                 Process(entry);
             }
 
-            return await _dbContext.SaveChangesAsync(_cancellationToken);
-        }
-
-        public IBulkQueryExecutor WithCancellationToken(CancellationToken cancellationToken)
-        {
-            if (_cancellationToken == default)
-            {
-                _cancellationToken = cancellationToken;
-            }
-            else if (cancellationToken != default)
-            {
-                _cancellationToken = CancellationTokenSource
-                    .CreateLinkedTokenSource(cancellationToken, _cancellationToken)
-                    .Token;
-            }
-
-            return this;
+            return await _dbContext.SaveChangesAsync(_queryContext.CancellationToken);
         }
     }
 }
