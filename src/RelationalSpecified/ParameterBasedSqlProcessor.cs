@@ -45,6 +45,9 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 case UpsertExpression upsert:
                     return Visit(upsert);
+
+                case MergeExpression merge:
+                    return Visit(merge);
             }
 
             return base.Visit(tableExpressionBase);
@@ -145,6 +148,28 @@ namespace Microsoft.EntityFrameworkCore.Query
             return changed
                 ? new UpsertExpression(targetTable, sourceTable, columns, onConflictUpdate, upsertExpression.ConflictConstraintName)
                 : upsertExpression;
+        }
+
+        protected virtual MergeExpression Visit(MergeExpression mergeExpression)
+        {
+            var targetTable = (TableExpression)Visit(mergeExpression.TargetTable);
+            bool changed = targetTable != mergeExpression.TargetTable;
+
+            var sourceTable = Visit(mergeExpression.SourceTable);
+            changed = changed || sourceTable != mergeExpression.SourceTable;
+
+            var joinPredicate = Visit(mergeExpression.JoinPredicate, allowOptimizedExpansion: true, out _);
+            changed = changed || joinPredicate != mergeExpression.JoinPredicate;
+
+            var matched = Visit(mergeExpression.Matched);
+            changed = changed || matched != mergeExpression.Matched;
+
+            var notMatchedByTarget = Visit(mergeExpression.NotMatchedByTarget);
+            changed = changed || matched != mergeExpression.NotMatchedByTarget;
+
+            return changed
+                ? new MergeExpression(targetTable, sourceTable, joinPredicate, matched, notMatchedByTarget, mergeExpression.NotMatchedBySource)
+                : mergeExpression;
         }
 
         protected override SqlExpression VisitCustomSqlExpression(

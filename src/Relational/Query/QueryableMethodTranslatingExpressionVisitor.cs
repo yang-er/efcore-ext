@@ -262,7 +262,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             shaped = TranslateSelect(shapedQueryExpression, updateBody);
             //Check.DebugAssert(shaped == shapedQueryExpression, "Should be the same instance.");
-            Check.DebugAssert(selectExpression == shapedQueryExpression.QueryExpression, "Should be the same instance.");
+            Check.DebugAssert(selectExpression == ((ShapedQueryExpression)shaped).QueryExpression, "Should be the same instance.");
 
             // Get the concrete update field expression
             var projectionMapping = selectExpression.GetProjectionMapping();
@@ -338,6 +338,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             if (target is not ShapedQueryExpression targetShaped
                 || source is not ShapedQueryExpression sourceShaped
                 || targetShaped.QueryExpression is not SelectExpression targetSelect
+                || targetSelect.Tables.Count != 1
                 || sourceShaped.QueryExpression is not SelectExpression
                 || targetShaped.ShaperExpression is not EntityShaperExpression)
             {
@@ -434,6 +435,100 @@ namespace Microsoft.EntityFrameworkCore.Query
             return TranslateWrapped(upsertExpression);
         }
 
+        protected virtual ShapedQueryExpression TranslateMerge(Expression target, Expression source, LambdaExpression targetKeySelector, LambdaExpression sourceKeySelector, LambdaExpression updateExpression, LambdaExpression insertExpression, Expression doDelete)
+        {
+            if (target is not ShapedQueryExpression targetShaped
+                || source is not ShapedQueryExpression sourceShaped
+                || targetShaped.QueryExpression is not SelectExpression targetSelect
+                || targetSelect.Tables.Count != 1
+                || sourceShaped.QueryExpression is not SelectExpression
+                || targetShaped.ShaperExpression is not EntityShaperExpression)
+            {
+                return null;
+            }
+
+            var entityType = ((EntityShaperExpression)targetShaped.ShaperExpression).EntityType;
+            var soi = StoreObjectIdentifier.Create(entityType, StoreObjectType.Table).Value;
+            var targetType = targetShaped.ShaperExpression.Type;
+            var sourceType = sourceShaped.ShaperExpression.Type;
+            var targetParameter = Expression.Parameter(targetType, "t");
+            var sourceParameter = Expression.Parameter(sourceType, "s");
+            var targetSourceTiType = TransparentIdentifierFactory.Create(targetType, sourceType);
+            var targetSourceTiOuter = targetSourceTiType.GetField("Outer");
+            var targetSourceTiInner = targetSourceTiType.GetField("Inner");
+
+            var targetSourceTiResult = Expression.Lambda(
+                Expression.New(
+                    targetSourceTiType.GetConstructors()[0],
+                    new[] { targetParameter, sourceParameter },
+                    new[] { targetSourceTiOuter, targetSourceTiInner }),
+                targetParameter,
+                sourceParameter);
+
+            var joinedShaped = TranslateJoin(targetShaped, sourceShaped, targetKeySelector, sourceKeySelector, targetSourceTiResult);
+            if (joinedShaped == null || joinedShaped.ShaperExpression.Type != targetSourceTiType)
+            {
+                return Fail("Fake join failed.");
+            }
+
+            var selectExpression = (SelectExpression)joinedShaped.QueryExpression;
+            var shaperNewExpression = (NewExpression)joinedShaped.ShaperExpression;
+
+            List<ProjectionExpression> insert = null, update = null;
+            if (doDelete is not ConstantExpression doDeleteConstant
+                || doDeleteConstant.Value is not bool delete)
+            {
+                return Fail("The delete option of merge queries must be a constant.");
+            }
+
+            if (!insertExpression.IsBodyConstantNull())
+            {
+                insert = new List<ProjectionExpression>();
+                ManualReshape(
+                    ReplacingExpressionVisitor.Replace(
+                        insertExpression.Parameters.Single(),
+                        shaperNewExpression.Arguments[1],
+                        insertExpression.Body),
+                    entityType,
+                    (property, expression) =>
+                        insert.Add(
+                            _sqlExpressionFactory.Projection(
+                                _sqlTranslator.Translate(expression),
+                                property.GetColumnName(soi))));
+            }
+
+            if (!updateExpression.IsBodyConstantNull())
+            {
+                update = new List<ProjectionExpression>();
+                var replacing = updateExpression.Parameters.ToArray();
+                var replacement = shaperNewExpression.Arguments.ToArray();
+
+                ManualReshape(
+                    new ReplacingExpressionVisitor(replacing, replacement).Visit(updateExpression.Body),
+                    entityType,
+                    (property, expression) =>
+                        update.Add(
+                            _sqlExpressionFactory.Projection(
+                                _sqlTranslator.Translate(expression),
+                                property.GetColumnName(soi))));
+            }
+
+            if (selectExpression.Tables.Count != 2
+                || selectExpression.Predicate != null
+                || selectExpression.Tables[1] is not InnerJoinExpression innerJoin
+                || selectExpression.Tables[0] is not TableExpression table)
+                return Fail("Unknown joined expression: " + selectExpression.Print());
+
+            return TranslateWrapped(
+                new MergeExpression(
+                    table,
+                    innerJoin.Table,
+                    innerJoin.JoinPredicate,
+                    update,
+                    insert,
+                    delete));
+        }
+
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
             var method = methodCallExpression.Method;
@@ -462,6 +557,10 @@ namespace Microsoft.EntityFrameworkCore.Query
                     case nameof(BatchOperationExtensions.Upsert)
                     when genericMethod == BatchOperationMethods.UpsertCollapsed:
                         return CheckTranslated(TranslateUpsert(GetShapedAt(0), GetShapedAt(1), GetLambdaAt(2), GetLambdaAt(3)));
+
+                    case nameof(BatchOperationExtensions.Merge)
+                    when genericMethod == BatchOperationMethods.MergeCollapsed:
+                        return CheckTranslated(TranslateMerge(GetShapedAt(0), GetShapedAt(1), GetLambdaAt(2), GetLambdaAt(3), GetLambdaAt(4), GetLambdaAt(5), methodCallExpression.Arguments[6]));
                 }
             }
 
