@@ -10,6 +10,4 @@
         where TService : class
     {
     }
-
-
 }

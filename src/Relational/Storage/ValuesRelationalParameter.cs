@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Utilities;
+using System;
 using System.Data.Common;
 
 namespace Microsoft.EntityFrameworkCore.Storage.Internal
@@ -27,7 +28,7 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
             Check.NotNull(command, nameof(command));
             Check.NotNull(value, nameof(value));
 
-            if (!(value is System.Collections.IList list))
+            if (value is not System.Collections.IList list)
             {
                 throw new InvalidOperationException("Parameter corrupt.");
             }
