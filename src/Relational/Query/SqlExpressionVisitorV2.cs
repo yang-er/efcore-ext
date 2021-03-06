@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System;
 using System.Linq.Expressions;
 
@@ -206,7 +207,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         private static readonly Func<Expression, ExpressionVisitor, Expression> s_VisitChildren
             = typeof(Expression)
-                .GetMethod("VisitChildren", Internals.FindPrivate)
+                .GetMethod("VisitChildren", ReflectiveUtility.InstanceLevel)
                 .CreateDelegate(typeof(Func<Expression, ExpressionVisitor, Expression>))
               as Func<Expression, ExpressionVisitor, Expression>;
 

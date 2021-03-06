@@ -47,7 +47,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 _useRelationalNulls);
 
             typeof(RelationalCommandCache)
-                .GetField("_parameterValueBasedSelectExpressionOptimizer", Internals.bindingFlags)
+                .GetField("_parameterValueBasedSelectExpressionOptimizer", ReflectiveUtility.InstanceLevel)
                 .SetValue(commandCache, optimizer);
 
             return commandCache;
@@ -71,7 +71,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override Expression VisitExtension(Expression extensionExpression)
         {
             if (extensionExpression is ShapedQueryExpression shapedQueryExpression
-                && shapedQueryExpression.ResultCardinality == VisitorHelper.AffectedRows)
+                && shapedQueryExpression.ResultCardinality == BulkQueryCompiler.AffectedRows)
             {
                 var selectExpression = (SelectExpression)shapedQueryExpression.QueryExpression;
                 VerifyNoClientConstant(shapedQueryExpression.ShaperExpression);

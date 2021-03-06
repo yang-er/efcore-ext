@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
@@ -24,7 +25,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 var param = Expression.Parameter(typeof(ExpressionVisitor));
                 var value = Expression.Parameter(typeof(bool));
                 var convert = Expression.Convert(param, type);
-                var member = type.GetField(memberName, Internals.bindingFlags);
+                var member = type.GetField(memberName, ReflectiveUtility.InstanceLevel);
                 var field = Expression.Field(convert, member);
                 var getter = Expression.Lambda<Getter>(field, param);
                 var setter = Expression.Lambda<Setter>(Expression.Assign(field, value), param, value);

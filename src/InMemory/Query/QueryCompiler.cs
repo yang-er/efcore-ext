@@ -79,7 +79,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 case nameof(BatchOperationExtensions.BatchUpdateJoin)
                 when genericMethod == BatchOperationMethods.BatchUpdateJoin:
                     // The second parameter is update shaper.
-                    var newBatchJoin = VisitorHelper.RemapBatchUpdateJoin(methodCallExpression, out var outerMember, out _);
+                    var newBatchJoin = SupportCommonTableNavigationExpandingExpressionVisitor.RemapBatchUpdateJoin(methodCallExpression, out var outerMember, out _);
                     updateSelector = newBatchJoin.Arguments[1].UnwrapLambdaFromQuote();
                     ReshapeForUpdate(model, ref updateSelector, updateSelector.Parameters[0].MakeMemberAccess(outerMember), out updateShaper);
                     queryingEnumerable = TranslateQueryingEnumerable(ApplySelect(newBatchJoin.Arguments[0], updateSelector));
