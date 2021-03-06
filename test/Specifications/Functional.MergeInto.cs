@@ -89,7 +89,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
         }
 
         [ConditionalFact, TestPriority(0)]
-        public void Upsert()
+        public virtual void Upsert()
         {
             using (CatchCommand())
             {
@@ -131,7 +131,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
         }
 
         [ConditionalFact, TestPriority(1)]
-        public void Synchronize()
+        public virtual void Synchronize()
         {
             using (CatchCommand())
             {
@@ -176,7 +176,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
 
         [ConditionalFact, TestPriority(2)]
         [DatabaseProviderSkipCondition(DatabaseProvider.InMemory)]
-        public void SourceFromSql()
+        public virtual void SourceFromSql()
         {
             using var scope = CatchCommand();
             using var context = CreateContext();
@@ -208,7 +208,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
         }
 
         [ConditionalFact, TestPriority(3)]
-        public void Synchronize_LocalTable()
+        public virtual void Synchronize_LocalTable()
         {
             using (CatchCommand())
             {
