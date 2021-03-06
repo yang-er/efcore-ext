@@ -22,7 +22,7 @@ namespace Microsoft.EntityFrameworkCore
         /// Expanded type for query generation.
         /// </summary>
         internal static int BatchUpdate<TIdentifier, TEntity>(
-            IQueryable<TIdentifier> source,
+            this IQueryable<TIdentifier> source,
             Expression<Func<TIdentifier, TEntity>> selector)
             => throw new InvalidOperationException();
 
@@ -30,7 +30,7 @@ namespace Microsoft.EntityFrameworkCore
         /// Expression type for query generation.
         /// </summary>
         internal static int BatchUpdateJoin<TOuter, TInner, TKey>(
-            IQueryable<TOuter> outer,
+            this IQueryable<TOuter> outer,
             IQueryable<TInner> inner,
             Expression<Func<TOuter, TKey>> outerKeySelector,
             Expression<Func<TInner, TKey>> innerKeySelector,
@@ -42,14 +42,14 @@ namespace Microsoft.EntityFrameworkCore
         /// Expression type for query generation.
         /// </summary>
         internal static int BatchInsertInto<TSource>(
-            IQueryable<TSource> query)
+            this IQueryable<TSource> query)
             => throw new InvalidOperationException();
 
         /// <summary>
         /// Expression type for query generation.
         /// </summary>
         internal static int Upsert<TTarget, TSource>(
-            IQueryable<TTarget> set,
+            this IQueryable<TTarget> set,
             IEnumerable<TSource> sources,
             Expression<Func<TSource, TTarget>> insertExpression,
             Expression<Func<TTarget, TTarget, TTarget>> updateExpression)
@@ -59,7 +59,7 @@ namespace Microsoft.EntityFrameworkCore
         /// Expression type for query generation.
         /// </summary>
         internal static int Merge<TTarget, TSource, TJoinKey>(
-            IQueryable<TTarget> targetTable,
+            this IQueryable<TTarget> targetTable,
             IQueryable<TSource> sourceTable,
             Expression<Func<TTarget, TJoinKey>> targetKey,
             Expression<Func<TSource, TJoinKey>> sourceKey,
@@ -145,7 +145,7 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(targetKey, nameof(targetKey));
             Check.NotNull(sourceKey, nameof(sourceKey));
 
-            var targetQueryable = (IQueryable<TTarget>)targetTable;
+            var targetQueryable = targetTable.IgnoreQueryFilters();
             var sourceQueryable = CreateSourceTable(targetTable, sourceTable);
             updateExpression ??= ((_, _) => null!);
             insertExpression ??= (_ => null!);
@@ -194,7 +194,7 @@ namespace Microsoft.EntityFrameworkCore
             Check.NotNull(targetKey, nameof(targetKey));
             Check.NotNull(sourceKey, nameof(sourceKey));
 
-            var targetQueryable = (IQueryable<TTarget>)targetTable;
+            var targetQueryable = targetTable.IgnoreQueryFilters();
             var sourceQueryable = CreateSourceTable(targetTable, sourceTable);
             updateExpression ??= ((_, _) => null!);
             insertExpression ??= (_ => null!);

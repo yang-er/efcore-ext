@@ -235,6 +235,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
                             Time = 366,
                             ContestId = rc2.ContestId,
                             TeamId = rc2.TeamId,
+                            Public = true,
                         },
                     delete: true);
             }

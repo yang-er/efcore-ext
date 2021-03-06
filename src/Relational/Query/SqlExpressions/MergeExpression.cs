@@ -66,40 +66,47 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         {
             const string CallerName = "VisitMerge";
 
-            var targetTable = visitor.VisitAndConvert(TargetTable, CallerName);
-            bool changed = targetTable != TargetTable;
-
-            var sourceTable = visitor.VisitAndConvert(SourceTable, CallerName);
-            changed = changed || sourceTable != SourceTable;
-            
-            var joinPredicate = visitor.VisitAndConvert(JoinPredicate, CallerName);
-            changed = changed || joinPredicate != JoinPredicate;
-
-            bool matchedChanged = false;
-            var matched = Matched?.ToList();
-            for (int i = 0; matched != null && i < matched.Count; i++)
+            using (SearchConditionBooleanGuard.With(visitor, false))
             {
-                matched[i] = visitor.VisitAndConvert(matched[i], CallerName);
-                matchedChanged = matchedChanged || matched[i] != Matched![i];
-            }
+                var targetTable = visitor.VisitAndConvert(TargetTable, CallerName);
+                bool changed = targetTable != TargetTable;
 
-            bool notMatchedByTargetChanged = false;
-            var notMatchedByTarget = NotMatchedByTarget?.ToList();
-            for (int i = 0; notMatchedByTarget != null && i < notMatchedByTarget.Count; i++)
-            {
-                notMatchedByTarget[i] = visitor.VisitAndConvert(notMatchedByTarget[i], CallerName);
-                notMatchedByTargetChanged = notMatchedByTargetChanged || notMatchedByTarget[i] != NotMatchedByTarget![i];
-            }
+                var sourceTable = visitor.VisitAndConvert(SourceTable, CallerName);
+                changed = changed || sourceTable != SourceTable;
 
-            changed = changed || matchedChanged || notMatchedByTargetChanged;
-            if (!changed) return this;
-            return new MergeExpression(
-                targetTable,
-                sourceTable,
-                joinPredicate,
-                matchedChanged ? matched : Matched,
-                notMatchedByTargetChanged ? notMatchedByTarget : NotMatchedByTarget,
-                NotMatchedBySource);
+                SqlExpression joinPredicate;
+                using (SearchConditionBooleanGuard.With(visitor, true, false))
+                {
+                    joinPredicate = visitor.VisitAndConvert(JoinPredicate, CallerName);
+                    changed = changed || joinPredicate != JoinPredicate;
+                }
+
+                bool matchedChanged = false;
+                var matched = Matched?.ToList();
+                for (int i = 0; matched != null && i < matched.Count; i++)
+                {
+                    matched[i] = visitor.VisitAndConvert(matched[i], CallerName);
+                    matchedChanged = matchedChanged || matched[i] != Matched![i];
+                }
+
+                bool notMatchedByTargetChanged = false;
+                var notMatchedByTarget = NotMatchedByTarget?.ToList();
+                for (int i = 0; notMatchedByTarget != null && i < notMatchedByTarget.Count; i++)
+                {
+                    notMatchedByTarget[i] = visitor.VisitAndConvert(notMatchedByTarget[i], CallerName);
+                    notMatchedByTargetChanged = notMatchedByTargetChanged || notMatchedByTarget[i] != NotMatchedByTarget![i];
+                }
+
+                changed = changed || matchedChanged || notMatchedByTargetChanged;
+                if (!changed) return this;
+                return new MergeExpression(
+                    targetTable,
+                    sourceTable,
+                    joinPredicate,
+                    matchedChanged ? matched : Matched,
+                    notMatchedByTargetChanged ? notMatchedByTarget : NotMatchedByTarget,
+                    NotMatchedBySource);
+            }
         }
 
         /// <inheritdoc />

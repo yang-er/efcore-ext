@@ -132,6 +132,19 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     return MergeJoinExpand(methodCallExpression);
 
 
+                case nameof(BatchOperationExtensions.Merge)
+                when genericMethod == BatchOperationMethods.MergeCollapsed:
+                    return Expression.Call(
+                        methodCallExpression.Method,
+                        Expand(methodCallExpression.Arguments[0]),
+                        Expand(methodCallExpression.Arguments[1]),
+                        methodCallExpression.Arguments[2],
+                        methodCallExpression.Arguments[3],
+                        methodCallExpression.Arguments[4],
+                        methodCallExpression.Arguments[5],
+                        methodCallExpression.Arguments[6]);
+
+
                 default:
                     throw TranslateFailed();
             }
