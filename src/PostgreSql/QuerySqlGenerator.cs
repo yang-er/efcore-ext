@@ -183,13 +183,22 @@ namespace Npgsql.EntityFrameworkCore.PostgreSQL.Query
                 .GenerateList(upsertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
                 .AppendLine(")");
 
-            Sql.Append("SELECT ")
-                .GenerateList(upsertExpression.Columns, e => Visit(e))
-                .AppendLine();
+            if (upsertExpression.SourceTable != null)
+            {
+                Sql.Append("SELECT ")
+                    .GenerateList(upsertExpression.Columns, e => Visit(e))
+                    .AppendLine();
 
-            Sql.Append("FROM ");
-            Visit(upsertExpression.SourceTable);
-            Sql.AppendLine();
+                Sql.Append("FROM ");
+                Visit(upsertExpression.SourceTable);
+                Sql.AppendLine();
+            }
+            else
+            {
+                Sql.Append("VALUES (")
+                    .GenerateList(upsertExpression.Columns, e => Visit(e.Expression))
+                    .AppendLine(")");
+            }
 
             if (upsertExpression.OnConflictUpdate == null)
             {

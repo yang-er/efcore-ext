@@ -129,6 +129,15 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                         methodCallExpression.Arguments[3]);
 
 
+                case nameof(BatchOperationExtensions.Upsert)
+                when genericMethod == BatchOperationMethods.UpsertOneCollapsed:
+                    return Expression.Call(
+                        methodCallExpression.Method,
+                        Expand(methodCallExpression.Arguments[0]),
+                        methodCallExpression.Arguments[1],
+                        methodCallExpression.Arguments[2]);
+
+
                 case nameof(MergeJoinExtensions.MergeJoin)
                 when genericMethod == MergeJoinExtensions.Queryable:
                     return MergeJoinExpand(methodCallExpression);
