@@ -10,9 +10,18 @@ namespace Microsoft.EntityFrameworkCore.Bulk
     {
         public static MethodInfo CreateCommonTable { get; }
             = new Func<IQueryable<object>,
-                       List<object>,
+                       IReadOnlyList<object>,
                        IQueryable<object>>(
                 BatchOperationExtensions.CreateCommonTable)
+            .GetMethodInfo()
+            .GetGenericMethodDefinition();
+
+
+        public static MethodInfo CreateSingleTuple { get; }
+            = new Func<IQueryable<object>,
+                       Expression<Func<object>>,
+                       IQueryable<object>>(
+                BatchOperationExtensions.CreateSingleTuple)
             .GetMethodInfo()
             .GetGenericMethodDefinition();
 

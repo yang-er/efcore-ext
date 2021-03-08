@@ -32,7 +32,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             switch (tableExpressionBase)
             {
                 case ValuesExpression values:
-                    DoNotCache();
+                    if (values.ImmediateValues != null) DoNotCache();
                     return values;
 
                 case DeleteExpression delete:

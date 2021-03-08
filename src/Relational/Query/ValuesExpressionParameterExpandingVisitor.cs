@@ -21,7 +21,9 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         protected override Expression VisitValues(ValuesExpression valuesExpression)
         {
-            if (valuesExpression.TupleCount == null)
+            if (valuesExpression.ImmediateValues == null
+                && valuesExpression.RuntimeParameter != null
+                && valuesExpression.TupleCount == null)
             {
                 if (_parameterValues.TryGetValue(valuesExpression.RuntimeParameter, out var _lists)
                     && _lists is IList lists)

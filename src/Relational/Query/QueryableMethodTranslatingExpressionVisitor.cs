@@ -179,6 +179,48 @@ namespace Microsoft.EntityFrameworkCore.Query
             return new ShapedQueryExpression(select, shaper);
         }
 
+        protected virtual ShapedQueryExpression TranslateSingleTuple(LambdaExpression tuple)
+        {
+            var tupleSql = new List<SqlExpression>();
+            var tupleNames = new List<string>();
+            var values = new ValuesExpression(new[] { tupleSql }, tupleNames);
+
+            var select = _sqlExpressionFactory.Select(
+                alias: null,
+                projections: new List<ProjectionExpression>(),
+                tables: new List<TableExpressionBase> { values },
+                groupBy: new List<SqlExpression>(),
+                orderings: new List<OrderingExpression>());
+
+            var newExpression = (NewExpression)tuple.Body;
+            var mapping = new Dictionary<ProjectionMember, Expression>();
+            var rootMember = new ProjectionMember();
+            var shaperArguments = new List<Expression>(newExpression.Arguments.Count);
+
+            for (int i = 0; i < newExpression.Arguments.Count; i++)
+            {
+                var sql = _sqlTranslator.Translate(newExpression.Arguments[i]);
+                var projectionMember = rootMember.Append(newExpression.Members[i]);
+                var type = newExpression.Arguments[i].Type;
+
+                var column = _sqlExpressionFactory.Column(
+                    name: projectionMember.Last.Name,
+                    table: values,
+                    type: type,
+                    typeMapping: sql.TypeMapping,
+                    nullable: type.IsNullableType());
+
+                tupleSql.Add(sql);
+                tupleNames.Add(projectionMember.Last.Name);
+                mapping[projectionMember] = column;
+                shaperArguments.Add(new ProjectionBindingExpression(select, projectionMember, type));
+            }
+
+            select.ReplaceProjectionMapping(mapping);
+            var shaper = Expression.New(newExpression.Constructor, shaperArguments, newExpression.Members);
+            return new ShapedQueryExpression(select, shaper);
+        }
+
         protected virtual ShapedQueryExpression TranslateWrapped(WrappedExpression wrappedExpression)
         {
             var selectExpression = _sqlExpressionFactory.Select(
@@ -618,6 +660,10 @@ namespace Microsoft.EntityFrameworkCore.Query
                     when genericMethod == BatchOperationMethods.CreateCommonTable &&
                          methodCallExpression.Arguments[1] is ParameterExpression param:
                         return CheckTranslated(TranslateCommonTable(param));
+
+                    case nameof(BatchOperationExtensions.CreateSingleTuple)
+                    when genericMethod == BatchOperationMethods.CreateSingleTuple:
+                        return CheckTranslated(TranslateSingleTuple(GetLambdaAt(1)));
 
                     case nameof(BatchOperationExtensions.BatchDelete)
                     when genericMethod == BatchOperationMethods.BatchDelete:
