@@ -108,6 +108,13 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 return null;
             }
 
+            if (expression is UnaryExpression unaryExpression
+                && unaryExpression.NodeType == ExpressionType.Quote)
+            {
+                _evaluatableExpressions.Remove(expression);
+                _evaluatableExpressions.Remove(unaryExpression.Operand);
+            }
+
             if (_evaluatableExpressions.TryGetValue(expression, out var generateParameter)
                 && !PreserveInitializationConstant(expression, generateParameter)
                 && !PreserveConvertNode(expression))

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -106,6 +107,20 @@ namespace Microsoft.EntityFrameworkCore.Query
                             methodCallExpression.Arguments[3],
                             methodCallExpression.Arguments[4],
                             methodCallExpression.Arguments[5]);
+                        break;
+
+                    case nameof(BatchOperationExtensions.Upsert)
+                    when genericMethod == BatchOperationMethods.UpsertOneNew:
+                        query = Expression.Call(
+                            BatchOperationMethods.UpsertOneCollapsed.MakeGenericMethod(genericArguments),
+                            methodCallExpression.Arguments[0],
+                            methodCallExpression.Arguments[1],
+                            methodCallExpression.Arguments[2].IsConstantNull()
+                                ? Expression.Quote(
+                                    Expression.Lambda(
+                                        Expression.Constant(null, genericArguments[0]),
+                                        Expression.Parameter(genericArguments[0], "_")))
+                                : methodCallExpression.Arguments[2]);
                         break;
                 }
 

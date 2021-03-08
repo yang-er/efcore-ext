@@ -24,6 +24,10 @@ namespace Microsoft.EntityFrameworkCore.Utilities
                 ? unary.Operand
                 : expression);
 
+        public static bool IsConstantNull(this Expression expression)
+            => expression is ConstantExpression constantExpression
+                && constantExpression.Value == null;
+
         public static bool IsBodyConstantNull(this LambdaExpression lambdaExpression)
             => lambdaExpression.Body is ConstantExpression constantExpression
                 && constantExpression.Value == null;

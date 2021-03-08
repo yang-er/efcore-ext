@@ -87,10 +87,10 @@ namespace Microsoft.EntityFrameworkCore.Query
 
 
                 case nameof(BatchOperationExtensions.Upsert)
-                when genericMethod == BatchOperationMethods.UpsertCollapsed:
-                    if (!TryReshapeForUpsert(model.FindEntityType(rootType), methodCallExpression, out root, out var insertShaper, out var updateExtractor)) goto default;
+                when genericMethod == BatchOperationMethods.UpsertCollapsed || genericMethod == BatchOperationMethods.UpsertOneCollapsed:
+                    if (!TryReshapeForUpsert(model.FindEntityType(rootType), methodCallExpression, out var innerType, out root, out var insertShaper, out var updateExtractor)) goto default;
                     queryingEnumerable = TranslateQueryingEnumerable(root);
-                    return CompileUpsertCore<TResult>(queryingEnumerable, rootType, methodCallExpression.Method.GetGenericArguments()[1], insertShaper, updateExtractor);
+                    return CompileUpsertCore<TResult>(queryingEnumerable, rootType, innerType, insertShaper, updateExtractor);
 
 
                 case nameof(BatchOperationExtensions.Merge)
@@ -255,24 +255,63 @@ namespace Microsoft.EntityFrameworkCore.Query
                 .Compile();
         }
 
-        protected virtual bool TryReshapeForUpsert(IEntityType entityType, MethodCallExpression upsert, out Expression reshaped, out Expression insertShaper, out Expression updateExtractor)
+        protected virtual bool TryReshapeForUpsert(IEntityType entityType, MethodCallExpression upsert, out Type innerType, out Expression reshaped, out Expression insertShaper, out Expression updateExtractor)
         {
-            var outerExpression = upsert.Arguments[0];
-            var innerExpression = upsert.Arguments[1];
-            var insertExpression = upsert.Arguments[2].UnwrapLambdaFromQuote();
-            var updateExpression = upsert.Arguments[3].UnwrapLambdaFromQuote();
+            Expression outerExpression, innerExpression;
+            LambdaExpression insertExpression, updateExpression;
+            Type[] outerAndInner = upsert.Method.GetGenericArguments();
+
+            if (upsert.Method.GetGenericMethodDefinition() == BatchOperationMethods.UpsertOneCollapsed)
+            {
+                var typeArg = outerAndInner.Single();
+                var discard = Expression.Parameter(typeArg, "_");
+
+                outerAndInner = new[] { typeArg, typeArg };
+                outerExpression = upsert.Arguments[0];
+                insertExpression = upsert.Arguments[1].UnwrapLambdaFromQuote();
+                updateExpression = upsert.Arguments[2].UnwrapLambdaFromQuote();
+
+                innerExpression =
+                    Expression.Call(
+                        QueryableMethods.DefaultIfEmptyWithoutArgument.MakeGenericMethod(typeArg),
+                        Expression.Call(
+                            QueryableMethods.Where.MakeGenericMethod(typeArg),
+                            outerExpression,
+                            Expression.Quote(
+                                Expression.Lambda(
+                                    Expression.Constant(false),
+                                    discard))));
+
+                insertExpression =
+                    Expression.Lambda(
+                        insertExpression.Body,
+                        discard);
+
+                updateExpression =
+                    Expression.Lambda(
+                        updateExpression.Body,
+                        updateExpression.Parameters.Single(),
+                        discard);
+            }
+            else
+            {
+                outerExpression = upsert.Arguments[0];
+                innerExpression = upsert.Arguments[1];
+                insertExpression = upsert.Arguments[2].UnwrapLambdaFromQuote();
+                updateExpression = upsert.Arguments[3].UnwrapLambdaFromQuote();
+            }
 
             if (insertExpression.Body is not MemberInitExpression insertInit
                 || insertInit.NewExpression.Arguments.Count != 0
                 || !entityType.TryGuessKey(insertInit.Bindings, out var key))
             {
                 reshaped = insertShaper = updateExtractor = null;
+                innerType = null;
                 return false;
             }
 
-            var outerAndInner = upsert.Method.GetGenericArguments();
             var outerType = outerAndInner[0];
-            var innerType = outerAndInner[1];
+            innerType = outerAndInner[1];
             var outerEnumerableType = typeof(IEnumerable<>).MakeGenericType(outerType);
             var groupJoinResultType = TransparentIdentifierFactory.Create(innerType, outerEnumerableType);
             var groupJoinInnerMemberInfo = groupJoinResultType.GetField("Outer");
