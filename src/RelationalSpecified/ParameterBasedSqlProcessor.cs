@@ -14,6 +14,10 @@ using ThisParameterBasedSqlProcessorFactory = Microsoft.EntityFrameworkCore.SqlS
 using ThisSqlNullabilityProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlSqlNullabilityProcessor;
 using ThisParameterBasedSqlProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessor;
 using ThisParameterBasedSqlProcessorFactory = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessorFactory;
+#elif SQLITE
+using ThisSqlNullabilityProcessor = Microsoft.EntityFrameworkCore.Query.SqlNullabilityProcessor;
+using ThisParameterBasedSqlProcessor = Microsoft.EntityFrameworkCore.Query.RelationalParameterBasedSqlProcessor;
+using ThisParameterBasedSqlProcessorFactory = Microsoft.EntityFrameworkCore.Query.Internal.RelationalParameterBasedSqlProcessorFactory;
 #endif
 
 namespace Microsoft.EntityFrameworkCore.Query
