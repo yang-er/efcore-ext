@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.SqlServer")]
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.InMemory")]
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.PostgreSql")]
+[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.Sqlite")]
 namespace Microsoft.EntityFrameworkCore.Utilities
 {
     [DebuggerStepThrough]
