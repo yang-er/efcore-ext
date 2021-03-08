@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +20,9 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             IReadOnlyList<ProjectionExpression> fields,
             IReadOnlyList<TableExpressionBase> tables)
         {
+            Check.HasNoNulls(fields, nameof(fields));
+            Check.HasNoNulls(tables, nameof(tables));
+
             Expanded = expanded;
             ExpandedTable = expandedTable;
             Predicate = predicate;
@@ -114,30 +118,15 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
                     changed = changed || predicate != Predicate;
                 }
 
-                bool fieldsChanged = false;
-                var fields = Fields.ToArray();
-                for (int i = 0; i < Fields.Count; i++)
-                {
-                    fields[i] = visitor.VisitAndConvert(Fields[i], CallerName);
-                    fieldsChanged = fieldsChanged || fields[i] != Fields[i];
-                }
+                var fields = visitor.VisitCollection(Fields, CallerName);
+                changed = changed || fields != Fields;
 
-                bool tablesChanged = false;
-                var tables = Tables.ToArray();
-                for (int i = 0; i < Tables.Count; i++)
-                {
-                    tables[i] = visitor.VisitAndConvert(Tables[i], CallerName);
-                    tablesChanged = tablesChanged || tables[i] != Tables[i];
-                }
+                var tables = visitor.VisitCollection(Tables, CallerName);
+                changed = changed || tables != Tables;
 
-                changed = changed || fieldsChanged || tablesChanged;
-                if (!changed) return this;
-                return new UpdateExpression(
-                    Expanded,
-                    expandedTable,
-                    predicate,
-                    fieldsChanged ? fields : Fields,
-                    tablesChanged ? tables : Tables);
+                return changed
+                    ? new UpdateExpression(Expanded, expandedTable, predicate, fields, tables)
+                    : this;
             }
         }
 

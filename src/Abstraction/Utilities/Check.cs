@@ -77,6 +77,12 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             return value;
         }
 
+        public static IReadOnlyList<T>? NullOrHasNoNulls<T>(IReadOnlyList<T>? value, string parameterName)
+            where T : class
+        {
+            return value == null ? null : HasNoNulls(value, parameterName);
+        }
+
         public static IReadOnlyList<T> HasNoNulls<T>(IReadOnlyList<T> value, string parameterName)
             where T : class
         {

@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using Microsoft.EntityFrameworkCore.Utilities;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
@@ -13,6 +14,9 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             string schema,
             SelectExpression selectExpression)
         {
+            Check.NotNull(tableName, nameof(tableName));
+            Check.NotNull(selectExpression, nameof(selectExpression));
+
             TableName = tableName;
             Schema = schema;
             Expression = selectExpression;

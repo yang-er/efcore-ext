@@ -1,7 +1,7 @@
 ﻿#nullable enable
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
@@ -16,8 +16,11 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             SqlExpression? predicate,
             IReadOnlyList<TableExpressionBase> joinedTables)
         {
-            Table = Check.NotNull(table, nameof(table));
-            JoinedTables = Check.HasNoNulls(joinedTables, nameof(joinedTables)).ToList();
+            Check.NotNull(table, nameof(table));
+            Check.HasNoNulls(joinedTables, nameof(joinedTables));
+
+            Table = table;
+            JoinedTables = joinedTables;
             Predicate = predicate;
         }
 
@@ -47,22 +50,18 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
                 bool changed = table != Table;
 
                 SqlExpression? predicate;
-
                 using (SearchConditionBooleanGuard.With(visitor, true, false))
                 {
                     predicate = visitor.VisitAndConvert(Predicate, CallerName);
                     changed = changed || predicate != Predicate;
                 }
 
-                var joinedTables = JoinedTables.ToList();
-                for (int i = 0; i < joinedTables.Count; i++)
-                {
-                    joinedTables[i] = visitor.VisitAndConvert(JoinedTables[i], CallerName);
-                    changed = changed || joinedTables[i] != JoinedTables[i];
-                }
+                var joinedTables = visitor.VisitCollection(JoinedTables, CallerName);
+                changed = changed || joinedTables != JoinedTables;
 
-                if (!changed) return this;
-                return new DeleteExpression(table, predicate, joinedTables);
+                return changed
+                    ? new DeleteExpression(table, predicate, joinedTables)
+                    : this;
             }
         }
 
@@ -74,7 +73,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             expressionPrinter.Append("DELETE ");
             expressionPrinter.Visit(Table);
 
-            if (JoinedTables.Any())
+            if (JoinedTables.Count > 0)
             {
                 expressionPrinter.AppendLine().Append("FROM ");
 
