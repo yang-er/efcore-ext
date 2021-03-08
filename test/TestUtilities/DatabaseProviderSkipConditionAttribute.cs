@@ -22,6 +22,7 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
             var dp = dir.Contains("InMemory", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.InMemory
                 : dir.Contains("PostgreSql", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.PostgreSQL
                 : dir.Contains("SqlServer", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.SqlServer
+                : dir.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.Sqlite
                 : DatabaseProvider.None;
 
             var ver = dir.Contains("3.1", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.Version_31

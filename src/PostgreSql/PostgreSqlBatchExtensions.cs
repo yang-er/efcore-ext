@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
+using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Query;
 
@@ -24,7 +25,12 @@ namespace Microsoft.EntityFrameworkCore
 
         protected override void ApplyServices(BatchServicesBuilder services)
         {
-            base.ApplyServices(services);
+            services.TryAdd<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
+
+            services.TryAdd<IBulkShapedQueryCompilingExpressionVisitorFactory, RelationalBulkShapedQueryCompilingExpressionVisitorFactory>();
+            services.TryAdd<IBulkQueryTranslationPreprocessorFactory, RelationalBulkQueryTranslationPreprocessorFactory>();
+            services.TryAdd<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();
+            services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory>();
 
             services.TryAdd<IMethodCallTranslatorPlugin, DateTimeOffsetTranslationPlugin>();
             services.TryAdd<IMemberTranslatorPlugin, DateTimeOffsetTranslationPlugin>();

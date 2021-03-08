@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.TestUtilities.Xunit;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -98,6 +99,9 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
             modelBuilder.Entity<Document>(entity =>
             {
                 entity.ToTable(nameof(Document) + "_" + DefaultSchema);
+
+                if (Database.IsSqlite()) return;
+
                 entity.Property(p => p.ContentLength)
                     .HasComputedColumnSql(
                         Database.IsSqlServer() ? "CONVERT([int], len([Content]))" :
@@ -152,6 +156,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
         }
 
         [ConditionalFact, TestPriority(2)]
+        [DatabaseProviderSkipCondition(DatabaseProvider.Sqlite)]
         public virtual void WithComputedColumn()
         {
             using var scope = CatchCommand();
@@ -222,6 +227,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
         }
 
         [ConditionalFact, TestPriority(5)]
+        [DatabaseProviderSkipCondition(DatabaseProvider.Sqlite)]
         public virtual void CompiledQuery_WithComputedColumn()
         {
             var compiledQuery = EF.CompileQuery(

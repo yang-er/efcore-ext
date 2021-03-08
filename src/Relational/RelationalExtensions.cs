@@ -8,16 +8,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 {
     public abstract class RelationalBatchOptionsExtension : BatchOptionsExtension
     {
-        protected override void ApplyServices(BatchServicesBuilder services)
-        {
-            services.TryAdd<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
-
-            services.TryAdd<IBulkShapedQueryCompilingExpressionVisitorFactory, RelationalBulkShapedQueryCompilingExpressionVisitorFactory>();
-            services.TryAdd<IBulkQueryTranslationPreprocessorFactory, RelationalBulkQueryTranslationPreprocessorFactory>();
-            services.TryAdd<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();
-            services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory>();
-        }
-
         internal override HashSet<Type> GetRequiredServices()
         {
             var set = base.GetRequiredServices();
