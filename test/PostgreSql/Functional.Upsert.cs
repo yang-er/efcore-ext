@@ -10,6 +10,34 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
         }
 
+        public override void InsertIfNotExistOne()
+        {
+            base.InsertIfNotExistOne();
+
+            LogSql(nameof(InsertIfNotExistOne));
+
+            AssertSql(@"
+INSERT INTO ""RankCache_{{schema}}"" AS r
+(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+VALUES (1, 1, @__time_0, @__time_0, @__cid_1, @__teamid_2)
+ON CONFLICT DO NOTHING
+");
+        }
+
+        public override void InsertIfNotExistOne_CompiledQuery()
+        {
+            base.InsertIfNotExistOne_CompiledQuery();
+
+            LogSql(nameof(InsertIfNotExistOne_CompiledQuery));
+
+            AssertSql(@"
+INSERT INTO ""RankCache_{{schema}}"" AS r
+(""ContestId"", ""TeamId"", ""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"")
+VALUES (@__cid, @__teamid, 1, 1, @__time, @__time)
+ON CONFLICT DO NOTHING
+");
+        }
+
         public override void InsertIfNotExists_AnotherTable()
         {
             base.InsertIfNotExists_AnotherTable();
@@ -132,6 +160,36 @@ FROM (
 ) AS t
 ON CONFLICT ON CONSTRAINT ""PK_RankCache_{{schema}}"" DO UPDATE
 SET ""PointsPublic"" = r.""PointsPublic"" + 1, ""TotalTimePublic"" = r.""TotalTimePublic"" + excluded.""TotalTimePublic""
+");
+        }
+
+        public override void UpsertOne()
+        {
+            base.UpsertOne();
+
+            LogSql(nameof(UpsertOne));
+
+            AssertSql(@"
+INSERT INTO ""RankCache_{{schema}}"" AS r
+(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+VALUES (1, 1, @__time_0, @__time_0, @__cid_1, @__teamid_2)
+ON CONFLICT ON CONSTRAINT ""PK_RankCache_{{schema}}"" DO UPDATE
+SET ""PointsPublic"" = r.""PointsPublic"" + 1, ""TotalTimePublic"" = r.""TotalTimePublic"" + @__time_0
+");
+        }
+
+        public override void UpsertOne_CompiledQuery()
+        {
+            base.UpsertOne_CompiledQuery();
+
+            LogSql(nameof(UpsertOne_CompiledQuery));
+
+            AssertSql(@"
+INSERT INTO ""RankCache_{{schema}}"" AS r
+(""ContestId"", ""TeamId"", ""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"")
+VALUES (@__cid, @__teamid, 1, 1, @__time, @__time)
+ON CONFLICT ON CONSTRAINT ""PK_RankCache_{{schema}}"" DO UPDATE
+SET ""PointsPublic"" = r.""PointsPublic"" + 1, ""TotalTimePublic"" = r.""TotalTimePublic"" + @__time
 ");
         }
     }

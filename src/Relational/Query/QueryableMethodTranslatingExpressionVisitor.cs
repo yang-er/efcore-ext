@@ -225,12 +225,11 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return Fail("The query root should be main entity.");
             }
 
-            var delete = new DeleteExpression(
-                table: table,
-                predicate: selectExpression.Predicate,
-                joinedTables: selectExpression.Tables);
-
-            return TranslateWrapped(delete);
+            return TranslateWrapped(
+                new DeleteExpression(
+                    table: table,
+                    predicate: selectExpression.Predicate,
+                    joinedTables: selectExpression.Tables));
         }
 
         protected virtual ShapedQueryExpression TranslateUpdate(Expression shaped, LambdaExpression updateBody)
@@ -287,14 +286,13 @@ namespace Microsoft.EntityFrameworkCore.Query
                 setFields.Add(_sqlExpressionFactory.Projection(sqlExpression, fieldName));
             }
 
-            var updateExpression = new UpdateExpression(
-                expanded: false,
-                expandedTable: null,
-                predicate: selectExpression.Predicate,
-                fields: setFields,
-                tables: selectExpression.Tables);
-
-            return TranslateWrapped(updateExpression);
+            return TranslateWrapped(
+                new UpdateExpression(
+                    expanded: false,
+                    expandedTable: null,
+                    predicate: selectExpression.Predicate,
+                    fields: setFields,
+                    tables: selectExpression.Tables));
         }
 
         protected virtual ShapedQueryExpression TranslateSelectInto(Expression shaped, Type rootType)
@@ -337,7 +335,12 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
 
             selectExpression.ReplaceProjectionMapping(newProjectionMapping);
-            return TranslateWrapped(new SelectIntoExpression(tableName, schema, selectExpression));
+
+            return TranslateWrapped(
+                new SelectIntoExpression(
+                    tableName: tableName,
+                    schema: schema,
+                    selectExpression: selectExpression));
         }
 
         protected virtual ShapedQueryExpression TranslateUpsert(Expression target, Expression source, LambdaExpression insert, LambdaExpression update)
@@ -404,7 +407,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                             _sqlTranslator.Translate(expression),
                             property.GetColumnName(soi))));
 
-            if (update.Body is ConstantExpression constantExpression && constantExpression.Value == null)
+            if (update.IsBodyConstantNull())
             {
                 updateFields = null;
             }
@@ -432,14 +435,81 @@ namespace Microsoft.EntityFrameworkCore.Query
                                 property.GetColumnName(soi))));
             }
 
-            var upsertExpression = new UpsertExpression(
-                tableExpression,
-                crossJoinExpression.Table,
-                insertFields,
-                updateFields,
-                pkeyOrAkey.GetName());
+            return TranslateWrapped(
+                new UpsertExpression(
+                    targetTable: tableExpression,
+                    sourceTable: crossJoinExpression.Table,
+                    columns: insertFields,
+                    onConflict: updateFields,
+                    conflictConstraintName: pkeyOrAkey.GetName()));
+        }
 
-            return TranslateWrapped(upsertExpression);
+        protected virtual ShapedQueryExpression TranslateUpsert(Expression target, LambdaExpression insert, LambdaExpression update)
+        {
+            if (target is not ShapedQueryExpression targetShaped
+                || targetShaped.QueryExpression is not SelectExpression targetSelect
+                || targetSelect.Tables.Count != 1
+                || targetSelect.Tables[0] is not TableExpression targetTable
+                || targetShaped.ShaperExpression is not EntityShaperExpression targetShaper)
+            {
+                return null;
+            }
+
+            var entityType = targetShaper.EntityType;
+            if (insert.Body is not MemberInitExpression insertMemberInit
+                || insertMemberInit.NewExpression.Arguments.Count > 0)
+            {
+                return Fail("Insert expression should be member-init without constructor arguments.");
+            }
+
+            if (!entityType.TryGuessKey(insertMemberInit.Bindings, out var pkeyOrAkey))
+            {
+                return Fail(
+                    "Only entity with primary key or alternative key specified can be upserted. " +
+                    "Are you trying to normally insert one or lost your key fields?");
+            }
+
+            var soi = StoreObjectIdentifier.Create(entityType, StoreObjectType.Table).Value;
+            var insertFields = new List<ProjectionExpression>();
+            List<ProjectionExpression> updateFields;
+
+            ManualReshape(
+                insert.Body,
+                entityType,
+                (property, expression) =>
+                    insertFields.Add(
+                        _sqlExpressionFactory.Projection(
+                            _sqlTranslator.Translate(expression),
+                            property.GetColumnName(soi))));
+
+            if (update.IsBodyConstantNull())
+            {
+                updateFields = null;
+            }
+            else
+            {
+                updateFields = new List<ProjectionExpression>();
+
+                ManualReshape(
+                    ReplacingExpressionVisitor.Replace(
+                        update.Parameters[0],
+                        targetShaper,
+                        update.Body),
+                    entityType,
+                    (property, expression) =>
+                        updateFields.Add(
+                            _sqlExpressionFactory.Projection(
+                                _sqlTranslator.Translate(expression),
+                                property.GetColumnName(soi))));
+            }
+
+            return TranslateWrapped(
+                new UpsertExpression(
+                    targetTable: targetTable,
+                    sourceTable: null,
+                    columns: insertFields,
+                    onConflict: updateFields,
+                    conflictConstraintName: pkeyOrAkey.GetName()));
         }
 
         protected virtual ShapedQueryExpression TranslateMerge(Expression target, Expression source, LambdaExpression targetKeySelector, LambdaExpression sourceKeySelector, LambdaExpression updateExpression, LambdaExpression insertExpression, Expression doDelete)
@@ -528,12 +598,12 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             return TranslateWrapped(
                 new MergeExpression(
-                    table,
-                    innerJoin.Table,
-                    innerJoin.JoinPredicate,
-                    update,
-                    insert,
-                    delete));
+                    targetTable: table,
+                    sourceTable: innerJoin.Table,
+                    joinPredicate: innerJoin.JoinPredicate,
+                    matched: update,
+                    notMatchedByTarget: insert,
+                    notMatchedBySource: delete));
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
@@ -564,6 +634,10 @@ namespace Microsoft.EntityFrameworkCore.Query
                     case nameof(BatchOperationExtensions.Upsert)
                     when genericMethod == BatchOperationMethods.UpsertCollapsed:
                         return CheckTranslated(TranslateUpsert(GetShapedAt(0), GetShapedAt(1), GetLambdaAt(2), GetLambdaAt(3)));
+
+                    case nameof(BatchOperationExtensions.Upsert)
+                    when genericMethod == BatchOperationMethods.UpsertOneCollapsed:
+                        return CheckTranslated(TranslateUpsert(GetShapedAt(0), GetLambdaAt(1), GetLambdaAt(2)));
 
                     case nameof(BatchOperationExtensions.Merge)
                     when genericMethod == BatchOperationMethods.MergeCollapsed:

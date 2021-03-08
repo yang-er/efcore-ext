@@ -137,7 +137,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             var targetTable = (TableExpression)Visit(upsertExpression.TargetTable);
             bool changed = targetTable != upsertExpression.TargetTable;
 
-            var sourceTable = Visit(upsertExpression.SourceTable);
+            var sourceTable = upsertExpression.SourceTable == null ? null : Visit(upsertExpression.SourceTable);
             changed = changed || sourceTable != upsertExpression.SourceTable;
 
             var onConflictUpdate = Visit(upsertExpression.OnConflictUpdate);
