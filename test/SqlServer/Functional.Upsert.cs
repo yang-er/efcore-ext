@@ -10,6 +10,42 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
         }
 
+        public override void InsertIfNotExistOne()
+        {
+            base.InsertIfNotExistOne();
+
+            LogSql(nameof(InsertIfNotExistOne));
+
+            AssertSql(@"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    VALUES
+    (@__cid_1, @__teamid_2)
+) AS [cte] ([Value1], [Value2])
+    ON ([r].[ContestId] = [cte].[Value1]) AND ([r].[TeamId] = [cte].[Value2])
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted], [ContestId], [TeamId]) VALUES (1, 1, @__time_0, @__time_0, [cte].[Value1], [cte].[Value2]);
+");
+        }
+
+        public override void InsertIfNotExistOne_CompiledQuery()
+        {
+            base.InsertIfNotExistOne_CompiledQuery();
+
+            LogSql(nameof(InsertIfNotExistOne_CompiledQuery));
+
+            AssertSql(@"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    VALUES
+    (@__cid, @__teamid)
+) AS [cte] ([Value1], [Value2])
+    ON ([r].[ContestId] = [cte].[Value1]) AND ([r].[TeamId] = [cte].[Value2])
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([ContestId], [TeamId], [PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted]) VALUES ([cte].[Value1], [cte].[Value2], 1, 1, @__time, @__time);
+");
+        }
+
         public override void InsertIfNotExists_AnotherTable()
         {
             base.InsertIfNotExists_AnotherTable();
@@ -136,6 +172,46 @@ WHEN MATCHED
     THEN UPDATE SET [r].[PointsPublic] = [r].[PointsPublic] + 1, [r].[TotalTimePublic] = [r].[TotalTimePublic] + [t].[Time]
 WHEN NOT MATCHED BY TARGET
     THEN INSERT ([PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted], [ContestId], [TeamId]) VALUES (1, 1, [t].[Time], [t].[Time], [t].[ContestId], [t].[TeamId]);
+");
+        }
+
+        public override void UpsertOne()
+        {
+            base.UpsertOne();
+
+            LogSql(nameof(UpsertOne));
+
+            AssertSql(@"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    VALUES
+    (@__cid_1, @__teamid_2)
+) AS [cte] ([Value1], [Value2])
+    ON ([r].[ContestId] = [cte].[Value1]) AND ([r].[TeamId] = [cte].[Value2])
+WHEN MATCHED
+    THEN UPDATE SET [r].[PointsPublic] = [r].[PointsPublic] + 1, [r].[TotalTimePublic] = [r].[TotalTimePublic] + @__time_0
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted], [ContestId], [TeamId]) VALUES (1, 1, @__time_0, @__time_0, [cte].[Value1], [cte].[Value2]);
+");
+        }
+
+        public override void UpsertOne_CompiledQuery()
+        {
+            base.UpsertOne_CompiledQuery();
+
+            LogSql(nameof(UpsertOne_CompiledQuery));
+
+            AssertSql(@"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    VALUES
+    (@__cid, @__teamid)
+) AS [cte] ([Value1], [Value2])
+    ON ([r].[ContestId] = [cte].[Value1]) AND ([r].[TeamId] = [cte].[Value2])
+WHEN MATCHED
+    THEN UPDATE SET [r].[PointsPublic] = [r].[PointsPublic] + 1, [r].[TotalTimePublic] = [r].[TotalTimePublic] + @__time
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([ContestId], [TeamId], [PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted]) VALUES ([cte].[Value1], [cte].[Value2], 1, 1, @__time, @__time);
 ");
         }
     }

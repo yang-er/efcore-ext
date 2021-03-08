@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
@@ -45,6 +47,27 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         }
 
         /// <summary>
+        /// Creates an expression for query compilation.
+        /// </summary>
+        /// <param name="values">The values.</param>
+        /// <param name="columns">The column names.</param>
+        /// <param name="alias">The table alias.</param>
+        public ValuesExpression(
+            IReadOnlyList<IReadOnlyList<SqlExpression>> values,
+            IReadOnlyList<string> columns,
+            string alias = "cte")
+            : base(alias)
+        {
+            ImmediateValues = values;
+            ColumnNames = columns;
+        }
+
+        /// <summary>
+        /// The immediate values.
+        /// </summary>
+        public IReadOnlyList<IReadOnlyList<SqlExpression>> ImmediateValues { get; }
+
+        /// <summary>
         /// The applied parameter value.
         /// </summary>
         public int? TupleCount { get; }
@@ -64,27 +87,65 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         /// </summary>
         public IReadOnlyList<string> ColumnNames { get; }
 
-        public void Generate(IRelationalCommandBuilder sql, string paramName)
+        public void Generate(QuerySqlGenerator visitor, IRelationalCommandBuilder sql, ISqlGenerationHelper helper)
         {
-            if (!TupleCount.HasValue)
+            if (TupleCount.HasValue)
+            {
+                sql.AddParameter(
+                    new ValuesRelationalParameter(
+                        AnonymousType,
+                        helper.GenerateParameterName(RuntimeParameter),
+                        RuntimeParameter));
+
+                var paramName = helper.GenerateParameterNamePlaceholder(RuntimeParameter);
+
+                for (int i = 0; i < TupleCount.Value; i++)
+                {
+                    if (i != 0) sql.Append(",").AppendLine();
+                    sql.Append("(");
+
+                    for (int j = 0; j < ColumnNames.Count; j++)
+                    {
+                        if (j != 0) sql.Append(", ");
+                        sql.Append($"{paramName}_{i}_{j}");
+                    }
+
+                    sql.Append(")");
+                }
+            }
+            else if (ImmediateValues != null)
+            {
+                for (int i = 0; i < ImmediateValues.Count; i++)
+                {
+                    if (i != 0) sql.Append(",").AppendLine();
+                    sql.Append("(")
+                        .GenerateList(ImmediateValues[i], e => visitor.Visit(e))
+                        .Append(")");
+                }
+            }
+            else
             {
                 throw new InvalidOperationException(
                     "This instance of values expression is not concrete.");
             }
+        }
 
-            for (int i = 0; i < TupleCount.Value; i++)
+        protected override Expression VisitChildren(ExpressionVisitor visitor)
+        {
+            Check.NotNull(visitor, nameof(visitor));
+            if (ImmediateValues == null) return this;
+
+            var changed = false;
+            var immediateValues = ImmediateValues.ToList();
+            for (int i = 0; i < immediateValues.Count; i++)
             {
-                if (i != 0) sql.Append(",").AppendLine();
-                sql.Append("(");
-
-                for (int j = 0; j < ColumnNames.Count; j++)
-                {
-                    if (j != 0) sql.Append(", ");
-                    sql.Append($"{paramName}_{i}_{j}");
-                }
-
-                sql.Append(")");
+                immediateValues[i] = visitor.VisitCollection(immediateValues[i], "VisitValues");
+                changed = changed || immediateValues[i] != ImmediateValues[i];
             }
+
+            return changed
+                ? new ValuesExpression(immediateValues, ColumnNames, Alias)
+                : this;
         }
 
         /// <inheritdoc />
@@ -98,13 +159,22 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
 
             using (expressionPrinter.Indent())
             {
-                var tupleCount = TupleCount.HasValue
-                    ? TupleCount.Value.ToString()
-                    : RuntimeParameter + ".Count";
+                if (RuntimeParameter != null)
+                {
+                    var tupleCount = TupleCount.HasValue
+                        ? TupleCount.Value.ToString()
+                        : RuntimeParameter + ".Count";
 
-                expressionPrinter.AppendLine()
-                    .Append("VALUES ")
-                    .Append($"{tupleCount} tuples of {ColumnNames.Count} columns");
+                    expressionPrinter.AppendLine()
+                        .Append("VALUES ")
+                        .Append($"{tupleCount} tuples of {ColumnNames.Count} columns");
+                }
+                else if (ImmediateValues != null)
+                {
+                    expressionPrinter.AppendLine()
+                        .Append("VALUES ")
+                        .Append($"{ImmediateValues.Count} immediate tuples of {ColumnNames.Count} columns");
+                }
             }
 
             expressionPrinter.AppendLine()

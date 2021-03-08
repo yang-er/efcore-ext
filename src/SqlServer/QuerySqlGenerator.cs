@@ -63,16 +63,7 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.Query
                 .AppendLine()
                 .AppendLine("VALUES");
 
-            var paramName = tableExpression.RuntimeParameter;
-            Sql.AddParameter(
-                new ValuesRelationalParameter(
-                    tableExpression.AnonymousType,
-                    Helper.GenerateParameterName(paramName),
-                    paramName));
-
-            tableExpression.Generate(
-                Sql,
-                Helper.GenerateParameterNamePlaceholder(paramName));
+            tableExpression.Generate(this, Sql, Helper);
 
             Sql.DecrementIndent()
                 .AppendLine()

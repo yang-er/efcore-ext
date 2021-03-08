@@ -36,11 +36,15 @@ namespace Microsoft.EntityFrameworkCore.Utilities
                 var prop = keys.Properties[i];
                 var member = (MemberInfo)prop.PropertyInfo ?? prop.FieldInfo;
                 if (prop.IsShadowProperty())
+                {
                     throw new NotSupportedException("Shadow property in primary key is not supported yet.");
+                }
 
                 var binding = sourceBindings.OfType<MemberAssignment>().FirstOrDefault(m => m.Member == member);
                 if (binding == null)
+                {
                     throw new ArgumentException("The outer member binding doesn't contains the property in primary key.");
+                }
 
                 inner[i] = Expression.MakeMemberAccess(targetParam, member);
                 outer[i] = binding.Expression;

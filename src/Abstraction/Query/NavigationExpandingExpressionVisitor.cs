@@ -156,6 +156,14 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                         methodCallExpression.Arguments[6]);
 
 
+                case nameof(BatchOperationMethods.CreateSingleTuple)
+                when genericMethod == BatchOperationMethods.CreateSingleTuple:
+                    return Expression.Call(
+                        methodCallExpression.Method,
+                        Expand(methodCallExpression.Arguments[0]),
+                        methodCallExpression.Arguments[1]);
+
+
                 default:
                     throw TranslateFailed();
             }
