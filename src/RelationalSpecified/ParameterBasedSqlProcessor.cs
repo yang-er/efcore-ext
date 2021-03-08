@@ -86,7 +86,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected virtual DeleteExpression Visit(DeleteExpression deleteExpression)
         {
             var mainTable = (TableExpression)Visit(deleteExpression.Table);
-            bool changed = mainTable == deleteExpression.Table;
+            bool changed = mainTable != deleteExpression.Table;
 
             var joinedTables = Visit(deleteExpression.JoinedTables);
             changed |= joinedTables != deleteExpression.JoinedTables;
@@ -114,10 +114,10 @@ namespace Microsoft.EntityFrameworkCore.Query
             changed |= predicate != updateExpression.Predicate;
 
             var fields = Visit(updateExpression.Fields);
-            changed |= fields == updateExpression.Fields;
+            changed |= fields != updateExpression.Fields;
 
             var tables = Visit(updateExpression.Tables);
-            changed |= tables == Visit(updateExpression.Tables);
+            changed |= tables != Visit(updateExpression.Tables);
 
             return changed
                 ? new UpdateExpression(updateExpression.Expanded, expandedTable, predicate, fields, tables)

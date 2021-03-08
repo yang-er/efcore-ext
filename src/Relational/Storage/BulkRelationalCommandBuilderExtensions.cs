@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
 namespace Microsoft.EntityFrameworkCore.Storage
@@ -52,6 +54,27 @@ namespace Microsoft.EntityFrameworkCore.Storage
         {
             then.Invoke();
             return sql;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
+        public static IReadOnlyList<TExpression> VisitCollection<TExpression>(
+            this ExpressionVisitor visitor,
+            IReadOnlyList<TExpression> items,
+            string callerName)
+            where TExpression : Expression
+        {
+            if (items == null) return null;
+
+            bool changed = false;
+            var newItems = items.ToList();
+            for (int i = 0; i < newItems.Count; i++)
+            {
+                newItems[i] = visitor.VisitAndConvert(newItems[i], callerName);
+                changed = changed || newItems[i] != items[i];
+            }
+
+            return changed ? newItems : items;
         }
     }
 }

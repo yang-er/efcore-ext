@@ -1,7 +1,7 @@
 ﻿#nullable enable
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
@@ -19,6 +19,12 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             IReadOnlyList<ProjectionExpression>? notMatchedByTarget,
             bool notMatchedBySource)
         {
+            Check.NotNull(targetTable, nameof(targetTable));
+            Check.NotNull(sourceTable, nameof(sourceTable));
+            Check.NotNull(joinPredicate, nameof(joinPredicate));
+            Check.NullOrHasNoNulls(matched, nameof(matched));
+            Check.NullOrHasNoNulls(notMatchedByTarget, nameof(notMatchedByTarget));
+
             TargetTable = targetTable;
             SourceTable = sourceTable;
             JoinPredicate = joinPredicate;
@@ -81,31 +87,15 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
                     changed = changed || joinPredicate != JoinPredicate;
                 }
 
-                bool matchedChanged = false;
-                var matched = Matched?.ToList();
-                for (int i = 0; matched != null && i < matched.Count; i++)
-                {
-                    matched[i] = visitor.VisitAndConvert(matched[i], CallerName);
-                    matchedChanged = matchedChanged || matched[i] != Matched![i];
-                }
+                var matched = visitor.VisitCollection(Matched, CallerName);
+                changed = changed || matched != Matched;
 
-                bool notMatchedByTargetChanged = false;
-                var notMatchedByTarget = NotMatchedByTarget?.ToList();
-                for (int i = 0; notMatchedByTarget != null && i < notMatchedByTarget.Count; i++)
-                {
-                    notMatchedByTarget[i] = visitor.VisitAndConvert(notMatchedByTarget[i], CallerName);
-                    notMatchedByTargetChanged = notMatchedByTargetChanged || notMatchedByTarget[i] != NotMatchedByTarget![i];
-                }
+                var notMatchedByTarget = visitor.VisitCollection(NotMatchedByTarget, CallerName);
+                changed = changed || notMatchedByTarget != NotMatchedByTarget;
 
-                changed = changed || matchedChanged || notMatchedByTargetChanged;
-                if (!changed) return this;
-                return new MergeExpression(
-                    targetTable,
-                    sourceTable,
-                    joinPredicate,
-                    matchedChanged ? matched : Matched,
-                    notMatchedByTargetChanged ? notMatchedByTarget : NotMatchedByTarget,
-                    NotMatchedBySource);
+                return changed
+                    ? new MergeExpression(targetTable, sourceTable, joinPredicate, matched, notMatchedByTarget, NotMatchedBySource)
+                    : this;
             }
         }
 

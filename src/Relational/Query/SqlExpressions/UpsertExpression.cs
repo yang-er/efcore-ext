@@ -1,6 +1,7 @@
 ﻿#nullable enable
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Utilities;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
@@ -17,6 +18,10 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             IReadOnlyList<ProjectionExpression>? onConflict,
             string conflictConstraintName)
         {
+            Check.NotNull(targetTable, nameof(targetTable));
+            Check.HasNoNulls(columns, nameof(columns));
+            Check.NullOrHasNoNulls(onConflict, nameof(onConflict));
+
             TargetTable = targetTable;
             SourceTable = sourceTable;
             Columns = columns;
@@ -27,22 +32,22 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         /// <summary>
         /// The target table to INSERT INTO.
         /// </summary>
-        public TableExpression TargetTable { get; internal set; }
+        public TableExpression TargetTable { get; }
 
         /// <summary>
         /// The source table to SELECT FROM.
         /// </summary>
-        public TableExpressionBase SourceTable { get; internal set; }
+        public TableExpressionBase SourceTable { get; }
 
         /// <summary>
         /// The columns being inserted, whose alias is the corresponding column name.
         /// </summary>
-        public IReadOnlyList<ProjectionExpression> Columns { get; internal set; }
+        public IReadOnlyList<ProjectionExpression> Columns { get; }
 
         /// <summary>
         /// The expressions being updated when conflict.
         /// </summary>
-        public IReadOnlyList<ProjectionExpression>? OnConflictUpdate { get; internal set; }
+        public IReadOnlyList<ProjectionExpression>? OnConflictUpdate { get; }
 
         /// <summary>
         /// The conflict constraint name.
@@ -66,30 +71,15 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             var sourceTable = visitor.VisitAndConvert(SourceTable, CallerName);
             changed = changed || sourceTable != SourceTable;
 
-            bool onConflictUpdateChanged = false;
-            var onConflictUpdate = OnConflictUpdate?.ToList();
-            for (int i = 0; OnConflictUpdate != null && onConflictUpdate != null && i < OnConflictUpdate.Count; i++)
-            {
-                onConflictUpdate[i] = visitor.VisitAndConvert(OnConflictUpdate[i], CallerName);
-                onConflictUpdateChanged = onConflictUpdateChanged || onConflictUpdate[i] != OnConflictUpdate[i];
-            }
+            var onConflictUpdate = visitor.VisitCollection(OnConflictUpdate, CallerName);
+            changed = changed || onConflictUpdate != OnConflictUpdate;
 
-            bool columnsChanged = false;
-            var columns = Columns.ToList();
-            for (int i = 0; i < columns.Count; i++)
-            {
-                columns[i] = visitor.VisitAndConvert(Columns[i], CallerName);
-                columnsChanged = columnsChanged || columns[i] != Columns[i];
-            }
+            var columns = visitor.VisitCollection(Columns, CallerName);
+            changed = changed || columns != Columns;
 
-            changed = changed || onConflictUpdateChanged || columnsChanged;
-            if (!changed) return this;
-            return new UpsertExpression(
-                targetTable,
-                sourceTable,
-                columnsChanged ? columns : Columns,
-                onConflictUpdateChanged ? onConflictUpdate : OnConflictUpdate,
-                ConflictConstraintName);
+            return changed
+                ? new UpsertExpression(targetTable, sourceTable, columns, onConflictUpdate, ConflictConstraintName)
+                : this;
         }
     }
 }
