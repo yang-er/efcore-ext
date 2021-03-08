@@ -59,6 +59,15 @@ namespace Microsoft.EntityFrameworkCore
         /// <summary>
         /// Expression type for query generation.
         /// </summary>
+        internal static int Upsert<TTarget>(
+            this IQueryable<TTarget> set,
+            Expression<Func<TTarget>> insertExpression,
+            Expression<Func<TTarget, TTarget>> updateExpression)
+            => throw new InvalidOperationException();
+
+        /// <summary>
+        /// Expression type for query generation.
+        /// </summary>
         internal static int Merge<TTarget, TSource, TJoinKey>(
             this IQueryable<TTarget> targetTable,
             IQueryable<TSource> sourceTable,
@@ -611,8 +620,9 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="set">The entity set.</param>
         /// <param name="source">The source for the upserting.</param>
         /// <param name="insertExpression">The expression for inserting new entity.</param>
-        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity. The first parameter is the existing entity, while the second parameter is the excluded entity.</param>
         /// <returns>The affected rows.</returns>
+        /// <remarks>It is suggested to replace this with <see cref="Upsert{TTarget}(DbSet{TTarget}, Expression{Func{TTarget}}, Expression{Func{TTarget, TTarget}}?)"/>.</remarks>
         public static int Upsert<TTarget, TSource>(
             this DbSet<TTarget> set,
             TSource source,
@@ -644,9 +654,10 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="set">The entity set.</param>
         /// <param name="source">The source for the upserting.</param>
         /// <param name="insertExpression">The expression for inserting new entity.</param>
-        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity. The first parameter is the existing entity, while the second parameter is the excluded entity.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task for affected rows.</returns>
+        /// <remarks>It is suggested to replace this with <see cref="UpsertAsync{TTarget}(DbSet{TTarget}, Expression{Func{TTarget}}, Expression{Func{TTarget, TTarget}}?, CancellationToken)"/>.</remarks>
         public static Task<int> UpsertAsync<TTarget, TSource>(
             this DbSet<TTarget> set,
             TSource source,
@@ -669,6 +680,61 @@ namespace Microsoft.EntityFrameworkCore
                     inner.Expression,
                     Expression.Quote(insertExpression),
                     Expression.Quote(updateExpression ?? ((_, __) => null!))),
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Perform one insert or update operation.
+        /// </summary>
+        /// <typeparam name="TTarget">The entity type.</typeparam>
+        /// <param name="set">The entity set.</param>
+        /// <param name="insertExpression">The expression for inserting new entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <returns>The affected rows.</returns>
+        public static int Upsert<TTarget>(
+            this DbSet<TTarget> set,
+            Expression<Func<TTarget>> insertExpression,
+            Expression<Func<TTarget, TTarget>>? updateExpression = null)
+            where TTarget : class
+        {
+            Check.NotNull(set, nameof(set));
+            Check.NotNull(insertExpression, nameof(insertExpression));
+            var target = (IQueryable<TTarget>)set;
+
+            return target.Provider.Execute<int>(
+                Expression.Call(
+                    BatchOperationMethods.UpsertOneCollapsed.MakeGenericMethod(typeof(TTarget)),
+                    target.Expression,
+                    Expression.Quote(insertExpression),
+                    Expression.Quote(updateExpression ?? (_ => null!))));
+        }
+
+        /// <summary>
+        /// Perform one insert or update async operation.
+        /// </summary>
+        /// <typeparam name="TTarget">The entity type.</typeparam>
+        /// <param name="set">The entity set.</param>
+        /// <param name="insertExpression">The expression for inserting new entity.</param>
+        /// <param name="updateExpression">The expression for updating the existing entity.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The task for affected rows.</returns>
+        public static Task<int> UpsertAsync<TTarget>(
+            this DbSet<TTarget> set,
+            Expression<Func<TTarget>> insertExpression,
+            Expression<Func<TTarget, TTarget>>? updateExpression = null,
+            CancellationToken cancellationToken = default)
+            where TTarget : class
+        {
+            Check.NotNull(set, nameof(set));
+            Check.NotNull(insertExpression, nameof(insertExpression));
+            var target = (IQueryable<TTarget>)set;
+
+            return ((IAsyncQueryProvider)target.Provider).ExecuteAsync<Task<int>>(
+                Expression.Call(
+                    BatchOperationMethods.UpsertOneCollapsed.MakeGenericMethod(typeof(TTarget)),
+                    target.Expression,
+                    Expression.Quote(insertExpression),
+                    Expression.Quote(updateExpression ?? (_ => null!))),
                 cancellationToken);
         }
     }

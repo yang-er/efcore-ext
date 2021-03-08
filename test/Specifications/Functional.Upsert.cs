@@ -275,5 +275,118 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
                 Assert.Equal(1, context.ThreeRelations.Count());
             }
         }
+
+        [ConditionalFact, TestPriority(7)]
+        public virtual void UpsertOne()
+        {
+            EnsureRank(Array.Empty<RankSource>());
+
+            using (CatchCommand())
+            {
+                int cid = 1, teamid = 2, time = 50;
+
+                using var context = CreateContext();
+                var e = context.RankCache.Upsert(
+                    () => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = time, TotalTimeRestricted = time, ContestId = cid, TeamId = teamid, },
+                    rc => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + time, });
+            }
+
+            using (var context = CreateContext())
+            {
+                Assert.Equal(2, context.RankCache.Count());
+            }
+        }
+
+        [ConditionalFact, TestPriority(7)]
+        public virtual void UpsertOne_CompiledQuery()
+        {
+            EnsureRank(Array.Empty<RankSource>());
+
+            var compiledQuery = EF.CompileQuery(
+                (UpsertContext ctx, int cid, int teamid, int time)
+                    => ctx.RankCache.Upsert(
+                        () => new RankCache { ContestId = cid, TeamId = teamid, PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = time, TotalTimeRestricted = time },
+                        rc => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + time }));
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context, 1, 2, 50);
+            }
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context, 3, 4, 50);
+            }
+
+            using (var context = CreateContext())
+            {
+                Assert.Equal(3, context.RankCache.Count());
+            }
+        }
+
+        [ConditionalFact, TestPriority(7)]
+        public virtual void InsertIfNotExistOne()
+        {
+            EnsureRank(Array.Empty<RankSource>());
+
+            using (CatchCommand())
+            {
+                int cid = 1, teamid = 2, time = 50;
+
+                using var context = CreateContext();
+                var e = context.RankCache.Upsert(
+                    () => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = time, TotalTimeRestricted = time, ContestId = cid, TeamId = teamid });
+            }
+
+            using (var context = CreateContext())
+            {
+                Assert.Equal(2, context.RankCache.Count());
+            }
+
+            using (CatchCommand())
+            {
+                int cid = 3, teamid = 4, time = 50;
+
+                using var context = CreateContext();
+                var e = context.RankCache.Upsert(
+                    () => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = time, TotalTimeRestricted = time, ContestId = cid, TeamId = teamid });
+            }
+
+            using (var context = CreateContext())
+            {
+                Assert.Equal(3, context.RankCache.Count());
+            }
+        }
+
+        [ConditionalFact, TestPriority(7)]
+        public virtual void InsertIfNotExistOne_CompiledQuery()
+        {
+            EnsureRank(Array.Empty<RankSource>());
+
+            var compiledQuery = EF.CompileQuery(
+                (UpsertContext ctx, int cid, int teamid, int time)
+                    => ctx.RankCache.Upsert(
+                        () => new RankCache { ContestId = cid, TeamId = teamid, PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = time, TotalTimeRestricted = time },
+                        null));
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context, 1, 2, 50);
+            }
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context, 3, 4, 50);
+            }
+
+            using (var context = CreateContext())
+            {
+                Assert.Equal(3, context.RankCache.Count());
+            }
+        }
     }
 }
