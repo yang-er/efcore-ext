@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Sqlite.Query;
+using Microsoft.EntityFrameworkCore.Storage.Internal;
 
 namespace Microsoft.EntityFrameworkCore
 {
@@ -23,7 +24,12 @@ namespace Microsoft.EntityFrameworkCore
 
         protected override void ApplyServices(BatchServicesBuilder services)
         {
-            base.ApplyServices(services);
+            services.TryAdd<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
+
+            services.TryAdd<IBulkShapedQueryCompilingExpressionVisitorFactory, RelationalBulkShapedQueryCompilingExpressionVisitorFactory>();
+            services.TryAdd<IBulkQueryTranslationPreprocessorFactory, RelationalBulkQueryTranslationPreprocessorFactory>();
+            services.TryAdd<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();
+            services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, SqliteBulkQueryableMethodTranslatingExpressionVisitorFactory>();
 
             services.TryAdd<IBulkQuerySqlGeneratorFactory, SqliteBulkQuerySqlGeneratorFactory>();
             services.TryAdd<IQueryCompiler, SqliteBulkQueryCompiler>();

@@ -39,6 +39,11 @@ namespace Microsoft.EntityFrameworkCore
                 "Microsoft.EntityFrameworkCore.SqlServer",
                 StringComparison.Ordinal);
 
+        public static bool IsSqlite(this DatabaseFacade database)
+            => database.ProviderName.Equals(
+                "Microsoft.EntityFrameworkCore.Sqlite",
+                StringComparison.Ordinal);
+
         public static bool IsNpgsql(this DatabaseFacade database)
             => database.ProviderName.Equals(
                 "Npgsql.EntityFrameworkCore.PostgreSQL",

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.SqlServer.Query;
 using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
+using Microsoft.EntityFrameworkCore.Storage.Internal;
 
 namespace Microsoft.EntityFrameworkCore
 {
@@ -24,7 +25,12 @@ namespace Microsoft.EntityFrameworkCore
 
         protected override void ApplyServices(BatchServicesBuilder services)
         {
-            base.ApplyServices(services);
+            services.TryAdd<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
+
+            services.TryAdd<IBulkShapedQueryCompilingExpressionVisitorFactory, RelationalBulkShapedQueryCompilingExpressionVisitorFactory>();
+            services.TryAdd<IBulkQueryTranslationPreprocessorFactory, RelationalBulkQueryTranslationPreprocessorFactory>();
+            services.TryAdd<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();
+            services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory>();
 
             services.TryAdd<IMethodCallTranslatorPlugin, MathTranslationPlugin>();
             services.TryAdd<IBulkQuerySqlGeneratorFactory, SqlServerBulkQuerySqlGeneratorFactory>();

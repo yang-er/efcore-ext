@@ -134,18 +134,12 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
 
         protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
         {
-            Sql.Append("DELETE ");
+            Sql.Append("DELETE FROM ");
 
-            Sql.Append(Helper.DelimitIdentifier(deleteExpression.Table.Alias));
-
-            if (deleteExpression.JoinedTables.Any())
-            {
-                Sql.AppendLine().Append("FROM ");
-                Sql.GenerateList(
-                    deleteExpression.JoinedTables,
-                    e => Visit(e),
-                    sql => sql.AppendLine());
-            }
+            Sql.GenerateList(
+                deleteExpression.JoinedTables,
+                e => Visit(e),
+                sql => sql.AppendLine());
 
             if (deleteExpression.Predicate != null)
             {

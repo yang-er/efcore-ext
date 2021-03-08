@@ -48,7 +48,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             _sqlTranslator = _sqlTranslatorAccessor(this);
         }
 
-        public RelationalBulkQueryableMethodTranslatingExpressionVisitor(
+        protected RelationalBulkQueryableMethodTranslatingExpressionVisitor(
             RelationalBulkQueryableMethodTranslatingExpressionVisitor parentVisitor)
             : base(parentVisitor)
         {
