@@ -117,12 +117,12 @@ SET ""Another"" = (
 
             AssertSql31(@"
 UPDATE ""Judging_{{schema}}"" AS j
-SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""StartTime"" = NOW(), ""Server"" = NULL, ""Status"" = GREATEST(j.""Status"", 8)
+SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""Server"" = NULL, ""Status"" = GREATEST(j.""Status"", 8)
 ");
 
             AssertSql50(@"
 UPDATE ""Judging_{{schema}}"" AS j
-SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""StartTime"" = NOW(), ""Server"" = NULL, ""Status"" = greatest(j.""Status"", 8)
+SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""Server"" = NULL, ""Status"" = greatest(j.""Status"", 8)
 ");
         }
 
