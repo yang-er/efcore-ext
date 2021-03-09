@@ -256,15 +256,20 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             if (selectExpression.Offset != null
                 || selectExpression.Limit != null
-                || (selectExpression.GroupBy?.Count ?? 0) != 0
+                || selectExpression.GroupBy.Count != 0
                 || selectExpression.Having != null)
             {
                 return Fail("The query can't be aggregated or be with .Take() or .Skip() filters.");
             }
 
-            if (selectExpression?.Tables?[0] is not TableExpression table)
+            if (selectExpression.Tables[0] is not TableExpression table)
             {
                 return Fail("The query root should be main entity.");
+            }
+
+            if (selectExpression.Projection.Count > 0)
+            {
+                return Fail("The delete condition contains client evaluation parts.");
             }
 
             return TranslateWrapped(
@@ -285,7 +290,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             if (selectExpression.Offset != null
                 || selectExpression.Limit != null
-                || (selectExpression.GroupBy?.Count ?? 0) != 0
+                || selectExpression.GroupBy.Count != 0
                 || selectExpression.Having != null)
             {
                 return Fail("The query can't be aggregated or be with .Take() or .Skip() filters.");
@@ -311,6 +316,11 @@ namespace Microsoft.EntityFrameworkCore.Query
             shaped = TranslateSelect(shapedQueryExpression, updateBody);
             //Check.DebugAssert(shaped == shapedQueryExpression, "Should be the same instance.");
             Check.DebugAssert(selectExpression == ((ShapedQueryExpression)shaped).QueryExpression, "Should be the same instance.");
+
+            if (selectExpression.Projection.Count > 0)
+            {
+                return Fail("The update body contains client evaluation parts.");
+            }
 
             // Get the concrete update field expression
             var projectionMapping = selectExpression.GetProjectionMapping();
@@ -361,7 +371,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             var newProjectionMapping = new Dictionary<ProjectionMember, Expression>();
             if (projections.Count > 0)
             {
-                throw new NotImplementedException("Why is projection here expanded?");
+                return Fail("The insert query contains client evaluation parts.");
             }
 
             foreach (var mapping in projectionMapping)
