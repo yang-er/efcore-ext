@@ -483,7 +483,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     sourceTable: crossJoinExpression.Table,
                     columns: insertFields,
                     onConflict: updateFields,
-                    conflictConstraintName: pkeyOrAkey.GetName()));
+                    conflictConstraint: pkeyOrAkey));
         }
 
         protected virtual ShapedQueryExpression TranslateUpsert(Expression target, LambdaExpression insert, LambdaExpression update)
@@ -551,7 +551,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     sourceTable: null,
                     columns: insertFields,
                     onConflict: updateFields,
-                    conflictConstraintName: pkeyOrAkey.GetName()));
+                    conflictConstraint: pkeyOrAkey));
         }
 
         protected virtual ShapedQueryExpression TranslateMerge(Expression target, Expression source, LambdaExpression targetKeySelector, LambdaExpression sourceKeySelector, LambdaExpression updateExpression, LambdaExpression insertExpression, Expression doDelete)

@@ -1,8 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal;
 using System;
@@ -177,7 +177,7 @@ namespace Npgsql.EntityFrameworkCore.PostgreSQL.Query
             if (upsertExpression.SourceTable != null)
             {
                 Sql.Append("SELECT ")
-                    .GenerateList(upsertExpression.Columns, e => Visit(e))
+                    .GenerateList(upsertExpression.Columns, e => Visit(e.Expression))
                     .AppendLine();
 
                 Sql.Append("FROM ");
@@ -198,7 +198,7 @@ namespace Npgsql.EntityFrameworkCore.PostgreSQL.Query
             else
             {
                 Sql.Append("ON CONFLICT ON CONSTRAINT ")
-                    .Append(Helper.DelimitIdentifier(upsertExpression.ConflictConstraintName))
+                    .Append(Helper.DelimitIdentifier(upsertExpression.ConflictConstraint.GetName()))
                     .AppendLine(" DO UPDATE")
                     .Append("SET ")
                     .GenerateList(

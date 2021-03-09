@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System.Collections.Generic;
@@ -16,17 +17,18 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             TableExpressionBase sourceTable,
             IReadOnlyList<ProjectionExpression> columns,
             IReadOnlyList<ProjectionExpression>? onConflict,
-            string conflictConstraintName)
+            IKey conflictConstraint)
         {
             Check.NotNull(targetTable, nameof(targetTable));
             Check.HasNoNulls(columns, nameof(columns));
             Check.NullOrHasNoNulls(onConflict, nameof(onConflict));
+            Check.NotNull(conflictConstraint, nameof(conflictConstraint));
 
             TargetTable = targetTable;
             SourceTable = sourceTable;
             Columns = columns;
             OnConflictUpdate = onConflict;
-            ConflictConstraintName = conflictConstraintName;
+            ConflictConstraint = conflictConstraint;
         }
 
         /// <summary>
@@ -52,7 +54,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         /// <summary>
         /// The conflict constraint name.
         /// </summary>
-        public string ConflictConstraintName { get; }
+        public IKey ConflictConstraint { get; }
 
         /// <inheritdoc />
         protected override void Prints(ExpressionPrinter expressionPrinter)
@@ -78,7 +80,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
             changed = changed || columns != Columns;
 
             return changed
-                ? new UpsertExpression(targetTable, sourceTable, columns, onConflictUpdate, ConflictConstraintName)
+                ? new UpsertExpression(targetTable, sourceTable, columns, onConflictUpdate, ConflictConstraint)
                 : this;
         }
     }

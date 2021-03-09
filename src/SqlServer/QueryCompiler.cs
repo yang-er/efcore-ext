@@ -166,13 +166,5 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.Query
 
             return base.CompileBulkCore<TResult>(database, query, model, async);
         }
-
-        Exception TranslationFailed(Expression query, params string[] errlogs)
-            => new InvalidOperationException(
-                string.Concat(
-                    CoreStrings.TranslationFailed(query.Print()),
-                    Environment.NewLine,
-                    "Details:",
-                    string.Join(Environment.NewLine, errlogs)));
     }
 }

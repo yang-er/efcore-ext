@@ -151,7 +151,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             changed = changed || columns != upsertExpression.Columns;
 
             return changed
-                ? new UpsertExpression(targetTable, sourceTable, columns, onConflictUpdate, upsertExpression.ConflictConstraintName)
+                ? new UpsertExpression(targetTable, sourceTable, columns, onConflictUpdate, upsertExpression.ConflictConstraint)
                 : upsertExpression;
         }
 
