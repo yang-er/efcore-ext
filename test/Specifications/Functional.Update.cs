@@ -266,6 +266,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         }
 
         [ConditionalFact, TestPriority(4)]
+        [DatabaseProviderSkipCondition(DatabaseProvider.Sqlite, SkipReason = "SQLite doesn't have the native type mapping for DateTimeOffset.")]
         public virtual void SetNull()
         {
             using var scope = CatchCommand();
@@ -420,7 +421,6 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
                         ExecuteMemory = null,
                         PreviousJudgingId = null,
                         TotalScore = null,
-                        StartTime = DateTimeOffset.Now,
                         Server = null,
                         Status = Math.Max(a.Status, 8),
                     }));

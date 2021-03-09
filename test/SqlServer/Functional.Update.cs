@@ -141,7 +141,7 @@ FROM [Detail_{{schema}}] AS [d]
 
             AssertSql(@"
 UPDATE [j]
-SET [j].[CompileError] = NULL, [j].[ExecuteMemory] = NULL, [j].[PreviousJudgingId] = NULL, [j].[TotalScore] = NULL, [j].[StartTime] = SYSDATETIMEOFFSET(), [j].[Server] = NULL, [j].[Status] = CASE
+SET [j].[CompileError] = NULL, [j].[ExecuteMemory] = NULL, [j].[PreviousJudgingId] = NULL, [j].[TotalScore] = NULL, [j].[Server] = NULL, [j].[Status] = CASE
     WHEN [j].[Status] > 8 THEN [j].[Status]
     ELSE 8
 END
