@@ -3,10 +3,8 @@ using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.SqlServer.Query
@@ -118,7 +116,7 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.Query
                 Visit(e.Expression);
             });
 
-            if (updateExpression.Tables.Any())
+            if (updateExpression.Tables.Count > 0)
             {
                 Sql.AppendLine().Append("FROM ");
                 Sql.GenerateList(updateExpression.Tables, e => Visit(e), sql => sql.AppendLine());
@@ -139,7 +137,7 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.Query
 
             Sql.Append(Helper.DelimitIdentifier(deleteExpression.Table.Alias));
 
-            if (deleteExpression.JoinedTables.Any())
+            if (deleteExpression.JoinedTables.Count > 0)
             {
                 Sql.AppendLine().Append("FROM ");
                 Sql.GenerateList(

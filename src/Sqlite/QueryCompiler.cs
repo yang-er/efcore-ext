@@ -1,9 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+﻿using Microsoft.EntityFrameworkCore.Bulk;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
+using System;
+using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Sqlite.Query
 {
@@ -29,6 +32,17 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
                   qccFactory,
                   model)
         {
+        }
+
+        protected override Func<QueryContext, TResult> CompileBulkCore<TResult>(IDatabase database, Expression query, IModel model, bool async)
+        {
+            if (query is MethodCallExpression methodCallExpression
+                && methodCallExpression.Method.GetGenericMethodDefinition() == BatchOperationMethods.MergeCollapsed)
+            {
+                throw TranslationFailed(query, "MERGE INTO sentences are not supported in SQLite.");
+            }
+
+            return base.CompileBulkCore<TResult>(database, query, model, async);
         }
     }
 }
