@@ -173,5 +173,16 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             return _bulkQueryCompilationContextFactory.CreateQueryExecutor<TResult>(async, query);
         }
+
+        /// <inheritdoc cref="CoreStrings.TranslationFailed(object)" />
+        protected Exception TranslationFailed(Expression query, params string[] errlogs)
+            => new InvalidOperationException(
+                "The LINQ expression '" + query.Print() + "' could not be translated. " +
+                "Either rewrite the query in a form that can be translated, " +
+                "or switch to client evaluation explicitly by using EFCore's entity tracking system. " +
+                "See https://github.com/yang-er/efcore-ext for more information." +
+                Environment.NewLine +
+                "Details:" +
+                string.Join(Environment.NewLine, errlogs));
     }
 }
