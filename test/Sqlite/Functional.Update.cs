@@ -2,10 +2,10 @@
 
 namespace Microsoft.EntityFrameworkCore.Tests
 {
-    public class NpgsqlUpdateTest : UpdateTestBase<NpgsqlContextFactory<UpdateContext>>
+    public class SqliteUpdateTest : UpdateTestBase<SqliteContextFactory<UpdateContext>>
     {
-        public NpgsqlUpdateTest(
-            NpgsqlContextFactory<UpdateContext> factory)
+        public SqliteUpdateTest(
+            SqliteContextFactory<UpdateContext> factory)
             : base(factory)
         {
         }
@@ -17,15 +17,15 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_ConcatenateBody));
 
             AssertSql31(@"
-UPDATE ""Item_{{schema}}"" AS i
-SET ""Name"" = i.""Name"" || @__suffix, ""Quantity"" = i.""Quantity"" + @__incrementStep
-WHERE i.""ItemId"" <= 500
+UPDATE ""Item_{{schema}}"" AS ""i""
+SET ""Name"" = ""i"".""Name"" || @__suffix, ""Quantity"" = ""i"".""Quantity"" + @__incrementStep
+WHERE ""i"".""ItemId"" <= 500
 ");
 
             AssertSql50(@"
-UPDATE ""Item_{{schema}}"" AS i
-SET ""Name"" = COALESCE(i.""Name"", '') || @__suffix, ""Quantity"" = i.""Quantity"" + @__incrementStep
-WHERE i.""ItemId"" <= 500
+UPDATE ""Item_{{schema}}"" AS ""i""
+SET ""Name"" = COALESCE(""i"".""Name"", '') || @__suffix, ""Quantity"" = ""i"".""Quantity"" + @__incrementStep
+WHERE ""i"".""ItemId"" <= 500
 ");
         }
 
@@ -36,9 +36,9 @@ WHERE i.""ItemId"" <= 500
             LogSql(nameof(CompiledQuery_ConstantUpdateBody));
 
             AssertSql(@"
-UPDATE ""Item_{{schema}}"" AS i
-SET ""Description"" = 'Updated', ""Price"" = 1.5
-WHERE i.""ItemId"" <= 388
+UPDATE ""Item_{{schema}}"" AS ""i""
+SET ""Description"" = 'Updated', ""Price"" = '1.5'
+WHERE ""i"".""ItemId"" <= 388
 ");
         }
 
@@ -49,8 +49,8 @@ WHERE i.""ItemId"" <= 388
             LogSql(nameof(CompiledQuery_HasOwnedType));
 
             AssertSql(@"
-UPDATE ""ChangeLog_{{schema}}"" AS c
-SET ""Audit_IsDeleted"" = NOT (c.""Audit_IsDeleted"")
+UPDATE ""ChangeLog_{{schema}}"" AS ""c""
+SET ""Audit_IsDeleted"" = NOT (""c"".""Audit_IsDeleted"")
 ");
         }
 
@@ -61,10 +61,10 @@ SET ""Audit_IsDeleted"" = NOT (c.""Audit_IsDeleted"")
             LogSql(nameof(CompiledQuery_NavigationSelect));
 
             AssertSql(@"
-UPDATE ""Detail_{{schema}}"" AS d
-SET ""Another"" = (d.""Another"" + j.""SubmissionId"") + @__x
-FROM ""Judging_{{schema}}"" AS j
-WHERE d.""JudgingId"" = j.""JudgingId""
+UPDATE ""Detail_{{schema}}"" AS ""d""
+SET ""Another"" = (""d"".""Another"" + ""j"".""SubmissionId"") + @__x
+FROM ""Judging_{{schema}}"" AS ""j""
+WHERE ""d"".""JudgingId"" = ""j"".""JudgingId""
 ");
         }
 
@@ -75,10 +75,10 @@ WHERE d.""JudgingId"" = j.""JudgingId""
             LogSql(nameof(CompiledQuery_NavigationWhere));
 
             AssertSql(@"
-UPDATE ""Detail_{{schema}}"" AS d
-SET ""Another"" = j.""SubmissionId""
-FROM ""Judging_{{schema}}"" AS j
-WHERE (j.""PreviousJudgingId"" = @__x) AND (d.""JudgingId"" = j.""JudgingId"")
+UPDATE ""Detail_{{schema}}"" AS ""d""
+SET ""Another"" = ""j"".""SubmissionId""
+FROM ""Judging_{{schema}}"" AS ""j""
+WHERE (""j"".""PreviousJudgingId"" = @__x) AND (""d"".""JudgingId"" = ""j"".""JudgingId"")
 ");
         }
 
@@ -89,9 +89,9 @@ WHERE (j.""PreviousJudgingId"" = @__x) AND (d.""JudgingId"" = j.""JudgingId"")
             LogSql(nameof(CompiledQuery_ParameterUpdateBody));
 
             AssertSql(@"
-UPDATE ""Item_{{schema}}"" AS i
+UPDATE ""Item_{{schema}}"" AS ""i""
 SET ""Description"" = @__desc, ""Price"" = @__pri
-WHERE i.""ItemId"" <= 388
+WHERE ""i"".""ItemId"" <= 388
 ");
         }
 
@@ -102,10 +102,10 @@ WHERE i.""ItemId"" <= 388
             LogSql(nameof(CompiledQuery_ScalarSubquery));
 
             AssertSql(@"
-UPDATE ""Detail_{{schema}}"" AS d
+UPDATE ""Detail_{{schema}}"" AS ""d""
 SET ""Another"" = (
-    SELECT COUNT(*)::INT
-    FROM ""Item_{{schema}}"" AS i)
+    SELECT COUNT(*)
+    FROM ""Item_{{schema}}"" AS ""i"")
 ");
         }
 
@@ -134,14 +134,14 @@ SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = N
 
             AssertSql31(@"
 UPDATE ""Item_{{schema}}"" AS i
-SET ""Name"" = i.""Name"" || @__suffix_1, ""Quantity"" = i.""Quantity"" + @__incrementStep_2
-WHERE (i.""ItemId"" <= 500) AND (i.""Price"" >= @__price_0)
+SET ""Name"" = ""i"".""Name"" || @__suffix_1, ""Quantity"" = ""i"".""Quantity"" + @__incrementStep_2
+WHERE (""i"".""ItemId"" <= 500) AND (ef_compare(""i"".""Price"", @__price_0) >= 0)
 ");
 
             AssertSql50(@"
-UPDATE ""Item_{{schema}}"" AS i
-SET ""Name"" = COALESCE(i.""Name"", '') || @__suffix_1, ""Quantity"" = i.""Quantity"" + @__incrementStep_2
-WHERE (i.""ItemId"" <= 500) AND (i.""Price"" >= @__price_0)
+UPDATE ""Item_{{schema}}"" AS ""i""
+SET ""Name"" = COALESCE(""i"".""Name"", '') || @__suffix_1, ""Quantity"" = ""i"".""Quantity"" + @__incrementStep_2
+WHERE (""i"".""ItemId"" <= 500) AND (ef_compare(""i"".""Price"", @__price_0) >= 0)
 ");
         }
 
@@ -152,9 +152,9 @@ WHERE (i.""ItemId"" <= 500) AND (i.""Price"" >= @__price_0)
             LogSql(nameof(ConstantUpdateBody));
 
             AssertSql(@"
-UPDATE ""Item_{{schema}}"" AS i
-SET ""Description"" = 'Updated', ""Price"" = 1.5
-WHERE (i.""ItemId"" <= 388) AND (i.""Price"" >= @__price_0)
+UPDATE ""Item_{{schema}}"" AS ""i""
+SET ""Description"" = 'Updated', ""Price"" = '1.5'
+WHERE (""i"".""ItemId"" <= 388) AND (ef_compare(""i"".""Price"", @__price_0) >= 0)
 ");
         }
 
@@ -165,8 +165,8 @@ WHERE (i.""ItemId"" <= 388) AND (i.""Price"" >= @__price_0)
             LogSql(nameof(HasOwnedType));
 
             AssertSql(@"
-UPDATE ""ChangeLog_{{schema}}"" AS c
-SET ""Audit_IsDeleted"" = NOT (c.""Audit_IsDeleted"")
+UPDATE ""ChangeLog_{{schema}}"" AS ""c""
+SET ""Audit_IsDeleted"" = NOT (""c"".""Audit_IsDeleted"")
 ");
         }
 
@@ -177,10 +177,10 @@ SET ""Audit_IsDeleted"" = NOT (c.""Audit_IsDeleted"")
             LogSql(nameof(NavigationSelect));
 
             AssertSql(@"
-UPDATE ""Detail_{{schema}}"" AS d
-SET ""Another"" = (d.""Another"" + j.""SubmissionId"") + @__x_0
-FROM ""Judging_{{schema}}"" AS j
-WHERE d.""JudgingId"" = j.""JudgingId""
+UPDATE ""Detail_{{schema}}"" AS ""d""
+SET ""Another"" = (""d"".""Another"" + ""j"".""SubmissionId"") + @__x_0
+FROM ""Judging_{{schema}}"" AS ""j""
+WHERE ""d"".""JudgingId"" = ""j"".""JudgingId""
 ");
         }
 
@@ -191,10 +191,10 @@ WHERE d.""JudgingId"" = j.""JudgingId""
             LogSql(nameof(NavigationWhere));
 
             AssertSql(@"
-UPDATE ""Detail_{{schema}}"" AS d
-SET ""Another"" = j.""SubmissionId""
-FROM ""Judging_{{schema}}"" AS j
-WHERE (j.""PreviousJudgingId"" = @__x_0) AND (d.""JudgingId"" = j.""JudgingId"")
+UPDATE ""Detail_{{schema}}"" AS ""d""
+SET ""Another"" = ""j"".""SubmissionId""
+FROM ""Judging_{{schema}}"" AS ""j""
+WHERE (""j"".""PreviousJudgingId"" = @__x_0) AND (""d"".""JudgingId"" = ""j"".""JudgingId"")
 ");
         }
 
@@ -205,9 +205,9 @@ WHERE (j.""PreviousJudgingId"" = @__x_0) AND (d.""JudgingId"" = j.""JudgingId"")
             LogSql(nameof(ParameterUpdateBody));
 
             AssertSql(@"
-UPDATE ""Item_{{schema}}"" AS i
+UPDATE ""Item_{{schema}}"" AS ""i""
 SET ""Description"" = @__desc_1, ""Price"" = @__pri_2
-WHERE (i.""ItemId"" <= 388) AND (i.""Price"" >= @__price_0)
+WHERE (""i"".""ItemId"" <= 388) AND (ef_compare(""i"".""Price"", @__price_0) >= 0)
 ");
         }
 
@@ -218,10 +218,10 @@ WHERE (i.""ItemId"" <= 388) AND (i.""Price"" >= @__price_0)
             LogSql(nameof(ScalarSubquery));
 
             AssertSql(@"
-UPDATE ""Detail_{{schema}}"" AS d
+UPDATE ""Detail_{{schema}}"" AS ""d""
 SET ""Another"" = (
-    SELECT COUNT(*)::INT
-    FROM ""Item_{{schema}}"" AS i)
+    SELECT COUNT(*)
+    FROM ""Item_{{schema}}"" AS ""i"")
 ");
         }
 
@@ -232,12 +232,12 @@ SET ""Another"" = (
             LogSql(nameof(SetNull));
 
             AssertSql31(@"
-UPDATE ""Judging_{{schema}}"" AS j
+UPDATE ""Judging_{{schema}}"" AS ""j""
 SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""StartTime"" = NOW(), ""Server"" = NULL, ""Status"" = GREATEST(j.""Status"", 8)
 ");
 
             AssertSql50(@"
-UPDATE ""Judging_{{schema}}"" AS j
+UPDATE ""Judging_{{schema}}"" AS ""j""
 SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""StartTime"" = NOW(), ""Server"" = NULL, ""Status"" = greatest(j.""Status"", 8)
 ");
         }

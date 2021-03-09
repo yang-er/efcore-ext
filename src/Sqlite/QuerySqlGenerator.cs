@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore.Bulk;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Sqlite.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Microsoft.EntityFrameworkCore.Sqlite.Query
@@ -24,7 +24,7 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
             return extensionExpression switch
             {
                 ValuesExpression values => VisitValues(values),
-                ExcludedTableColumnExpression _ => throw new InvalidOperationException(),
+                ExcludedTableColumnExpression excluded => VisitExcludedTableColumn(excluded),
                 AffectedRowsExpression _ => throw new InvalidOperationException(),
                 _ => base.VisitExtension(extensionExpression),
             };
@@ -37,8 +37,15 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
                 DeleteExpression deleteExpression => VisitDelete(deleteExpression),
                 UpdateExpression updateExpression => VisitUpdate(updateExpression),
                 SelectIntoExpression selectIntoExpression => VisitSelectInto(selectIntoExpression),
+                UpsertExpression upsertExpression => VisitUpsert(upsertExpression),
                 _ => throw new NotImplementedException(),
             };
+        }
+
+        protected virtual Expression VisitExcludedTableColumn(ExcludedTableColumnExpression excludedTableColumnExpression)
+        {
+            Sql.Append("\"excluded\".").Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name));
+            return excludedTableColumnExpression;
         }
 
         protected override Expression VisitSelect(SelectExpression selectExpression)
@@ -97,27 +104,26 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
 
         protected virtual Expression VisitUpdate(UpdateExpression updateExpression)
         {
-            if (updateExpression.Expanded)
+            var original = updateExpression;
+            if (!updateExpression.Expanded)
             {
-                throw new InvalidOperationException("Update expression accidently expanded.");
+                // This is a strange behavior for PostgreSQL. I don't like it.
+                updateExpression = updateExpression.Expand();
             }
 
-            Sql.Append("UPDATE ");
+            Sql.Append("UPDATE ")
+                .Append(Helper.DelimitIdentifier(updateExpression.ExpandedTable.Name))
+                .Append(AliasSeparator)
+                .AppendLine(Helper.DelimitIdentifier(updateExpression.ExpandedTable.Alias))
+                .Append("SET ");
 
-            string tableExp = Helper.DelimitIdentifier(updateExpression.Tables[0].Alias);
+            Sql.GenerateList(
+                updateExpression.Fields,
+                e => Sql.Append(Helper.DelimitIdentifier(e.Alias))
+                    .Append(" = ")
+                    .Then(() => Visit(e.Expression)));
 
-            Sql.AppendLine(tableExp).Append("SET ");
-
-            Sql.GenerateList(updateExpression.Fields, e =>
-            {
-                Sql.Append(tableExp)
-                    .Append(".")
-                    .Append(Helper.DelimitIdentifier(e.Alias))
-                    .Append(" = ");
-                Visit(e.Expression);
-            });
-
-            if (updateExpression.Tables.Any())
+            if (updateExpression.Tables.Count > 0)
             {
                 Sql.AppendLine().Append("FROM ");
                 Sql.GenerateList(updateExpression.Tables, e => Visit(e), sql => sql.AppendLine());
@@ -129,7 +135,7 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
                 Visit(updateExpression.Predicate);
             }
 
-            return updateExpression;
+            return original;
         }
 
         protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
@@ -148,6 +154,55 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
             }
 
             return deleteExpression;
+        }
+
+        protected virtual Expression VisitUpsert(UpsertExpression upsertExpression)
+        {
+            Sql.Append("INSERT INTO ");
+            Visit(upsertExpression.TargetTable);
+            Sql.AppendLine();
+
+            Sql.Append("(")
+                .GenerateList(upsertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
+                .AppendLine(")");
+
+            if (upsertExpression.SourceTable != null)
+            {
+                Sql.Append("SELECT ")
+                    .GenerateList(upsertExpression.Columns, e => Visit(e.Expression))
+                    .AppendLine();
+
+                Sql.Append("FROM ");
+                Visit(upsertExpression.SourceTable);
+                Sql.AppendLine(" WHERE TRUE");
+            }
+            else
+            {
+                Sql.Append("VALUES (")
+                    .GenerateList(upsertExpression.Columns, e => Visit(e.Expression))
+                    .AppendLine(")");
+            }
+
+            if (upsertExpression.OnConflictUpdate == null)
+            {
+                Sql.Append("ON CONFLICT DO NOTHING");
+            }
+            else
+            {
+                var soi = StoreObjectIdentifier.Create(upsertExpression.ConflictConstraint.DeclaringEntityType, StoreObjectType.Table).Value;
+
+                Sql.Append("ON CONFLICT (")
+                    .GenerateList(
+                        upsertExpression.ConflictConstraint.Properties,
+                        e => Sql.Append(Helper.DelimitIdentifier(e.GetColumnName(soi))))
+                    .AppendLine(") DO UPDATE")
+                    .Append("SET ")
+                    .GenerateList(
+                        upsertExpression.OnConflictUpdate,
+                        e => Sql.Append(Helper.DelimitIdentifier(e.Alias)).Append(" = ").Then(() => Visit(e.Expression)));
+            }
+
+            return upsertExpression;
         }
     }
 

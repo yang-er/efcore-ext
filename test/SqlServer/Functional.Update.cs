@@ -20,14 +20,14 @@ namespace Microsoft.EntityFrameworkCore.Tests
 UPDATE [i]
 SET [i].[Name] = [i].[Name] + @__suffix, [i].[Quantity] = [i].[Quantity] + @__incrementStep
 FROM [Item_{{schema}}] AS [i]
-WHERE ([i].[ItemId] <= 500) AND ([i].[Price] >= @__price)
+WHERE [i].[ItemId] <= 500
 ");
 
             AssertSql50(@"
 UPDATE [i]
 SET [i].[Name] = COALESCE([i].[Name], N'') + @__suffix, [i].[Quantity] = [i].[Quantity] + @__incrementStep
 FROM [Item_{{schema}}] AS [i]
-WHERE ([i].[ItemId] <= 500) AND ([i].[Price] >= @__price)
+WHERE [i].[ItemId] <= 500
 ");
         }
 
@@ -41,7 +41,7 @@ WHERE ([i].[ItemId] <= 500) AND ([i].[Price] >= @__price)
 UPDATE [i]
 SET [i].[Description] = N'Updated', [i].[Price] = 1.5
 FROM [Item_{{schema}}] AS [i]
-WHERE ([i].[ItemId] <= 388) AND ([i].[Price] >= @__price)
+WHERE [i].[ItemId] <= 388
 ");
         }
 
@@ -114,7 +114,7 @@ WHERE [j].[PreviousJudgingId] = @__x
 UPDATE [i]
 SET [i].[Description] = @__desc, [i].[Price] = @__pri
 FROM [Item_{{schema}}] AS [i]
-WHERE ([i].[ItemId] <= 388) AND ([i].[Price] >= @__price)
+WHERE [i].[ItemId] <= 388
 ");
         }
 

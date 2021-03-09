@@ -32,7 +32,7 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
             return dp & ver;
         }
 
-        public string SkipReason => "Test cannot run on this provider.";
+        public string SkipReason { get; set; } = "Test cannot run on this provider.";
 
         public ValueTask<bool> IsMetAsync(XunitTestCase testcase)
         {
