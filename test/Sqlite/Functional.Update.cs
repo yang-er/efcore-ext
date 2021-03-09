@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Tests.BatchUpdate;
+using System;
+using Xunit;
 
 namespace Microsoft.EntityFrameworkCore.Tests
 {
@@ -222,19 +224,7 @@ SET ""Another"" = (
 
         public override void SetNull()
         {
-            base.SetNull();
-
-            LogSql(nameof(SetNull));
-
-            AssertSql31(@"
-UPDATE ""Judging_{{schema}}"" AS ""j""
-SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""StartTime"" = NOW(), ""Server"" = NULL, ""Status"" = GREATEST(j.""Status"", 8)
-");
-
-            AssertSql50(@"
-UPDATE ""Judging_{{schema}}"" AS ""j""
-SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""StartTime"" = NOW(), ""Server"" = NULL, ""Status"" = greatest(j.""Status"", 8)
-");
+            Assert.Throws<InvalidOperationException>(() => base.SetNull());
         }
     }
 }
