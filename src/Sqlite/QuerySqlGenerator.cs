@@ -62,9 +62,16 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
             return base.VisitSelect(selectExpression);
         }
 
-        protected virtual Expression VisitValues(ValuesExpression tableExpression)
+        protected virtual Expression VisitValuesAsCommonTableExpression(ValuesExpression tableExpression)
         {
-            Sql.Append("(")
+            Sql.Append("WITH ")
+                .Append(Helper.DelimitIdentifier(tableExpression.Alias))
+                .Append(" (")
+                .GenerateList(
+                    tableExpression.ColumnNames,
+                    a => Sql.Append(Helper.DelimitIdentifier(a)))
+                .Append(") AS ")
+                .Append("(")
                 .IncrementIndent()
                 .AppendLine()
                 .AppendLine("VALUES");
@@ -73,16 +80,13 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
 
             Sql.DecrementIndent()
                 .AppendLine()
-                .Append(")")
-                .Append(AliasSeparator)
-                .Append(Helper.DelimitIdentifier(tableExpression.Alias))
-                .Append(" (");
+                .AppendLine(")");
+            return tableExpression;
+        }
 
-            Sql.GenerateList(
-                tableExpression.ColumnNames,
-                a => Sql.Append(Helper.DelimitIdentifier(a)));
-
-            Sql.Append(")");
+        protected virtual Expression VisitValues(ValuesExpression tableExpression)
+        {
+            Sql.Append(Helper.DelimitIdentifier(tableExpression.Alias));
             return tableExpression;
         }
 
@@ -109,6 +113,18 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
             {
                 // This is a strange behavior for PostgreSQL. I don't like it.
                 updateExpression = updateExpression.Expand();
+            }
+
+            foreach (var table in updateExpression.Tables)
+            {
+                if (table is ValuesExpression values)
+                {
+                    VisitValuesAsCommonTableExpression(values);
+                }
+                else if (table is JoinExpressionBase join && join.Table is ValuesExpression values2)
+                {
+                    VisitValuesAsCommonTableExpression(values2);
+                }
             }
 
             Sql.Append("UPDATE ")
@@ -158,6 +174,11 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
 
         protected virtual Expression VisitUpsert(UpsertExpression upsertExpression)
         {
+            if (upsertExpression.SourceTable is ValuesExpression values)
+            {
+                VisitValuesAsCommonTableExpression(values);
+            }
+
             Sql.Append("INSERT INTO ");
             Visit(upsertExpression.TargetTable);
             Sql.AppendLine();

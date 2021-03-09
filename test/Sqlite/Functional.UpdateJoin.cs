@@ -35,14 +35,15 @@ WHERE (""i"".""Id"" = @__bb) AND (""i"".""Id"" = ""t"".""Id"")
             LogSql(nameof(LocalTableJoin));
 
             AssertSql(@"
-UPDATE ""ItemB_{{schema}}"" AS ""i""
-SET ""Value"" = ""i"".""Value"" + ""cte"".""Value""
-FROM (
+WITH ""cte"" (""Id"", ""Value"") AS (
     VALUES
     (@__p_0_0_0, @__p_0_0_1),
     (@__p_0_1_0, @__p_0_1_1),
     (@__p_0_2_0, @__p_0_2_1)
-) AS ""cte"" (""Id"", ""Value"")
+)
+UPDATE ""ItemB_{{schema}}"" AS ""i""
+SET ""Value"" = ""i"".""Value"" + ""cte"".""Value""
+FROM ""cte""
 WHERE (""i"".""Id"" <> 2) AND (""i"".""Id"" = ""cte"".""Id"")
 ");
         }
