@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.TestUtilities.Xunit;
+using System;
 using System.Linq;
 using Xunit;
 
@@ -250,6 +251,116 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
                 Assert.Equal(366, contents[0].Time);
                 Assert.Equal(536, contents[1].Time);
             }
+        }
+
+        [ConditionalFact, TestPriority(4)]
+        public virtual void Synchronize_LocalTable_Compiled()
+        {
+            var compiledQuery = EF.CompileQuery(
+                (MergeContext ctx, int cid1, int teamid1, int cid2, int teamid2)
+                    => ctx.RankSource.Merge(
+                        new[]
+                        {
+                            new { ContestId = cid1, TeamId = teamid1 },
+                            new { ContestId = cid2, TeamId = teamid2 },
+                        },
+                        rc => new { rc.ContestId, rc.TeamId },
+                        rc => new { rc.ContestId, rc.TeamId },
+                        (rc, rc2) => new RankSource
+                        {
+                            Time = 536,
+                        },
+                        rc2 => new RankSource
+                        {
+                            Time = 366,
+                            ContestId = rc2.ContestId,
+                            TeamId = rc2.TeamId,
+                            Public = true,
+                        },
+                        true));
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context, 1, 2, 1, 1);
+            }
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context, 1, 2, 1, 1);
+            }
+        }
+
+        [ConditionalFact, TestPriority(5)]
+        public virtual void Synchronize_RemoteTable_Compiled()
+        {
+            var compiledQuery = EF.CompileQuery(
+                (MergeContext ctx) =>
+                    ctx.RankCache.Merge(
+                        ctx.RankSource,
+                        rc => new { rc.ContestId, rc.TeamId },
+                        rc => new { rc.ContestId, rc.TeamId },
+                        (rc, rc2) => new RankCache
+                        {
+                            PointsPublic = rc2.Public ? rc.PointsPublic + 1 : rc.PointsPublic,
+                            TotalTimePublic = rc2.Public ? rc.TotalTimePublic + rc2.Time : rc.TotalTimePublic,
+                            PointsRestricted = rc.PointsRestricted + 1,
+                            TotalTimeRestricted = rc.TotalTimeRestricted + rc2.Time,
+                        },
+                        rc2 => new RankCache
+                        {
+                            PointsPublic = rc2.Public ? 1 : 0,
+                            PointsRestricted = 1,
+                            TotalTimePublic = rc2.Public ? rc2.Time : 0,
+                            TotalTimeRestricted = rc2.Time,
+                            ContestId = rc2.ContestId,
+                            TeamId = rc2.TeamId,
+                        },
+                        true));
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context);
+            }
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context);
+            }
+        }
+
+        [ConditionalFact, TestPriority(6)]
+        public virtual void Synchronize_NonAssignable_Compiled_ShouldFail()
+        {
+            var compiledQuery = EF.CompileQuery(
+                (MergeContext ctx, int cid1, int teamid1, int cid2, int teamid2)
+                    => ctx.RankSource.Merge(
+                        new[]
+                        {
+                            new { ContestId = cid1, TeamId = teamid1 },
+                            new { ContestId = cid2, TeamId = teamid2 },
+                        }
+                        .Where(a => false),
+                        rc => new { rc.ContestId, rc.TeamId },
+                        rc => new { rc.ContestId, rc.TeamId },
+                        (rc, rc2) => new RankSource
+                        {
+                            Time = 536,
+                        },
+                        rc2 => new RankSource
+                        {
+                            Time = 366,
+                            ContestId = rc2.ContestId,
+                            TeamId = rc2.TeamId,
+                            Public = true,
+                        },
+                        true));
+
+            using var context = CreateContext();
+            Assert.Throws<InvalidOperationException>(() => compiledQuery(context, 1, 2, 1, 1));
         }
     }
 }
