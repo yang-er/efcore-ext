@@ -10,14 +10,22 @@ using System.Linq;
 using ThisSqlNullabilityProcessor = Microsoft.EntityFrameworkCore.Query.SqlNullabilityProcessor;
 using ThisParameterBasedSqlProcessor = Microsoft.EntityFrameworkCore.SqlServer.Query.Internal.SqlServerParameterBasedSqlProcessor;
 using ThisParameterBasedSqlProcessorFactory = Microsoft.EntityFrameworkCore.SqlServer.Query.Internal.SqlServerParameterBasedSqlProcessorFactory;
+using ThisOptions = Microsoft.EntityFrameworkCore.Storage.IDatabaseProvider;
 #elif POSTGRE_SQL
 using ThisSqlNullabilityProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlSqlNullabilityProcessor;
 using ThisParameterBasedSqlProcessor = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessor;
 using ThisParameterBasedSqlProcessorFactory = Npgsql.EntityFrameworkCore.PostgreSQL.Query.Internal.NpgsqlParameterBasedSqlProcessorFactory;
+using ThisOptions = Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal.INpgsqlOptions;
 #elif SQLITE
 using ThisSqlNullabilityProcessor = Microsoft.EntityFrameworkCore.Query.SqlNullabilityProcessor;
 using ThisParameterBasedSqlProcessor = Microsoft.EntityFrameworkCore.Query.RelationalParameterBasedSqlProcessor;
 using ThisParameterBasedSqlProcessorFactory = Microsoft.EntityFrameworkCore.Query.Internal.RelationalParameterBasedSqlProcessorFactory;
+using ThisOptions = Microsoft.EntityFrameworkCore.Storage.IDatabaseProvider;
+#elif MYSQL
+using ThisSqlNullabilityProcessor = Pomelo.EntityFrameworkCore.MySql.Query.Internal.MySqlSqlNullabilityProcessor;
+using ThisParameterBasedSqlProcessor = Pomelo.EntityFrameworkCore.MySql.Query.Internal.MySqlParameterBasedSqlProcessor;
+using ThisParameterBasedSqlProcessorFactory = Pomelo.EntityFrameworkCore.MySql.Query.Internal.MySqlParameterBasedSqlProcessorFactory;
+using ThisOptions = Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal.IMySqlOptions;
 #endif
 
 namespace Microsoft.EntityFrameworkCore.Query
@@ -211,8 +219,13 @@ namespace Microsoft.EntityFrameworkCore.Query
     {
         public RelationalBulkParameterBasedSqlProcessor(
             RelationalParameterBasedSqlProcessorDependencies dependencies,
-            bool useRelationalNulls)
+            bool useRelationalNulls,
+            ThisOptions options)
+#if MYSQL
+            : base(dependencies, useRelationalNulls, options)
+#else
             : base(dependencies, useRelationalNulls)
+#endif
         {
         }
 
@@ -252,17 +265,21 @@ namespace Microsoft.EntityFrameworkCore.Query
         IServiceAnnotation<IRelationalParameterBasedSqlProcessorFactory, ThisParameterBasedSqlProcessorFactory>
     {
         private readonly RelationalParameterBasedSqlProcessorDependencies _dependencies;
+        private readonly ThisOptions _options;
 
         public RelationalBulkParameterBasedSqlProcessorFactory(
-            RelationalParameterBasedSqlProcessorDependencies dependencies)
+            RelationalParameterBasedSqlProcessorDependencies dependencies,
+            ThisOptions options)
         {
             Check.NotNull(dependencies, nameof(dependencies));
+            Check.NotNull(options, nameof(options));
 
             _dependencies = dependencies;
+            _options = options;
         }
 
         public virtual RelationalParameterBasedSqlProcessor Create(bool useRelationalNulls)
-            => new RelationalBulkParameterBasedSqlProcessor(_dependencies, useRelationalNulls);
+            => new RelationalBulkParameterBasedSqlProcessor(_dependencies, useRelationalNulls, _options);
     }
 }
 
