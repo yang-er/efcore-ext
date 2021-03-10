@@ -63,7 +63,7 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             where T : IEquatable<T>
         {
             readonly T Value1;
-            public GenericJoinKey(T _) => Value1 = _;
+            public GenericJoinKey(T Value1) => this.Value1 = Value1;
             public static bool operator ==(GenericJoinKey<T> _, GenericJoinKey<T> __) => _.Equals(__);
             public static bool operator !=(GenericJoinKey<T> _, GenericJoinKey<T> __) => !_.Equals(__);
             public override bool Equals(object obj) => obj is GenericJoinKey<T> other && Equals(other);
@@ -76,7 +76,7 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             where T2 : IEquatable<T2>
         {
             readonly T1 Value1; readonly T2 Value2;
-            public GenericJoinKey(T1 _, T2 __) => (Value1, Value2) = (_, __);
+            public GenericJoinKey(T1 Value1, T2 Value2) => (this.Value1, this.Value2) = (Value1, Value2);
             public static bool operator ==(GenericJoinKey<T1, T2> _, GenericJoinKey<T1, T2> __) => _.Equals(__);
             public static bool operator !=(GenericJoinKey<T1, T2> _, GenericJoinKey<T1, T2> __) => !_.Equals(__);
             public override bool Equals(object obj) => obj is GenericJoinKey<T1, T2> other && Equals(other);
@@ -90,7 +90,7 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             where T3 : IEquatable<T3>
         {
             readonly T1 Value1; readonly T2 Value2; readonly T3 Value3;
-            public GenericJoinKey(T1 _, T2 __, T3 ___) => (Value1, Value2, Value3) = (_, __, ___);
+            public GenericJoinKey(T1 Value1, T2 Value2, T3 Value3) => (this.Value1, this.Value2, this.Value3) = (Value1, Value2, Value3);
             public static bool operator ==(GenericJoinKey<T1, T2, T3> _, GenericJoinKey<T1, T2, T3> __) => _.Equals(__);
             public static bool operator !=(GenericJoinKey<T1, T2, T3> _, GenericJoinKey<T1, T2, T3> __) => !_.Equals(__);
             public override bool Equals(object obj) => obj is GenericJoinKey<T1, T2, T3> other && Equals(other);
@@ -105,7 +105,7 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             where T4 : IEquatable<T4>
         {
             readonly T1 Value1; readonly T2 Value2; readonly T3 Value3; readonly T4 Value4;
-            public GenericJoinKey(T1 _, T2 __, T3 ___, T4 ____) => (Value1, Value2, Value3, Value4) = (_, __, ___, ____);
+            public GenericJoinKey(T1 Value1, T2 Value2, T3 Value3, T4 Value4) => (this.Value1, this.Value2, this.Value3, this.Value4) = (Value1, Value2, Value3, Value4);
             public static bool operator ==(GenericJoinKey<T1, T2, T3, T4> _, GenericJoinKey<T1, T2, T3, T4> __) => _.Equals(__);
             public static bool operator !=(GenericJoinKey<T1, T2, T3, T4> _, GenericJoinKey<T1, T2, T3, T4> __) => !_.Equals(__);
             public override bool Equals(object obj) => obj is GenericJoinKey<T1, T2, T3, T4> other && Equals(other);

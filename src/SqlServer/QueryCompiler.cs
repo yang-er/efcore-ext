@@ -121,14 +121,14 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.Query
                 BatchOperationMethods.MergeCollapsed.MakeGenericMethod(targetType, joinKeyType, joinKeyType),
                 query.Arguments[0],
                 Expression.Call(
-                    BatchOperationMethods.CreateSingleTuple.MakeGenericMethod(targetType, joinKeyType),
+                    BatchOperationMethods.CreateCommonTable.MakeGenericMethod(targetType, joinKeyType),
                     query.Arguments[0],
-                    Expression.Quote(
-                        Expression.Lambda(
-                            Expression.New(
-                                unfinishedBody.Constructor,
-                                unfinishedBody.Arguments,
-                                fields)))),
+                    Expression.NewArrayInit(
+                        unfinishedBody.Type,
+                        Expression.New(
+                            unfinishedBody.Constructor,
+                            unfinishedBody.Arguments,
+                            fields))),
                 Expression.Quote(targetKeySelector),
                 Expression.Quote(
                     Expression.Lambda(

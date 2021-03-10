@@ -18,7 +18,7 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
 
     public class AnonymousExpressionField
     {
-        public PropertyInfo PropertyInfo { get; }
+        public MemberInfo PropertyInfo { get; }
 
         public string Name { get; }
 
@@ -26,40 +26,41 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
 
         public bool Nullable { get; }
 
-        public Type Type => PropertyInfo.PropertyType;
+        public Type Type { get; }
 
         internal AnonymousExpressionField(
-            PropertyInfo propertyInfo,
+            MemberInfo memberInfo,
             string name,
             RelationalTypeMapping typeMapping,
             bool nullable)
         {
-            Check.NotNull(propertyInfo, nameof(propertyInfo));
+            Check.NotNull(memberInfo, nameof(memberInfo));
             Check.NotNull(name, nameof(name));
             Check.NotNull(typeMapping, nameof(typeMapping));
 
-            PropertyInfo = propertyInfo;
+            PropertyInfo = memberInfo;
             Name = name;
             TypeMapping = typeMapping;
             Nullable = nullable;
+            Type = (memberInfo as PropertyInfo)?.PropertyType
+                ?? (memberInfo as FieldInfo)?.FieldType
+                ?? throw new InvalidOperationException("Invalid member info.");
         }
 
         public Expression CreateProjectionBinding(
             SelectExpression queryExpression,
             ProjectionMember projectionMember)
         {
-            var targetType = PropertyInfo.PropertyType;
-
             Expression expression =
                 new ProjectionBindingExpression(
                     queryExpression,
                     projectionMember,
-                    targetType.MakeNullable());
+                    Type.MakeNullable());
 
-            if (expression.Type != targetType)
+            if (expression.Type != Type)
             {
-                Check.DebugAssert(targetType.MakeNullable() == expression.Type, "expression.Type must be nullable of targetType");
-                expression = Expression.Convert(expression, targetType);
+                Check.DebugAssert(Type.MakeNullable() == expression.Type, "expression.Type must be nullable of targetType");
+                expression = Expression.Convert(expression, Type);
             }
 
             return expression;
@@ -103,7 +104,7 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
 
         public NewExpression CreateShaper(IEnumerable<Expression> parameters)
         {
-            return Expression.New(Constructor, parameters, ClrType.GetProperties());
+            return Expression.New(Constructor, parameters, Fields.Select(a => a.PropertyInfo));
         }
     }
 
@@ -137,7 +138,21 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
 
         AnonymousExpressionType GetTypeCore(Type anonymousType)
         {
-            var properties = anonymousType.GetProperties();
+            MemberInfo[] properties;
+
+            if (anonymousType.IsAnonymousType())
+            {
+                properties = anonymousType.GetProperties();
+            }
+            else if (GenericUtility.Preserve(anonymousType))
+            {
+                properties = anonymousType.GetFields(ReflectiveUtility.InstanceLevel);
+            }
+            else
+            {
+                throw new InvalidOperationException("Unknown type.");
+            }
+
             var ctor = anonymousType.GetConstructors().Single();
             var parameters = ctor.GetParameters();
             var arguments = new Expression[parameters.Length];
@@ -148,7 +163,7 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
             for (int i = 0; i < properties.Length; i++)
             {
                 Check.DebugAssert(
-                    parameters[i].ParameterType == properties[i].PropertyType
+                    parameters[i].ParameterType == ((properties[i] as PropertyInfo)?.PropertyType ?? (properties[i] as FieldInfo)?.FieldType)
                     && parameters[i].Name == properties[i].Name,
                     "Constructor and property should have the same sequence.");
 
@@ -163,7 +178,7 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
                 arguments[i] = Expression.Default(type.UnwrapNullableType());
 
                 fields[i] = new AnonymousExpressionField(
-                    propertyInfo: properties[i],
+                    memberInfo: properties[i],
                     name: properties[i].Name,
                     typeMapping: typeMapping,
                     nullable: type.IsNullableType());
@@ -177,7 +192,7 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
                             _typeMappingCreateParameter, // .CreateParameter(
                             _command, // command,
                             Expression.Call(_stringConcat, _prefix, Expression.Constant("_" + i)), // Name,
-                            Expression.Convert(Expression.Property(sourceParam, properties[i]), typeof(object)), // value,
+                            Expression.Convert(Expression.MakeMemberAccess(sourceParam, properties[i]), typeof(object)), // value,
                             Expression.Constant(type.IsNullableType(), typeof(bool?))))); // IsNullable));
             }
 
