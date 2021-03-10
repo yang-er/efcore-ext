@@ -146,7 +146,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     var outerType = genericArguments[0];
                     var innerType = genericArguments[1];
 
-                    if (typeof(IReadOnlyList<>).MakeGenericType(innerType).IsAssignableFrom(innerExpression.Type))
+                    if (typeof(IReadOnlyList<>).MakeGenericType(innerType).IsAssignableFrom(innerExpression.Type) && innerType.IsAnonymousType())
                     {
                         return Expression.Call(
                             BatchOperationMethods.CreateCommonTable.MakeGenericMethod(outerType, innerType),

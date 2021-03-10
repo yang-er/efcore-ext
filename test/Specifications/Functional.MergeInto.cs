@@ -257,11 +257,11 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
         public virtual void Synchronize_LocalTable_Compiled()
         {
             var compiledQuery = EF.CompileQuery(
-                (MergeContext ctx, int cid1, int teamid1, int cid2, int teamid2)
+                (MergeContext ctx, int teamid1, int cid2, int teamid2)
                     => ctx.RankSource.Merge(
                         new[]
                         {
-                            new { ContestId = cid1, TeamId = teamid1 },
+                            new { ContestId = 1, TeamId = teamid1 },
                             new { ContestId = cid2, TeamId = teamid2 },
                         },
                         rc => new { rc.ContestId, rc.TeamId },
@@ -282,13 +282,13 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
             using (CatchCommand())
             {
                 using var context = CreateContext();
-                compiledQuery(context, 1, 2, 1, 1);
+                compiledQuery(context, 2, 1, 1);
             }
 
             using (CatchCommand())
             {
                 using var context = CreateContext();
-                compiledQuery(context, 1, 2, 1, 1);
+                compiledQuery(context, 2, 1, 1);
             }
         }
 
