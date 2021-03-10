@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -122,6 +124,43 @@ namespace Microsoft.EntityFrameworkCore.Query
                                         Expression.Parameter(genericArguments[0], "_")))
                                 : methodCallExpression.Arguments[2]);
                         break;
+
+                    case nameof(BatchOperationExtensions.Merge)
+                    when genericMethod == BatchOperationMethods.Merge:
+                        query = Expression.Call(
+                            BatchOperationMethods.MergeCollapsed.MakeGenericMethod(genericArguments),
+                            methodCallExpression.Arguments[0],
+                            GetInnerExpression(),
+                            methodCallExpression.Arguments[2],
+                            methodCallExpression.Arguments[3],
+                            methodCallExpression.Arguments[4],
+                            methodCallExpression.Arguments[5],
+                            methodCallExpression.Arguments[6]);
+                        break;
+                }
+
+                Expression GetInnerExpression()
+                {
+                    var outerExpression = methodCallExpression.Arguments[0];
+                    var innerExpression = methodCallExpression.Arguments[1];
+                    var outerType = genericArguments[0];
+                    var innerType = genericArguments[1];
+
+                    if (typeof(IReadOnlyList<>).MakeGenericType(innerType).IsAssignableFrom(innerExpression.Type))
+                    {
+                        return Expression.Call(
+                            BatchOperationMethods.CreateCommonTable.MakeGenericMethod(outerType, innerType),
+                            methodCallExpression.Arguments[0],
+                            methodCallExpression.Arguments[1]);
+                    }
+                    else if (typeof(IQueryable<>).MakeGenericType(innerType).IsAssignableFrom(innerExpression.Type))
+                    {
+                        return innerExpression;
+                    }
+                    else
+                    {
+                        throw TranslationFailed(query);
+                    }
                 }
 
                 var visitor = new ParameterExtractingExpressionVisitorV2(

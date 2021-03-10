@@ -4,6 +4,10 @@
 
 Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, Merge Into, Upsert**).
 
+**PLEASE NOTE THAT** this extension doesn't affect the entity change tracking system. The delete operations and update operations won't take care of tracked entities. This is aimed at no-tracking updates.
+
+Some features like shadow properties update, value conversion hasn't been tested. PRs about the testcases are welcome.
+
 Current version supports EFCore 3.1 and EFCore 5.0.
 
 Targeting `netstandard2.0` and used on EFCore 3.1 projects.
@@ -115,6 +119,10 @@ context.Items.Merge(
 Note that when update/insert expressions are null, delete is true, it will become truncate.
 
 This function is only available in InMemory and SqlServer providers, since PostgreSQL removed supports for SQL MERGE.
+
+## Compiled Query
+
+You can use `EF.CompileQuery` or `EF.CompileAsyncQuery` for the extension methods appeared in this project.
 
 ## Bulk\*\*\*\*
 

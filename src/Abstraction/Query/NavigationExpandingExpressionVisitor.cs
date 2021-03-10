@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -40,19 +41,18 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
             if (method.DeclaringType == typeof(BatchOperationExtensions))
             {
                 var genericMethod = method.GetGenericMethodDefinition();
+                var genericArguments = method.GetGenericArguments();
                 Expression result = null;
 
                 switch (method.Name)
                 {
                     case nameof(BatchOperationExtensions.CreateCommonTable)
-                        when genericMethod == BatchOperationMethods.CreateCommonTable &&
-                             methodCallExpression.Arguments[1] is ParameterExpression parameter:
-
+                    when genericMethod == BatchOperationMethods.CreateCommonTable:
                         result = NavigationExpansionExpressionFactory(
                             methodCallExpression,
                             Expression.Call(
-                                parameter,
-                                parameter.Type.GetMethod("get_Item"),
+                                methodCallExpression.Arguments[1],
+                                typeof(IReadOnlyList<>).MakeGenericType(genericArguments[1]).GetMethod("get_Item"),
                                 Expression.Constant(0)));
                         break;
                 }

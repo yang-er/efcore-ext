@@ -77,7 +77,7 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
         protected override QueryableMethodTranslatingExpressionVisitor CreateSubqueryVisitor()
             => new InMemoryBulkQueryableMethodTranslatingExpressionVisitor(this);
 
-        protected virtual ShapedQueryExpression TranslateCommonTable(Expression neededShaped, ParameterExpression parameterExpression)
+        protected virtual ShapedQueryExpression TranslateCommonTable(Expression neededShaped, Expression commonTable, Type projectedType)
         {
             if (neededShaped is not ShapedQueryExpression shapedQueryExpression)
             {
@@ -85,7 +85,6 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
             }
 
             var queryExpression = (InMemoryQueryExpression)shapedQueryExpression.QueryExpression;
-            var projectedType = parameterExpression.Type.GetGenericArguments()[0];
             var oneOfProjectedType = Expression.Parameter(projectedType, "cte");
             var root = new ProjectionMember();
             var valueBufferValues = new List<Expression>();
@@ -117,10 +116,7 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
             var serverQueryExpression =
                 Expression.Call(
                     _enumerableSelect.MakeGenericMethod(projectedType, typeof(ValueBuffer)),
-                    Expression.Call(
-                        _getParameterValueMethodInfo.MakeGenericMethod(parameterExpression.Type),
-                        QueryCompilationContext.QueryContextParameter,
-                        Expression.Constant(parameterExpression.Name)),
+                    QueryContextParameterVisitor.Process(commonTable, Enumerable.Empty<ParameterExpression>()),
                     Expression.Lambda(
                         Expression.New(
                             typeof(ValueBuffer).GetConstructors()[0],
@@ -268,12 +264,12 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
                 method.DeclaringType == typeof(MergeJoinExtensions))
             {
                 var genericMethod = method.GetGenericMethodDefinition();
+                var genericArguments = method.GetGenericArguments();
                 switch (method.Name)
                 {
                     case nameof(BatchOperationExtensions.CreateCommonTable)
-                    when genericMethod == BatchOperationMethods.CreateCommonTable &&
-                         methodCallExpression.Arguments[1] is ParameterExpression param:
-                        return CheckTranslated(TranslateCommonTable(Visit(methodCallExpression.Arguments[0]), param));
+                    when genericMethod == BatchOperationMethods.CreateCommonTable:
+                        return CheckTranslated(TranslateCommonTable(Visit(methodCallExpression.Arguments[0]), methodCallExpression.Arguments[1], genericArguments[1]));
 
 
                     case nameof(MergeJoinExtensions.MergeJoin)
