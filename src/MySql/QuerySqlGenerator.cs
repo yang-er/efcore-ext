@@ -221,12 +221,12 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
         public MySqlBulkQuerySqlGeneratorFactory(
             QuerySqlGeneratorDependencies dependencies,
-            MySqlSqlExpressionFactory sqlExpressionFactory,
+            ISqlExpressionFactory sqlExpressionFactory,
             IMySqlOptions mysqlOptions)
         {
             _dependencies = dependencies;
             _mysqlOptions = mysqlOptions;
-            _sqlExpressionFactory = sqlExpressionFactory;
+            _sqlExpressionFactory = (MySqlSqlExpressionFactory)sqlExpressionFactory;
         }
 
         public virtual QuerySqlGenerator Create()
