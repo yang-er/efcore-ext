@@ -242,9 +242,11 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
             using (CatchCommand())
             {
                 using var context = CreateContext();
+#pragma warning disable CS0612
                 context.TwoRelations.Upsert(
                     new { aaa, bbb },
                     s => new TwoRelation { BbbId = bbb, AaaId = aaa });
+#pragma warning restore CS0612
             }
 
             using (var context = CreateContext())
@@ -265,9 +267,11 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
             using (CatchCommand())
             {
                 using var context = CreateContext();
+#pragma warning disable CS0612
                 context.ThreeRelations.Upsert(
                     new { aaa, bbb },
                     s => new ThreeRelation { BbbId = s.bbb, AaaId = s.aaa });
+#pragma warning restore CS0612
             }
 
             using (var context = CreateContext())
@@ -386,6 +390,56 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
             using (var context = CreateContext())
             {
                 Assert.Equal(3, context.RankCache.Count());
+            }
+        }
+
+        [ConditionalFact, TestPriority(8)]
+        public virtual void Upsert_NewAnonymousObject_CompiledQuery()
+        {
+            var compiledQuery = EF.CompileQuery(
+                (UpsertContext ctx, int time1, int teamid2)
+                    => ctx.RankCache.Upsert(
+                        new[]
+                        {
+                            new { ContestId = 1, TeamId = 2, Time = time1 },
+                            new { ContestId = 3, TeamId = teamid2, Time = 50 },
+                        },
+                        rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
+                        (rc, rc2) => new RankCache { PointsPublic = rc.PointsPublic + 1, TotalTimePublic = rc.TotalTimePublic + rc2.TotalTimePublic }));
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context, 50, 4);
+            }
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context, 50, 4);
+            }
+        }
+
+        [ConditionalFact, TestPriority(9)]
+        public virtual void InsertIfNotExists_SubSelect_CompiledQuery()
+        {
+            var compiledQuery = EF.CompileQuery(
+                (UpsertContext ctx)
+                    => ctx.RankCache.Upsert(
+                        ctx.RankSource.Distinct(),
+                        rc2 => new RankCache { PointsPublic = 1, PointsRestricted = 1, TotalTimePublic = rc2.Time, TotalTimeRestricted = rc2.Time, ContestId = rc2.ContestId, TeamId = rc2.TeamId, },
+                        null));
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context);
+            }
+
+            using (CatchCommand())
+            {
+                using var context = CreateContext();
+                compiledQuery(context);
             }
         }
     }

@@ -114,8 +114,6 @@ USING (
     ON ([r].[ContestId] = [cte].[ContestId]) AND ([r].[TeamId] = [cte].[TeamId])
 WHEN MATCHED
     THEN UPDATE SET [r].[Time] = 536
-WHEN NOT MATCHED BY TARGET
-    THEN INSERT ([Time], [ContestId], [TeamId], [Public]) VALUES (366, [cte].[ContestId], [cte].[TeamId], CAST(1 AS bit))
 WHEN NOT MATCHED BY SOURCE
     THEN DELETE;
 ");
@@ -131,14 +129,6 @@ WHEN NOT MATCHED BY SOURCE
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING [RankSource_{{schema}}] AS [r0]
     ON ([r].[ContestId] = [r0].[ContestId]) AND ([r].[TeamId] = [r0].[TeamId])
-WHEN MATCHED
-    THEN UPDATE SET [r].[PointsPublic] = CASE
-        WHEN [r0].[Public] = CAST(1 AS bit) THEN [r].[PointsPublic] + 1
-        ELSE [r].[PointsPublic]
-    END, [r].[TotalTimePublic] = CASE
-        WHEN [r0].[Public] = CAST(1 AS bit) THEN [r].[TotalTimePublic] + [r0].[Time]
-        ELSE [r].[TotalTimePublic]
-    END, [r].[PointsRestricted] = [r].[PointsRestricted] + 1, [r].[TotalTimeRestricted] = [r].[TotalTimeRestricted] + [r0].[Time]
 WHEN NOT MATCHED BY TARGET
     THEN INSERT ([PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted], [ContestId], [TeamId]) VALUES (CASE
         WHEN [r0].[Public] = CAST(1 AS bit) THEN 1

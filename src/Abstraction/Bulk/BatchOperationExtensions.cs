@@ -623,6 +623,7 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="updateExpression">The expression for updating the existing entity. The first parameter is the existing entity, while the second parameter is the excluded entity.</param>
         /// <returns>The affected rows.</returns>
         /// <remarks>It is suggested to replace this with <see cref="Upsert{TTarget}(DbSet{TTarget}, Expression{Func{TTarget}}, Expression{Func{TTarget, TTarget}}?)"/>.</remarks>
+        [Obsolete]
         public static int Upsert<TTarget, TSource>(
             this DbSet<TTarget> set,
             TSource source,
@@ -658,6 +659,7 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The task for affected rows.</returns>
         /// <remarks>It is suggested to replace this with <see cref="UpsertAsync{TTarget}(DbSet{TTarget}, Expression{Func{TTarget}}, Expression{Func{TTarget, TTarget}}?, CancellationToken)"/>.</remarks>
+        [Obsolete]
         public static Task<int> UpsertAsync<TTarget, TSource>(
             this DbSet<TTarget> set,
             TSource source,

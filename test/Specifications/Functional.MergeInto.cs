@@ -270,13 +270,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
                         {
                             Time = 536,
                         },
-                        rc2 => new RankSource
-                        {
-                            Time = 366,
-                            ContestId = rc2.ContestId,
-                            TeamId = rc2.TeamId,
-                            Public = true,
-                        },
+                        null,
                         true));
 
             using (CatchCommand())
@@ -301,13 +295,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.MergeInto
                         ctx.RankSource,
                         rc => new { rc.ContestId, rc.TeamId },
                         rc => new { rc.ContestId, rc.TeamId },
-                        (rc, rc2) => new RankCache
-                        {
-                            PointsPublic = rc2.Public ? rc.PointsPublic + 1 : rc.PointsPublic,
-                            TotalTimePublic = rc2.Public ? rc.TotalTimePublic + rc2.Time : rc.TotalTimePublic,
-                            PointsRestricted = rc.PointsRestricted + 1,
-                            TotalTimeRestricted = rc.TotalTimeRestricted + rc2.Time,
-                        },
+                        null,
                         rc2 => new RankCache
                         {
                             PointsPublic = rc2.Public ? 1 : 0,

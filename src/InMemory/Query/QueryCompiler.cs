@@ -434,9 +434,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             var updateExtractorType = typeof(Func<,,,>).MakeGenericType(typeof(QueryContext), outerType, innerType, outerType);
             var insertShaperType = typeof(Func<,,>).MakeGenericType(typeof(QueryContext), innerType, outerType);
 
-            if (insertExpression.Body is not MemberInitExpression insertInit
-                || insertInit.NewExpression.Arguments.Count != 0
-                || merge.Arguments[6] is not ConstantExpression deleteDodo)
+            if (merge.Arguments[6] is not ConstantExpression deleteDodo)
             {
                 reshaped = insertShaper = updateExtractor = deleteDo = null;
                 return false;
@@ -474,7 +472,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 : Expression.Constant(
                     Expression.Lambda(
                         insertShaperType,
-                        QueryContextParameterVisitor.Process(insertInit, insertExpression.Parameters),
+                        QueryContextParameterVisitor.Process((MemberInitExpression)insertExpression.Body, insertExpression.Parameters),
                         QueryCompilationContext.QueryContextParameter,
                         insertExpression.Parameters[0])
                     .Compile());

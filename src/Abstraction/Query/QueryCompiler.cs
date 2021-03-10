@@ -125,6 +125,22 @@ namespace Microsoft.EntityFrameworkCore.Query
                                 : methodCallExpression.Arguments[2]);
                         break;
 
+                    case nameof(BatchOperationExtensions.Upsert)
+                    when genericMethod == BatchOperationMethods.Upsert:
+                        query = Expression.Call(
+                            BatchOperationMethods.UpsertCollapsed.MakeGenericMethod(genericArguments),
+                            methodCallExpression.Arguments[0],
+                            GetInnerExpression(),
+                            methodCallExpression.Arguments[2],
+                            methodCallExpression.Arguments[3].IsConstantNull()
+                                ? Expression.Quote(
+                                    Expression.Lambda(
+                                        Expression.Constant(null, genericArguments[0]),
+                                        Expression.Parameter(genericArguments[0], "_"),
+                                        Expression.Parameter(genericArguments[0], "__")))
+                                : methodCallExpression.Arguments[3]);
+                        break;
+
                     case nameof(BatchOperationExtensions.Merge)
                     when genericMethod == BatchOperationMethods.Merge:
                         query = Expression.Call(
@@ -133,8 +149,19 @@ namespace Microsoft.EntityFrameworkCore.Query
                             GetInnerExpression(),
                             methodCallExpression.Arguments[2],
                             methodCallExpression.Arguments[3],
-                            methodCallExpression.Arguments[4],
-                            methodCallExpression.Arguments[5],
+                            methodCallExpression.Arguments[4].IsConstantNull()
+                                ? Expression.Quote(
+                                    Expression.Lambda(
+                                        Expression.Constant(null, genericArguments[0]),
+                                        Expression.Parameter(genericArguments[0], "_"),
+                                        Expression.Parameter(genericArguments[1], "__")))
+                                : methodCallExpression.Arguments[4],
+                            methodCallExpression.Arguments[5].IsConstantNull()
+                                ? Expression.Quote(
+                                    Expression.Lambda(
+                                        Expression.Constant(null, genericArguments[0]),
+                                        Expression.Parameter(genericArguments[1], "_")))
+                                : methodCallExpression.Arguments[5],
                             methodCallExpression.Arguments[6]);
                         break;
                 }

@@ -61,6 +61,24 @@ WHEN NOT MATCHED BY TARGET
 ");
         }
 
+        public override void InsertIfNotExists_SubSelect_CompiledQuery()
+        {
+            base.InsertIfNotExists_SubSelect_CompiledQuery();
+
+            LogSql(nameof(InsertIfNotExists_SubSelect_CompiledQuery));
+
+            AssertSql(@"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    SELECT DISTINCT [r0].[ContestId], [r0].[TeamId], [r0].[Public], [r0].[Time]
+    FROM [RankSource_{{schema}}] AS [r0]
+) AS [t]
+    ON ([r].[ContestId] = [t].[ContestId]) AND ([r].[TeamId] = [t].[TeamId])
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted], [ContestId], [TeamId]) VALUES (1, 1, [t].[Time], [t].[Time], [t].[ContestId], [t].[TeamId]);
+");
+        }
+
         public override void Translation_Parameterize()
         {
             base.Translation_Parameterize();
@@ -146,6 +164,27 @@ USING (
     VALUES
     (@__p_0_0_0, @__p_0_0_1, @__p_0_0_2),
     (@__p_0_1_0, @__p_0_1_1, @__p_0_1_2)
+) AS [cte] ([ContestId], [TeamId], [Time])
+    ON ([r].[ContestId] = [cte].[ContestId]) AND ([r].[TeamId] = [cte].[TeamId])
+WHEN MATCHED
+    THEN UPDATE SET [r].[PointsPublic] = [r].[PointsPublic] + 1, [r].[TotalTimePublic] = [r].[TotalTimePublic] + [cte].[Time]
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted], [ContestId], [TeamId]) VALUES (1, 1, [cte].[Time], [cte].[Time], [cte].[ContestId], [cte].[TeamId]);
+");
+        }
+
+        public override void Upsert_NewAnonymousObject_CompiledQuery()
+        {
+            base.Upsert_NewAnonymousObject_CompiledQuery();
+
+            LogSql(nameof(Upsert_NewAnonymousObject_CompiledQuery));
+
+            AssertSql(@"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    VALUES
+    (1, 2, @__time1),
+    (3, @__teamid2, 50)
 ) AS [cte] ([ContestId], [TeamId], [Time])
     ON ([r].[ContestId] = [cte].[ContestId]) AND ([r].[TeamId] = [cte].[TeamId])
 WHEN MATCHED
