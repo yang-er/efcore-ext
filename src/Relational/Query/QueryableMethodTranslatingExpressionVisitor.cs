@@ -151,10 +151,39 @@ namespace Microsoft.EntityFrameworkCore.Query
             }
         }
 
-        protected virtual ShapedQueryExpression TranslateCommonTable(ParameterExpression param)
+        protected virtual ShapedQueryExpression TranslateCommonTable(Expression commonTable, Type paramType)
         {
-            var entityType = _anonymousExpressionFactory.GetType(param.Type.GetGenericArguments()[0]);
-            var values = new ValuesExpression(param, entityType.Fields.Select(a => a.Name).ToArray(), entityType);
+            var entityType = _anonymousExpressionFactory.GetType(paramType);
+            ValuesExpression values;
+
+            if (commonTable is ParameterExpression param)
+            {
+                values = new ValuesExpression(param, entityType.Fields.Select(a => a.Name).ToArray(), entityType);
+            }
+            else if (commonTable is NewArrayExpression newArray && newArray.NodeType == ExpressionType.NewArrayInit)
+            {
+                var tupleList = new List<List<SqlExpression>>(newArray.Expressions.Count);
+                for (int i = 0; i < newArray.Expressions.Count; i++)
+                {
+                    var tuple = newArray.Expressions[i];
+                    if (tuple is not NewExpression newAnonymous) return Fail("Null cannot be a common table element.");
+                    Check.DebugAssert(newAnonymous.Arguments.Count == entityType.Fields.Count, "Init ok");
+                    var tupleElements = new List<SqlExpression>(entityType.Fields.Count);
+                    tupleList.Add(tupleElements);
+                    for (int j = 0; j < entityType.Fields.Count; j++)
+                    {
+                        var element = _sqlTranslator.Translate(newAnonymous.Arguments[j]);
+                        if (element == null) return Fail($"Element {newAnonymous.Arguments[j].Print()} cannot be translated.");
+                        tupleElements.Add(element);
+                    }
+                }
+
+                values = new ValuesExpression(tupleList, entityType.Fields.Select(a => a.Name).ToArray());
+            }
+            else
+            {
+                return Fail("Unknown common table type.");
+            }
 
             var select = _sqlExpressionFactory.Select(
                 alias: null,
@@ -664,12 +693,12 @@ namespace Microsoft.EntityFrameworkCore.Query
             if (method.DeclaringType == typeof(BatchOperationExtensions))
             {
                 var genericMethod = method.GetGenericMethodDefinition();
+                var genericArguments = method.GetGenericArguments();
                 switch (method.Name)
                 {
                     case nameof(BatchOperationExtensions.CreateCommonTable)
-                    when genericMethod == BatchOperationMethods.CreateCommonTable &&
-                         methodCallExpression.Arguments[1] is ParameterExpression param:
-                        return CheckTranslated(TranslateCommonTable(param));
+                    when genericMethod == BatchOperationMethods.CreateCommonTable:
+                        return CheckTranslated(TranslateCommonTable(methodCallExpression.Arguments[1], genericArguments[1]));
 
                     case nameof(BatchOperationExtensions.CreateSingleTuple)
                     when genericMethod == BatchOperationMethods.CreateSingleTuple:
@@ -685,7 +714,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                     case nameof(BatchOperationExtensions.BatchInsertInto)
                     when genericMethod == BatchOperationMethods.BatchInsertIntoCollapsed:
-                        return CheckTranslated(TranslateSelectInto(GetShapedAt(0), method.GetGenericArguments()[0]));
+                        return CheckTranslated(TranslateSelectInto(GetShapedAt(0), genericArguments[0]));
 
                     case nameof(BatchOperationExtensions.Upsert)
                     when genericMethod == BatchOperationMethods.UpsertCollapsed:
