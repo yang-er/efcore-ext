@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);RELATIONAL;MYSQL</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="$(EFCorePomeloCoreVersion)" Condition=" $(EFCoreMySourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCoreMySourceDirectory)\src\EFCore.MySql\EFCore.MySql.csproj" Condition=" $(EFCoreMySourceDirectory) != '' " />
+    <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-$(DotNetCoreVersion).csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="obj\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="obj\**" />
+    <Compile Include="..\RelationalSpecified\**" />
+  </ItemGroup>
+
+</Project>

@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.SqlServer")]
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.PostgreSql")]
 [assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.Sqlite")]
+[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.MySql")]
 namespace Microsoft.EntityFrameworkCore.Query
 {
     public static class BulkSqlExpressionFactoryExtensions

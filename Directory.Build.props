@@ -36,6 +36,7 @@
     <AssemblyName>$(MSBuildProjectName.Replace('-5.0', ''))</AssemblyName>
     <EntityFrameworkCoreVersion>[5.0.2,6.0.0)</EntityFrameworkCoreVersion>
     <EFCoreNpgsqlCoreVersion>[5.0.2,6.0.0)</EFCoreNpgsqlCoreVersion>
+    <EFCorePomeloCoreVersion>5.0.0-alpha.2</EFCorePomeloCoreVersion>
     <DefineConstants>$(DefineConstants);EFCORE50</DefineConstants>
     <XysMinorVersion>$(XysMinorVersion)-preview</XysMinorVersion>
   </PropertyGroup>
@@ -45,6 +46,7 @@
     <AssemblyName>$(MSBuildProjectName.Replace('-3.1', ''))</AssemblyName>
     <EntityFrameworkCoreVersion>[3.1.11,5.0.0)</EntityFrameworkCoreVersion>
     <EFCoreNpgsqlCoreVersion>[3.1.11,5.0.0)</EFCoreNpgsqlCoreVersion>
+    <EFCorePomeloCoreVersion>[3.2.4,5.0.0)</EFCorePomeloCoreVersion>
     <DefineConstants>$(DefineConstants);EFCORE31</DefineConstants>
   </PropertyGroup>
 
