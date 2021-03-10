@@ -78,14 +78,6 @@ namespace Microsoft.EntityFrameworkCore
             [NotParameterized] bool delete)
             => throw new InvalidOperationException();
 
-        /// <summary>
-        /// Expression type for query generation.
-        /// </summary>
-        internal static IQueryable<TTarget> CreateSingleTuple<TSource, TTarget>(
-            this IQueryable<TSource> source,
-            Expression<Func<TTarget>> targets)
-            => throw new InvalidOperationException();
-
         #endregion
 
         /// <summary>

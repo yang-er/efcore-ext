@@ -17,15 +17,6 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             .GetGenericMethodDefinition();
 
 
-        public static MethodInfo CreateSingleTuple { get; }
-            = new Func<IQueryable<object>,
-                       Expression<Func<object>>,
-                       IQueryable<object>>(
-                BatchOperationExtensions.CreateSingleTuple)
-            .GetMethodInfo()
-            .GetGenericMethodDefinition();
-
-
         public static MethodInfo BatchUpdateExpanded { get; }
             = new Func<IQueryable<object>,
                        Expression<Func<object, object>>,
