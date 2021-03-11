@@ -10,13 +10,25 @@ namespace Microsoft.EntityFrameworkCore.Query
     {
         private readonly IReadOnlyDictionary<string, object> _parameterValues;
         private readonly List<(ValuesExpression, ValuesExpression)> _replacement;
+        private readonly ISqlExpressionFactory _sqlExpressionFactory;
 
         public bool CanCache => _replacement.Count > 0;
 
-        public ValuesExpressionParameterExpandingVisitor(IReadOnlyDictionary<string, object> parameterValues)
+        public ValuesExpressionParameterExpandingVisitor(
+            ISqlExpressionFactory sqlExpressionFactory,
+            IReadOnlyDictionary<string, object> parameterValues)
         {
+            _sqlExpressionFactory = sqlExpressionFactory;
             _parameterValues = parameterValues;
             _replacement = new List<(ValuesExpression, ValuesExpression)>();
+        }
+
+        protected override Expression VisitColumn(ColumnExpression columnExpression)
+        {
+            var result = (TableExpressionBase)Visit(columnExpression.Table);
+            return result != columnExpression.Table
+                ? _sqlExpressionFactory.Column(columnExpression, result)
+                : columnExpression;
         }
 
         protected override Expression VisitValues(ValuesExpression valuesExpression)

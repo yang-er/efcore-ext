@@ -71,11 +71,7 @@ FROM (
 
             AssertSql(@"
 INSERT IGNORE INTO `TwoRelation_{{schema}}` (`BbbId`, `AaaId`)
-SELECT @__bbb_1, @__aaa_2
-FROM (
-    VALUES
-    ROW(@__p_0_0_0, @__p_0_0_1)
-) AS `cte` (`aaa`, `bbb`)
+VALUES (@__bbb_1, @__aaa_2)
 ");
         }
 
@@ -87,11 +83,7 @@ FROM (
 
             AssertSql(@"
 INSERT IGNORE INTO `ThreeRelation_{{schema}}` (`BbbId`, `AaaId`)
-SELECT `cte`.`bbb`, `cte`.`aaa`
-FROM (
-    VALUES
-    ROW(@__p_0_0_0, @__p_0_0_1)
-) AS `cte` (`aaa`, `bbb`)
+VALUES (@__p_0_0_1, @__p_0_0_0)
 ");
         }
 

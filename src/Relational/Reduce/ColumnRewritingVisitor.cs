@@ -26,11 +26,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 : _to2 != null
                 ? _to2[columnExpression.Name]
                 : _to1 != null
-                ? _sqlExpressionFactory.Column(
-                    columnExpression.Name,
-                    _to1, columnExpression.Type,
-                    columnExpression.TypeMapping,
-                    columnExpression.IsNullable)
+                ? _sqlExpressionFactory.Column(columnExpression, _to1)
                 : throw new ArgumentNullException();
         }
 

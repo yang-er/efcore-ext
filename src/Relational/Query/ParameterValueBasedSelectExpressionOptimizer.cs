@@ -8,12 +8,15 @@ namespace Microsoft.EntityFrameworkCore.Query
 {
     public class BulkParameterValueBasedSelectExpressionOptimizer : ParameterValueBasedSelectExpressionOptimizer
     {
+        private readonly ISqlExpressionFactory _sqlExpressionFactory;
+
         public BulkParameterValueBasedSelectExpressionOptimizer(
             ISqlExpressionFactory sqlExpressionFactory,
             IParameterNameGeneratorFactory parameterNameGeneratorFactory,
             bool useRelationalNulls)
             : base(sqlExpressionFactory, parameterNameGeneratorFactory, useRelationalNulls)
         {
+            _sqlExpressionFactory = sqlExpressionFactory;
         }
 
         public override (SelectExpression selectExpression, bool canCache) Optimize(
@@ -21,7 +24,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             IReadOnlyDictionary<string, object> parametersValues)
         {
             var (optimizedSelectExpression, canCache) = base.Optimize(selectExpression, parametersValues);
-            var valuesVisitor = new ValuesExpressionParameterExpandingVisitor(parametersValues);
+            var valuesVisitor = new ValuesExpressionParameterExpandingVisitor(_sqlExpressionFactory, parametersValues);
 
             optimizedSelectExpression = (SelectExpression)valuesVisitor.Visit(optimizedSelectExpression);
             canCache = canCache && valuesVisitor.CanCache;
