@@ -19,6 +19,7 @@ Targeting `netstandard2.1` and used on EFCore 5.0 projects.
 - [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.SqlServer%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.SqlServer): SqlServer bulk operation provider
 - [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.PostgreSql%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.PostgreSql): Npgsql bulk operation provider
 - [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.Sqlite%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.Sqlite): Sqlite bulk operation provider
+- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.MySql%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.MySql): MySQL bulk operation provider
 
 When you want to split EFCore definition and database type, you may reference to `Microsoft.EntityFrameworkCore.Bulk` in your storage implementation project, and reference to `Microsoft.EntityFrameworkCore.Bulk.SqlServer` in your host startup project.
 
@@ -31,7 +32,10 @@ options.UseSqlServer(connectionString, b => b.UseBulk());
 options.UseNpgsql(connectionString, s => s.UseBulk());
 options.UseInMemoryDatabase(databaseName, o => o.UseBulk());
 options.UseSqlite(connection, o => o.UseBulk());
+options.UseMySql(connection, o => o.ServerVersion(..).UseBulk());
 ```
+
+For MySQL, **ServerVersion** is important, which is not explicitly passed with arguments in EFCore 3.1.
 
 If you want to try TableSplittingJoinsRemoval to remove useless self-joins, you may try
 
@@ -84,9 +88,9 @@ targetSet.Upsert(
 The `sourceQuery` can be one of the following items:
 - `IQueryable<TSource>`
 - Local enumerable of `TSource`
-- single anonymous object
+- single anonymous object (deprecated)
 
-Note that the conflict constraint is the primary key, so you should set all primary key fields in insert expression.
+Note that the conflict constraint is primary key or alternative key, so you should set an identifiable fields in insert expression.
 
 The two entities in update expression are both of type `TTarget`, where the existing means the previous row in the database, and the excluded means the item not inserted. You can also fill null with this field, which means `INSERT INTO IF NOT EXISTS`.
 
