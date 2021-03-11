@@ -17,7 +17,7 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
     public class MySqlBulkQuerySqlGenerator : MySqlQuerySqlGenerator
     {
         private readonly ServerVersion _serverVersion;
-        private readonly ISqlExpressionFactory _sqlExpressionFactory;
+        private TableExpressionBase _implicitTable;
 
         public MySqlBulkQuerySqlGenerator(
             QuerySqlGeneratorDependencies dependencies,
@@ -26,10 +26,20 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
             : base(dependencies, sqlExpressionFactory, options)
         {
             _serverVersion = options.ServerVersion;
-            _sqlExpressionFactory = sqlExpressionFactory;
         }
 
         public ISqlGenerationHelper Helper => Dependencies.SqlGenerationHelper;
+
+        protected override Expression VisitColumn(ColumnExpression columnExpression)
+        {
+            if (columnExpression.Table == _implicitTable)
+            {
+                Sql.Append(Helper.DelimitIdentifier(columnExpression.Name));
+                return columnExpression;
+            }
+
+            return base.VisitColumn(columnExpression);
+        }
 
         protected override Expression VisitExtension(Expression extensionExpression)
         {
@@ -153,18 +163,18 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
             if (_serverVersion.Type == ServerType.MySql)
             {
-                if (_serverVersion.Version < new Version(8, 0, 19))
-                {
-                    Sql.Append("VALUES(")
-                        .Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name))
-                        .Append(")");
-                }
-                else
-                {
-                    Sql.Append(Helper.DelimitIdentifier("excluded"))
-                        .Append(".")
-                        .Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name));
-                }
+                // _serverVersion.Version <= new Version(8, 0, 19)
+                // Deprecated but still available
+                Sql.Append("VALUES(")
+                    .Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name))
+                    .Append(")");
+
+                // Fuck, why do this exists?
+                // INSERT INTO xxx [[ AS x ]] is still not available!
+                //
+                // Sql.Append(Helper.DelimitIdentifier("excluded"))
+                //    .Append(".")
+                //    .Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name));
             }
             else if (_serverVersion.Type == ServerType.MariaDb)
             {
@@ -185,7 +195,7 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
             {
                 throw new InvalidOperationException(
                     "The plugin currently doesn't support " + _serverVersion + ", " +
-                    "please contact the plugin author to provide further details.");
+                    "please contact the plugin author to provide more details.");
             }
 
             return excludedTableColumnExpression;
@@ -300,11 +310,13 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
             if (upsertExpression.OnConflictUpdate != null)
             {
+                _implicitTable = upsertExpression.TargetTable;
                 Sql.AppendLine()
                     .Append("ON DUPLICATE KEY UPDATE ")
                     .GenerateList(
                         upsertExpression.OnConflictUpdate,
                         e => Sql.Append(Helper.DelimitIdentifier(e.Alias)).Append(" = ").Then(() => Visit(e.Expression)));
+                _implicitTable = null;
             }
 
             return upsertExpression;
