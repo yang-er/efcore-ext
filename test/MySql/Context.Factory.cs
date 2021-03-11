@@ -21,12 +21,17 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             ServerVersion = ServerVersion.AutoDetect(connectionString);
 
+#if EFCORE50
             optionsBuilder.UseMySql(
                 connectionString,
-#if EFCORE50
                 ServerVersion,
-#endif
                 s => s.UseBulk());
+#elif EFCORE31
+            optionsBuilder.UseMySql(
+                connectionString,
+                s => s.UseBulk()
+                      .ServerVersion(ServerVersion));
+#endif
         }
 
         protected override void EnsureCreated(TContext context)
