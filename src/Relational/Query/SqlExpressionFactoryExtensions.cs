@@ -47,6 +47,15 @@ namespace Microsoft.EntityFrameworkCore.Query
             return ColumnExpressionConstructor(name, table, type, typeMapping, nullable);
         }
 
+        public static ColumnExpression Column(
+            this ISqlExpressionFactory factory,
+            ColumnExpression updateFrom,
+            TableExpressionBase table)
+        {
+            Check.NotNull(factory, nameof(factory));
+            return ColumnExpressionConstructor(updateFrom.Name, table, updateFrom.Type, updateFrom.TypeMapping, updateFrom.IsNullable);
+        }
+
         public static SelectExpression Select(
             this ISqlExpressionFactory factory,
             string alias,

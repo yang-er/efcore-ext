@@ -17,7 +17,7 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
     public class MySqlBulkQuerySqlGenerator : MySqlQuerySqlGenerator
     {
         private readonly ServerVersion _serverVersion;
-        private TableExpression _implicitTable;
+        private readonly ISqlExpressionFactory _sqlExpressionFactory;
 
         public MySqlBulkQuerySqlGenerator(
             QuerySqlGeneratorDependencies dependencies,
@@ -26,20 +26,10 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
             : base(dependencies, sqlExpressionFactory, options)
         {
             _serverVersion = options.ServerVersion;
+            _sqlExpressionFactory = sqlExpressionFactory;
         }
 
         public ISqlGenerationHelper Helper => Dependencies.SqlGenerationHelper;
-
-        protected override Expression VisitColumn(ColumnExpression columnExpression)
-        {
-            if (_implicitTable != null && columnExpression.Table == _implicitTable)
-            {
-                Sql.Append(Helper.DelimitIdentifier(columnExpression.Name));
-                return columnExpression;
-            }
-
-            return base.VisitColumn(columnExpression);
-        }
 
         protected override Expression VisitExtension(Expression extensionExpression)
         {
@@ -97,7 +87,7 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
                 for (int i = 0; i < valuesExpression.TupleCount.Value; i++)
                 {
                     if (i != 0) Sql.Append(",").AppendLine();
-                    Sql.Append("(");
+                    Sql.Append("ROW(");
 
                     for (int j = 0; j < valuesExpression.ColumnNames.Count; j++)
                     {
@@ -113,7 +103,7 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
                 for (int i = 0; i < valuesExpression.ImmediateValues.Count; i++)
                 {
                     if (i != 0) Sql.Append(",").AppendLine();
-                    Sql.Append("(")
+                    Sql.Append("ROW(")
                         .GenerateList(valuesExpression.ImmediateValues[i], e => Visit(e))
                         .Append(")");
                 }
@@ -155,7 +145,7 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
                 }
                 else
                 {
-                    Sql.Append(Helper.DelimitIdentifier("`excluded`"))
+                    Sql.Append(Helper.DelimitIdentifier("excluded"))
                         .Append(".")
                         .Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name));
                 }
@@ -260,15 +250,22 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
         protected virtual Expression VisitUpsert(UpsertExpression upsertExpression)
         {
-            Sql.Append("INSERT ");
-            if (upsertExpression.OnConflictUpdate == null) Sql.Append("IGNORE ");
-            Sql.Append("INTO ")
+            Sql.Append("INSERT ")
+                .AppendIf(upsertExpression.OnConflictUpdate == null, "IGNORE ")
+                .Append("INTO ")
                 .Append(Helper.DelimitIdentifier(upsertExpression.TargetTable.Name))
                 .Append(" (")
                 .GenerateList(upsertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
                 .AppendLine(")");
 
-            if (upsertExpression.SourceTable != null)
+            if (upsertExpression.SourceTable is ValuesExpression valuesExpression)
+            {
+                TransientExpandValuesExpression.Process(
+                    valuesExpression,
+                    upsertExpression.Columns,
+                    this, Sql, Helper);
+            }
+            else if (upsertExpression.SourceTable != null)
             {
                 Sql.Append("SELECT ")
                     .GenerateList(upsertExpression.Columns, e => Visit(e.Expression))
@@ -286,13 +283,11 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
             if (upsertExpression.OnConflictUpdate != null)
             {
-                _implicitTable = upsertExpression.TargetTable;
                 Sql.AppendLine()
                     .Append("ON DUPLICATE KEY UPDATE ")
                     .GenerateList(
                         upsertExpression.OnConflictUpdate,
                         e => Sql.Append(Helper.DelimitIdentifier(e.Alias)).Append(" = ").Then(() => Visit(e.Expression)));
-                _implicitTable = null;
             }
 
             return upsertExpression;

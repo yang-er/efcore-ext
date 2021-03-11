@@ -31,6 +31,17 @@ namespace Microsoft.EntityFrameworkCore.Storage
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [DebuggerStepThrough]
+        public static IRelationalCommandBuilder AppendIf(
+            this IRelationalCommandBuilder sql,
+            bool condition,
+            string value)
+        {
+            if (condition) sql.Append(value);
+            return sql;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
         public static ExpressionPrinter VisitCollection<T>(
             this ExpressionPrinter expressionPrinter,
             IReadOnlyList<T> items,

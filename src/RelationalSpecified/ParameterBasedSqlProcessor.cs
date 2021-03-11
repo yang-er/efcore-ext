@@ -245,7 +245,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             SelectExpression selectExpression,
             IReadOnlyDictionary<string, object> parametersValues)
         {
-            return new ValuesExpressionParameterExpandingVisitor(parametersValues)
+            return new ValuesExpressionParameterExpandingVisitor(Dependencies.SqlExpressionFactory, parametersValues)
                 .VisitAndConvert(selectExpression, null);
         }
 
