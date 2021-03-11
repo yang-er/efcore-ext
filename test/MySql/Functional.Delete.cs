@@ -17,7 +17,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_ConstantCondition));
 
             AssertSql(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE (`i`.`ItemId` > 500) AND (`i`.`Price` = 3.0)
 ");
         }
@@ -29,7 +30,8 @@ WHERE (`i`.`ItemId` > 500) AND (`i`.`Price` = 3.0)
             LogSql(nameof(CompiledQuery_ContainsSomething));
 
             AssertSql(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE `i`.`Name` IN ('jyntnytjyntjntnytnt', 'aaa')
 ");
         }
@@ -41,7 +43,8 @@ WHERE `i`.`Name` IN ('jyntnytjyntjntnytnt', 'aaa')
             LogSql(nameof(CompiledQuery_ParameteredCondition));
 
             AssertSql(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE `i`.`Name` = @__nameToDelete
 ");
         }
@@ -53,7 +56,8 @@ WHERE `i`.`Name` = @__nameToDelete
             LogSql(nameof(ConstantCondition));
 
             AssertSql(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE (`i`.`ItemId` > 500) AND (`i`.`Price` = 124.0)
 ");
         }
@@ -65,12 +69,14 @@ WHERE (`i`.`ItemId` > 500) AND (`i`.`Price` = 124.0)
             LogSql(nameof(ContainsAndAlsoEqual));
 
             AssertSql31(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE `i`.`Description` IN ('info') OR (`i`.`Name` = @__nameToDelete_1)
 ");
 
             AssertSql50(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE (`i`.`Description` = 'info') OR (`i`.`Name` = @__nameToDelete_1)
 ");
         }
@@ -82,7 +88,8 @@ WHERE (`i`.`Description` = 'info') OR (`i`.`Name` = @__nameToDelete_1)
             LogSql(nameof(ContainsSomething));
 
             AssertSql(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE `i`.`Description` IN ('info', 'aaa')
 ");
         }
@@ -94,12 +101,14 @@ WHERE `i`.`Description` IN ('info', 'aaa')
             LogSql(nameof(EmptyContains));
 
             AssertSql31(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE TRUE = FALSE
 ");
 
             AssertSql50(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE FALSE
 ");
         }
@@ -111,12 +120,14 @@ WHERE FALSE
             LogSql(nameof(ListAny));
 
             AssertSql31(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE `i`.`Description` IN ('info')
 ");
 
             AssertSql50(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE `i`.`Description` = 'info'
 ");
         }
@@ -128,7 +139,8 @@ WHERE `i`.`Description` = 'info'
             LogSql(nameof(ParameteredCondition));
 
             AssertSql(@"
-DELETE FROM `Item_{{schema}}` AS `i`
+DELETE `i`
+FROM `Item_{{schema}}` AS `i`
 WHERE `i`.`Name` = @__nameToDelete_0
 ");
         }
