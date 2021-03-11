@@ -17,7 +17,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(InsertIfNotExistOne));
 
             AssertSql(@"
-
+INSERT IGNORE INTO `RankCache_{{schema}}` (`PointsPublic`, `PointsRestricted`, `TotalTimePublic`, `TotalTimeRestricted`, `ContestId`, `TeamId`)
+VALUES (1, 1, @__time_0, @__time_0, @__cid_1, @__teamid_2)
 ");
         }
 
@@ -28,7 +29,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(InsertIfNotExistOne_CompiledQuery));
 
             AssertSql(@"
-
+INSERT IGNORE INTO `RankCache_{{schema}}` (`ContestId`, `TeamId`, `PointsPublic`, `PointsRestricted`, `TotalTimePublic`, `TotalTimeRestricted`)
+VALUES (@__cid, @__teamid, 1, 1, @__time, @__time)
 ");
         }
 
@@ -39,7 +41,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(InsertIfNotExists_AnotherTable));
 
             AssertSql(@"
-
+INSERT IGNORE INTO `RankCache_{{schema}}` (`PointsPublic`, `PointsRestricted`, `TotalTimePublic`, `TotalTimeRestricted`, `ContestId`, `TeamId`)
+SELECT 1, 1, `r0`.`Time`, `r0`.`Time`, `r0`.`ContestId`, `r0`.`TeamId`
+FROM `RankSource_{{schema}}` AS `r0`
 ");
         }
 
@@ -50,7 +54,12 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(InsertIfNotExists_SubSelect_CompiledQuery));
 
             AssertSql(@"
-
+INSERT IGNORE INTO `RankCache_{{schema}}` (`PointsPublic`, `PointsRestricted`, `TotalTimePublic`, `TotalTimeRestricted`, `ContestId`, `TeamId`)
+SELECT 1, 1, `t`.`Time`, `t`.`Time`, `t`.`ContestId`, `t`.`TeamId`
+FROM (
+    SELECT DISTINCT `r0`.`ContestId`, `r0`.`TeamId`, `r0`.`Public`, `r0`.`Time`
+    FROM `RankSource_{{schema}}` AS `r0`
+) AS `t`
 ");
         }
 
@@ -61,7 +70,12 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(Translation_Parameterize));
 
             AssertSql(@"
-
+INSERT IGNORE INTO `TwoRelation_{{schema}}` (`BbbId`, `AaaId`)
+SELECT @__bbb_1, @__aaa_2
+FROM (
+    VALUES
+    ROW(@__p_0_0_0, @__p_0_0_1)
+) AS `cte` (`aaa`, `bbb`)
 ");
         }
 
@@ -72,7 +86,12 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(Upsert_AlternativeKey));
 
             AssertSql(@"
-
+INSERT IGNORE INTO `ThreeRelation_{{schema}}` (`BbbId`, `AaaId`)
+SELECT `cte`.`bbb`, `cte`.`aaa`
+FROM (
+    VALUES
+    ROW(@__p_0_0_0, @__p_0_0_1)
+) AS `cte` (`aaa`, `bbb`)
 ");
         }
 
@@ -138,7 +157,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(UpsertOne));
 
             AssertSql(@"
-
+INSERT INTO `RankCache_{{schema}}` (`PointsPublic`, `PointsRestricted`, `TotalTimePublic`, `TotalTimeRestricted`, `ContestId`, `TeamId`)
+VALUES (1, 1, @__time_0, @__time_0, @__cid_1, @__teamid_2)
+ON DUPLICATE KEY UPDATE `PointsPublic` = `PointsPublic` + 1, `TotalTimePublic` = `TotalTimePublic` + @__time_0
 ");
         }
 
@@ -149,7 +170,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(UpsertOne_CompiledQuery));
 
             AssertSql(@"
-
+INSERT INTO `RankCache_{{schema}}` (`ContestId`, `TeamId`, `PointsPublic`, `PointsRestricted`, `TotalTimePublic`, `TotalTimeRestricted`)
+VALUES (@__cid, @__teamid, 1, 1, @__time, @__time)
+ON DUPLICATE KEY UPDATE `PointsPublic` = `PointsPublic` + 1, `TotalTimePublic` = `TotalTimePublic` + @__time
 ");
         }
     }

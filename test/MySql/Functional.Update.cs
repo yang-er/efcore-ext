@@ -17,11 +17,15 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_ConcatenateBody));
 
             AssertSql31(@"
-
+UPDATE `Item_{{schema}}` AS `i`
+SET `i`.`Name` = CONCAT(`i`.`Name`, @__suffix), `i`.`Quantity` = `i`.`Quantity` + @__incrementStep
+WHERE `i`.`ItemId` <= 500
 ");
 
             AssertSql50(@"
-
+UPDATE `Item_{{schema}}` AS `i`
+SET `i`.`Name` = CONCAT(COALESCE(`i`.`Name`, ''), @__suffix), `i`.`Quantity` = `i`.`Quantity` + @__incrementStep
+WHERE `i`.`ItemId` <= 500
 ");
         }
 
@@ -32,7 +36,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_ConstantUpdateBody));
 
             AssertSql(@"
-
+UPDATE `Item_{{schema}}` AS `i`
+SET `i`.`Description` = 'Updated', `i`.`Price` = 1.5
+WHERE `i`.`ItemId` <= 388
 ");
         }
 
@@ -42,8 +48,19 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(CompiledQuery_HasOwnedType));
 
-            AssertSql(@"
+            AssertSql31(@"
+UPDATE `ChangeLog_{{schema}}` AS `c`
+LEFT JOIN (
+    SELECT `c0`.`ChangeLogId`, `c0`.`ChangedBy`, `c0`.`Audit_IsDeleted`
+    FROM `ChangeLog_{{schema}}` AS `c0`
+    WHERE `c0`.`Audit_IsDeleted` IS NOT NULL
+) AS `t` ON `c`.`ChangeLogId` = `t`.`ChangeLogId`
+SET `c`.`Audit_IsDeleted` = NOT (`t`.`Audit_IsDeleted`)
+");
 
+            AssertSql50(@"
+UPDATE `ChangeLog_{{schema}}` AS `c`
+SET `c`.`Audit_IsDeleted` = NOT (`c`.`Audit_IsDeleted`)
 ");
         }
 
@@ -54,7 +71,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_NavigationSelect));
 
             AssertSql(@"
-
+UPDATE `Detail_{{schema}}` AS `d`
+INNER JOIN `Judging_{{schema}}` AS `j` ON `d`.`JudgingId` = `j`.`JudgingId`
+SET `d`.`Another` = (`d`.`Another` + `j`.`SubmissionId`) + @__x
 ");
         }
 
@@ -65,7 +84,10 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_NavigationWhere));
 
             AssertSql(@"
-
+UPDATE `Detail_{{schema}}` AS `d`
+INNER JOIN `Judging_{{schema}}` AS `j` ON `d`.`JudgingId` = `j`.`JudgingId`
+SET `d`.`Another` = `j`.`SubmissionId`
+WHERE `j`.`PreviousJudgingId` = @__x
 ");
         }
 
@@ -76,7 +98,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_ParameterUpdateBody));
 
             AssertSql(@"
-
+UPDATE `Item_{{schema}}` AS `i`
+SET `i`.`Description` = @__desc, `i`.`Price` = @__pri
+WHERE `i`.`ItemId` <= 388
 ");
         }
 
@@ -87,7 +111,10 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_ScalarSubquery));
 
             AssertSql(@"
-
+UPDATE `Detail_{{schema}}` AS `d`
+SET `d`.`Another` = (
+    SELECT COUNT(*)
+    FROM `Item_{{schema}}` AS `i`)
 ");
         }
 
@@ -97,12 +124,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(CompiledQuery_SetNull));
 
-            AssertSql31(@"
-
-");
-
-            AssertSql50(@"
-
+            AssertSql(@"
+UPDATE `Judging_{{schema}}` AS `j`
+SET `j`.`CompileError` = NULL, `j`.`ExecuteMemory` = NULL, `j`.`PreviousJudgingId` = NULL, `j`.`TotalScore` = NULL, `j`.`Server` = NULL, `j`.`Status` = GREATEST(`j`.`Status`, 8)
 ");
         }
 
@@ -113,11 +137,15 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(ConcatenateBody));
 
             AssertSql31(@"
-
+UPDATE `Item_{{schema}}` AS `i`
+SET `i`.`Name` = CONCAT(`i`.`Name`, @__suffix_1), `i`.`Quantity` = `i`.`Quantity` + @__incrementStep_2
+WHERE (`i`.`ItemId` <= 500) AND (`i`.`Price` >= @__price_0)
 ");
 
             AssertSql50(@"
-
+UPDATE `Item_{{schema}}` AS `i`
+SET `i`.`Name` = CONCAT(COALESCE(`i`.`Name`, ''), @__suffix_1), `i`.`Quantity` = `i`.`Quantity` + @__incrementStep_2
+WHERE (`i`.`ItemId` <= 500) AND (`i`.`Price` >= @__price_0)
 ");
         }
 
@@ -128,7 +156,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(ConstantUpdateBody));
 
             AssertSql(@"
-
+UPDATE `Item_{{schema}}` AS `i`
+SET `i`.`Description` = 'Updated', `i`.`Price` = 1.5
+WHERE (`i`.`ItemId` <= 388) AND (`i`.`Price` >= @__price_0)
 ");
         }
 
@@ -138,8 +168,19 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(HasOwnedType));
 
-            AssertSql(@"
+            AssertSql31(@"
+UPDATE `ChangeLog_{{schema}}` AS `c`
+LEFT JOIN (
+    SELECT `c0`.`ChangeLogId`, `c0`.`ChangedBy`, `c0`.`Audit_IsDeleted`
+    FROM `ChangeLog_{{schema}}` AS `c0`
+    WHERE `c0`.`Audit_IsDeleted` IS NOT NULL
+) AS `t` ON `c`.`ChangeLogId` = `t`.`ChangeLogId`
+SET `c`.`Audit_IsDeleted` = NOT (`t`.`Audit_IsDeleted`)
+");
 
+            AssertSql50(@"
+UPDATE `ChangeLog_{{schema}}` AS `c`
+SET `c`.`Audit_IsDeleted` = NOT (`c`.`Audit_IsDeleted`)
 ");
         }
 
@@ -150,7 +191,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(NavigationSelect));
 
             AssertSql(@"
-
+UPDATE `Detail_{{schema}}` AS `d`
+INNER JOIN `Judging_{{schema}}` AS `j` ON `d`.`JudgingId` = `j`.`JudgingId`
+SET `d`.`Another` = (`d`.`Another` + `j`.`SubmissionId`) + @__x_0
 ");
         }
 
@@ -161,7 +204,10 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(NavigationWhere));
 
             AssertSql(@"
-
+UPDATE `Detail_{{schema}}` AS `d`
+INNER JOIN `Judging_{{schema}}` AS `j` ON `d`.`JudgingId` = `j`.`JudgingId`
+SET `d`.`Another` = `j`.`SubmissionId`
+WHERE `j`.`PreviousJudgingId` = @__x_0
 ");
         }
 
@@ -172,7 +218,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(ParameterUpdateBody));
 
             AssertSql(@"
-
+UPDATE `Item_{{schema}}` AS `i`
+SET `i`.`Description` = @__desc_1, `i`.`Price` = @__pri_2
+WHERE (`i`.`ItemId` <= 388) AND (`i`.`Price` >= @__price_0)
 ");
         }
 
@@ -183,7 +231,10 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(ScalarSubquery));
 
             AssertSql(@"
-
+UPDATE `Detail_{{schema}}` AS `d`
+SET `d`.`Another` = (
+    SELECT COUNT(*)
+    FROM `Item_{{schema}}` AS `i`)
 ");
         }
 
@@ -193,12 +244,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(SetNull));
 
-            AssertSql31(@"
-
-");
-
-            AssertSql50(@"
-
+            AssertSql(@"
+UPDATE `Judging_{{schema}}` AS `j`
+SET `j`.`CompileError` = NULL, `j`.`ExecuteMemory` = NULL, `j`.`PreviousJudgingId` = NULL, `j`.`TotalScore` = NULL, `j`.`StartTime` = UTC_TIMESTAMP(), `j`.`Server` = NULL, `j`.`Status` = GREATEST(`j`.`Status`, 8)
 ");
         }
     }

@@ -3,9 +3,12 @@ using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.Internal;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 using Pomelo.EntityFrameworkCore.MySql.Query.ExpressionVisitors.Internal;
 using Pomelo.EntityFrameworkCore.MySql.Query.Internal;
+using Pomelo.EntityFrameworkCore.MySql.Storage;
 using System;
 using System.Linq.Expressions;
 
@@ -13,15 +16,30 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 {
     public class MySqlBulkQuerySqlGenerator : MySqlQuerySqlGenerator
     {
+        private readonly ServerVersion _serverVersion;
+        private TableExpression _implicitTable;
+
         public MySqlBulkQuerySqlGenerator(
             QuerySqlGeneratorDependencies dependencies,
             MySqlSqlExpressionFactory sqlExpressionFactory,
             IMySqlOptions options)
             : base(dependencies, sqlExpressionFactory, options)
         {
+            _serverVersion = options.ServerVersion;
         }
 
         public ISqlGenerationHelper Helper => Dependencies.SqlGenerationHelper;
+
+        protected override Expression VisitColumn(ColumnExpression columnExpression)
+        {
+            if (_implicitTable != null && columnExpression.Table == _implicitTable)
+            {
+                Sql.Append(Helper.DelimitIdentifier(columnExpression.Name));
+                return columnExpression;
+            }
+
+            return base.VisitColumn(columnExpression);
+        }
 
         protected override Expression VisitExtension(Expression extensionExpression)
         {
@@ -59,34 +77,111 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
             return base.VisitSelect(selectExpression);
         }
 
-        protected virtual Expression VisitValues(ValuesExpression tableExpression)
+        protected virtual Expression VisitValues(ValuesExpression valuesExpression)
         {
-            Sql.Append("(").IncrementIndent();
-
-            Sql.AppendLine()
+            Sql.Append("(")
+                .IncrementIndent()
+                .AppendLine()
                 .AppendLine("VALUES");
 
-            tableExpression.Generate(this, Sql, Helper);
+            if (valuesExpression.TupleCount.HasValue)
+            {
+                Sql.AddParameter(
+                    new ValuesRelationalParameter(
+                        valuesExpression.AnonymousType,
+                        Helper.GenerateParameterName(valuesExpression.RuntimeParameter),
+                        valuesExpression.RuntimeParameter));
+
+                var paramName = Helper.GenerateParameterNamePlaceholder(valuesExpression.RuntimeParameter);
+
+                for (int i = 0; i < valuesExpression.TupleCount.Value; i++)
+                {
+                    if (i != 0) Sql.Append(",").AppendLine();
+                    Sql.Append("(");
+
+                    for (int j = 0; j < valuesExpression.ColumnNames.Count; j++)
+                    {
+                        if (j != 0) Sql.Append(", ");
+                        Sql.Append($"{paramName}_{i}_{j}");
+                    }
+
+                    Sql.Append(")");
+                }
+            }
+            else if (valuesExpression.ImmediateValues != null)
+            {
+                for (int i = 0; i < valuesExpression.ImmediateValues.Count; i++)
+                {
+                    if (i != 0) Sql.Append(",").AppendLine();
+                    Sql.Append("(")
+                        .GenerateList(valuesExpression.ImmediateValues[i], e => Visit(e))
+                        .Append(")");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "This instance of values expression is not concrete.");
+            }
 
             Sql.DecrementIndent()
                 .AppendLine()
+                .Append(")")
+                .Append(AliasSeparator)
+                .Append(Helper.DelimitIdentifier(valuesExpression.Alias))
+                .Append(" (")
+                .GenerateList(
+                    valuesExpression.ColumnNames,
+                    a => Sql.Append(Helper.DelimitIdentifier(a)))
                 .Append(")");
 
-            Sql.Append(AliasSeparator)
-                .Append(Helper.DelimitIdentifier(tableExpression.Alias))
-                .Append(" (");
-
-            Sql.GenerateList(
-                tableExpression.ColumnNames,
-                a => Sql.Append(Helper.DelimitIdentifier(a)));
-
-            Sql.Append(")");
-            return tableExpression;
+            return valuesExpression;
         }
 
         protected virtual Expression VisitExcludedTableColumn(ExcludedTableColumnExpression excludedTableColumnExpression)
         {
-            Sql.Append("excluded.").Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name));
+            // MariaDB >= 10.3.3 -> VALUE(`identifier`)
+            // MariaDB <= 10.3.2 -> VALUES(`identifier`)
+            // MySQL >= 8.0.19 -> `excluded`.`identifier`
+            // MySQL <= 8.0.18 -> VALUES(`identifier`)
+
+            if (_serverVersion.Type == ServerType.MySql)
+            {
+                if (_serverVersion.Version < new Version(8, 0, 19))
+                {
+                    Sql.Append("VALUES(")
+                        .Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name))
+                        .Append(")");
+                }
+                else
+                {
+                    Sql.Append(Helper.DelimitIdentifier("`excluded`"))
+                        .Append(".")
+                        .Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name));
+                }
+            }
+            else if (_serverVersion.Type == ServerType.MariaDb)
+            {
+                if (_serverVersion.Version < new Version(10, 3, 3))
+                {
+                    Sql.Append("VALUES(")
+                        .Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name))
+                        .Append(")");
+                }
+                else
+                {
+                    Sql.Append("VALUE(")
+                        .Append(Helper.DelimitIdentifier(excludedTableColumnExpression.Name))
+                        .Append(")");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "The plugin currently doesn't support " + _serverVersion + ", " +
+                    "please contact the plugin author to provide further details.");
+            }
+
             return excludedTableColumnExpression;
         }
 
@@ -108,30 +203,29 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
         protected virtual Expression VisitUpdate(UpdateExpression updateExpression)
         {
-            var original = updateExpression;
-            if (!updateExpression.Expanded)
+            if (updateExpression.Expanded)
             {
-                // This is a strange behavior for PostgreSQL. I don't like it.
-                updateExpression = updateExpression.Expand();
+                throw new InvalidOperationException("Update expression accidently expanded.");
             }
+
+            string tableExp = Helper.DelimitIdentifier(updateExpression.Tables[0].Alias);
 
             Sql.Append("UPDATE ")
-                .Append(Helper.DelimitIdentifier(updateExpression.ExpandedTable.Name))
-                .Append(AliasSeparator)
-                .AppendLine(Helper.DelimitIdentifier(updateExpression.ExpandedTable.Alias))
-                .Append("SET ");
+                .GenerateList(
+                    updateExpression.Tables,
+                    e => Visit(e),
+                    sql => sql.AppendLine());
 
-            Sql.GenerateList(
-                updateExpression.Fields,
-                e => Sql.Append(Helper.DelimitIdentifier(e.Alias))
-                    .Append(" = ")
-                    .Then(() => Visit(e.Expression)));
+            Sql.AppendLine().Append("SET ");
 
-            if (updateExpression.Tables.Count > 0)
+            Sql.GenerateList(updateExpression.Fields, e =>
             {
-                Sql.AppendLine().Append("FROM ");
-                Sql.GenerateList(updateExpression.Tables, e => Visit(e), sql => sql.AppendLine());
-            }
+                Sql.Append(tableExp)
+                    .Append(".")
+                    .Append(Helper.DelimitIdentifier(e.Alias))
+                    .Append(" = ");
+                Visit(e.Expression);
+            });
 
             if (updateExpression.Predicate != null)
             {
@@ -139,7 +233,7 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
                 Visit(updateExpression.Predicate);
             }
 
-            return original;
+            return updateExpression;
         }
 
         protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
@@ -166,11 +260,11 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
         protected virtual Expression VisitUpsert(UpsertExpression upsertExpression)
         {
-            Sql.Append("INSERT INTO ");
-            Visit(upsertExpression.TargetTable);
-            Sql.AppendLine();
-
-            Sql.Append("(")
+            Sql.Append("INSERT ");
+            if (upsertExpression.OnConflictUpdate == null) Sql.Append("IGNORE ");
+            Sql.Append("INTO ")
+                .Append(Helper.DelimitIdentifier(upsertExpression.TargetTable.Name))
+                .Append(" (")
                 .GenerateList(upsertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
                 .AppendLine(")");
 
@@ -182,28 +276,23 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
                 Sql.Append("FROM ");
                 Visit(upsertExpression.SourceTable);
-                Sql.AppendLine();
             }
             else
             {
                 Sql.Append("VALUES (")
                     .GenerateList(upsertExpression.Columns, e => Visit(e.Expression))
-                    .AppendLine(")");
+                    .Append(")");
             }
 
-            if (upsertExpression.OnConflictUpdate == null)
+            if (upsertExpression.OnConflictUpdate != null)
             {
-                Sql.Append("ON CONFLICT DO NOTHING");
-            }
-            else
-            {
-                Sql.Append("ON CONFLICT ON CONSTRAINT ")
-                    .Append(Helper.DelimitIdentifier(upsertExpression.ConflictConstraint.GetName()))
-                    .AppendLine(" DO UPDATE")
-                    .Append("SET ")
+                _implicitTable = upsertExpression.TargetTable;
+                Sql.AppendLine()
+                    .Append("ON DUPLICATE KEY UPDATE ")
                     .GenerateList(
                         upsertExpression.OnConflictUpdate,
                         e => Sql.Append(Helper.DelimitIdentifier(e.Alias)).Append(" = ").Then(() => Visit(e.Expression)));
+                _implicitTable = null;
             }
 
             return upsertExpression;

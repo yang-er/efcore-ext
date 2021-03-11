@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System;
 using System.Linq.Expressions;
@@ -54,28 +55,65 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.Query
             return base.VisitSelect(selectExpression);
         }
 
-        protected virtual Expression VisitValues(ValuesExpression tableExpression)
+        protected virtual Expression VisitValues(ValuesExpression valuesExpression)
         {
             Sql.Append("(")
                 .IncrementIndent()
                 .AppendLine()
                 .AppendLine("VALUES");
 
-            tableExpression.Generate(this, Sql, Helper);
+            if (valuesExpression.TupleCount.HasValue)
+            {
+                Sql.AddParameter(
+                    new ValuesRelationalParameter(
+                        valuesExpression.AnonymousType,
+                        Helper.GenerateParameterName(valuesExpression.RuntimeParameter),
+                        valuesExpression.RuntimeParameter));
+
+                var paramName = Helper.GenerateParameterNamePlaceholder(valuesExpression.RuntimeParameter);
+
+                for (int i = 0; i < valuesExpression.TupleCount.Value; i++)
+                {
+                    if (i != 0) Sql.Append(",").AppendLine();
+                    Sql.Append("(");
+
+                    for (int j = 0; j < valuesExpression.ColumnNames.Count; j++)
+                    {
+                        if (j != 0) Sql.Append(", ");
+                        Sql.Append($"{paramName}_{i}_{j}");
+                    }
+
+                    Sql.Append(")");
+                }
+            }
+            else if (valuesExpression.ImmediateValues != null)
+            {
+                for (int i = 0; i < valuesExpression.ImmediateValues.Count; i++)
+                {
+                    if (i != 0) Sql.Append(",").AppendLine();
+                    Sql.Append("(")
+                        .GenerateList(valuesExpression.ImmediateValues[i], e => Visit(e))
+                        .Append(")");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "This instance of values expression is not concrete.");
+            }
 
             Sql.DecrementIndent()
                 .AppendLine()
                 .Append(")")
                 .Append(AliasSeparator)
-                .Append(Helper.DelimitIdentifier(tableExpression.Alias))
-                .Append(" (");
+                .Append(Helper.DelimitIdentifier(valuesExpression.Alias))
+                .Append(" (")
+                .GenerateList(
+                    valuesExpression.ColumnNames,
+                    a => Sql.Append(Helper.DelimitIdentifier(a)))
+                .Append(")");
 
-            Sql.GenerateList(
-                tableExpression.ColumnNames,
-                a => Sql.Append(Helper.DelimitIdentifier(a)));
-
-            Sql.Append(")");
-            return tableExpression;
+            return valuesExpression;
         }
 
         protected virtual Expression VisitSelectInto(SelectIntoExpression selectIntoExpression)
