@@ -17,8 +17,7 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(InsertIfNotExistOne));
 
             AssertSql(@"
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 VALUES (1, 1, @__time_0, @__time_0, @__cid_1, @__teamid_2)
 ON CONFLICT DO NOTHING
 ");
@@ -31,8 +30,7 @@ ON CONFLICT DO NOTHING
             LogSql(nameof(InsertIfNotExistOne_CompiledQuery));
 
             AssertSql(@"
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""ContestId"", ""TeamId"", ""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""ContestId"", ""TeamId"", ""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"")
 VALUES (@__cid, @__teamid, 1, 1, @__time, @__time)
 ON CONFLICT DO NOTHING
 ");
@@ -45,8 +43,7 @@ ON CONFLICT DO NOTHING
             LogSql(nameof(InsertIfNotExists_AnotherTable));
 
             AssertSql(@"
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 SELECT 1, 1, ""r0"".""Time"", ""r0"".""Time"", ""r0"".""ContestId"", ""r0"".""TeamId""
 FROM ""RankSource_{{schema}}"" AS ""r0"" WHERE TRUE
 ON CONFLICT DO NOTHING
@@ -60,8 +57,7 @@ ON CONFLICT DO NOTHING
             LogSql(nameof(InsertIfNotExists_SubSelect_CompiledQuery));
 
             AssertSql(@"
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 SELECT 1, 1, ""t"".""Time"", ""t"".""Time"", ""t"".""ContestId"", ""t"".""TeamId""
 FROM (
     SELECT DISTINCT ""r0"".""ContestId"", ""r0"".""TeamId"", ""r0"".""Public"", ""r0"".""Time""
@@ -82,8 +78,7 @@ WITH ""cte"" (""aaa"", ""bbb"") AS (
     VALUES
     (@__p_0_0_0, @__p_0_0_1)
 )
-INSERT INTO ""TwoRelation_{{schema}}"" AS ""t""
-(""BbbId"", ""AaaId"")
+INSERT INTO ""TwoRelation_{{schema}}"" AS ""t"" (""BbbId"", ""AaaId"")
 SELECT @__bbb_1, @__aaa_2
 FROM ""cte"" WHERE TRUE
 ON CONFLICT DO NOTHING
@@ -101,8 +96,7 @@ WITH ""cte"" (""aaa"", ""bbb"") AS (
     VALUES
     (@__p_0_0_0, @__p_0_0_1)
 )
-INSERT INTO ""ThreeRelation_{{schema}}"" AS ""t""
-(""BbbId"", ""AaaId"")
+INSERT INTO ""ThreeRelation_{{schema}}"" AS ""t"" (""BbbId"", ""AaaId"")
 SELECT ""cte"".""bbb"", ""cte"".""aaa""
 FROM ""cte"" WHERE TRUE
 ON CONFLICT DO NOTHING
@@ -116,12 +110,10 @@ ON CONFLICT DO NOTHING
             LogSql(nameof(Upsert_AnotherTable));
 
             AssertSql(@"
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 SELECT 1, 1, ""r0"".""Time"", ""r0"".""Time"", ""r0"".""ContestId"", ""r0"".""TeamId""
 FROM ""RankSource_{{schema}}"" AS ""r0"" WHERE TRUE
-ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE
-SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
 ");
         }
 
@@ -132,15 +124,13 @@ SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r""."
             LogSql(nameof(Upsert_FromSql));
 
             AssertSql(@"
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 SELECT 1, 1, ""r0"".""Time"", ""r0"".""Time"", ""r0"".""ContestId"", ""r0"".""TeamId""
 FROM (
     SELECT ""r"".""ContestId"", ""r"".""TeamId"", ""r"".""Public"", ""r"".""Time""
     FROM ""RankSource_{{schema}}"" AS ""r""
 ) AS ""r0"" WHERE TRUE
-ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE
-SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
 ");
         }
 
@@ -156,12 +146,10 @@ WITH ""cte"" (""ContestId"", ""TeamId"", ""Time"") AS (
     (@__p_0_0_0, @__p_0_0_1, @__p_0_0_2),
     (@__p_0_1_0, @__p_0_1_1, @__p_0_1_2)
 )
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 SELECT 1, 1, ""cte"".""Time"", ""cte"".""Time"", ""cte"".""ContestId"", ""cte"".""TeamId""
 FROM ""cte"" WHERE TRUE
-ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE
-SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
 ");
         }
 
@@ -177,12 +165,10 @@ WITH ""cte"" (""ContestId"", ""TeamId"", ""Time"") AS (
     (1, 2, @__time1),
     (3, @__teamid2, 50)
 )
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 SELECT 1, 1, ""cte"".""Time"", ""cte"".""Time"", ""cte"".""ContestId"", ""cte"".""TeamId""
 FROM ""cte"" WHERE TRUE
-ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE
-SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
 ");
         }
 
@@ -193,15 +179,13 @@ SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r""."
             LogSql(nameof(Upsert_SubSelect));
 
             AssertSql(@"
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 SELECT 1, 1, ""t"".""Time"", ""t"".""Time"", ""t"".""ContestId"", ""t"".""TeamId""
 FROM (
     SELECT DISTINCT ""r0"".""ContestId"", ""r0"".""TeamId"", ""r0"".""Public"", ""r0"".""Time""
     FROM ""RankSource_{{schema}}"" AS ""r0""
 ) AS ""t"" WHERE TRUE
-ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE
-SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
 ");
         }
 
@@ -212,11 +196,9 @@ SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r""."
             LogSql(nameof(UpsertOne));
 
             AssertSql(@"
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 VALUES (1, 1, @__time_0, @__time_0, @__cid_1, @__teamid_2)
-ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE
-SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + @__time_0
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + @__time_0
 ");
         }
 
@@ -227,11 +209,9 @@ SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r""."
             LogSql(nameof(UpsertOne_CompiledQuery));
 
             AssertSql(@"
-INSERT INTO ""RankCache_{{schema}}"" AS ""r""
-(""ContestId"", ""TeamId"", ""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"")
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""ContestId"", ""TeamId"", ""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"")
 VALUES (@__cid, @__teamid, 1, 1, @__time, @__time)
-ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE
-SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + @__time
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + @__time
 ");
         }
     }

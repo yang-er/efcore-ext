@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Utilities;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -86,49 +85,6 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         /// The values table column name.
         /// </summary>
         public IReadOnlyList<string> ColumnNames { get; }
-
-        public void Generate(QuerySqlGenerator visitor, IRelationalCommandBuilder sql, ISqlGenerationHelper helper)
-        {
-            if (TupleCount.HasValue)
-            {
-                sql.AddParameter(
-                    new ValuesRelationalParameter(
-                        AnonymousType,
-                        helper.GenerateParameterName(RuntimeParameter),
-                        RuntimeParameter));
-
-                var paramName = helper.GenerateParameterNamePlaceholder(RuntimeParameter);
-
-                for (int i = 0; i < TupleCount.Value; i++)
-                {
-                    if (i != 0) sql.Append(",").AppendLine();
-                    sql.Append("(");
-
-                    for (int j = 0; j < ColumnNames.Count; j++)
-                    {
-                        if (j != 0) sql.Append(", ");
-                        sql.Append($"{paramName}_{i}_{j}");
-                    }
-
-                    sql.Append(")");
-                }
-            }
-            else if (ImmediateValues != null)
-            {
-                for (int i = 0; i < ImmediateValues.Count; i++)
-                {
-                    if (i != 0) sql.Append(",").AppendLine();
-                    sql.Append("(")
-                        .GenerateList(ImmediateValues[i], e => visitor.Visit(e))
-                        .Append(")");
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException(
-                    "This instance of values expression is not concrete.");
-            }
-        }
 
         protected override Expression VisitChildren(ExpressionVisitor visitor)
         {

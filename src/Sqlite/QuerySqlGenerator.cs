@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Sqlite.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System;
 using System.Linq.Expressions;
@@ -62,13 +63,13 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
             return base.VisitSelect(selectExpression);
         }
 
-        protected virtual Expression VisitValuesAsCommonTableExpression(ValuesExpression tableExpression)
+        protected virtual Expression VisitValuesAsCommonTableExpression(ValuesExpression valuesExpression)
         {
             Sql.Append("WITH ")
-                .Append(Helper.DelimitIdentifier(tableExpression.Alias))
+                .Append(Helper.DelimitIdentifier(valuesExpression.Alias))
                 .Append(" (")
                 .GenerateList(
-                    tableExpression.ColumnNames,
+                    valuesExpression.ColumnNames,
                     a => Sql.Append(Helper.DelimitIdentifier(a)))
                 .Append(") AS ")
                 .Append("(")
@@ -76,12 +77,51 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
                 .AppendLine()
                 .AppendLine("VALUES");
 
-            tableExpression.Generate(this, Sql, Helper);
+            if (valuesExpression.TupleCount.HasValue)
+            {
+                Sql.AddParameter(
+                    new ValuesRelationalParameter(
+                        valuesExpression.AnonymousType,
+                        Helper.GenerateParameterName(valuesExpression.RuntimeParameter),
+                        valuesExpression.RuntimeParameter));
+
+                var paramName = Helper.GenerateParameterNamePlaceholder(valuesExpression.RuntimeParameter);
+
+                for (int i = 0; i < valuesExpression.TupleCount.Value; i++)
+                {
+                    if (i != 0) Sql.Append(",").AppendLine();
+                    Sql.Append("(");
+
+                    for (int j = 0; j < valuesExpression.ColumnNames.Count; j++)
+                    {
+                        if (j != 0) Sql.Append(", ");
+                        Sql.Append($"{paramName}_{i}_{j}");
+                    }
+
+                    Sql.Append(")");
+                }
+            }
+            else if (valuesExpression.ImmediateValues != null)
+            {
+                for (int i = 0; i < valuesExpression.ImmediateValues.Count; i++)
+                {
+                    if (i != 0) Sql.Append(",").AppendLine();
+                    Sql.Append("(")
+                        .GenerateList(valuesExpression.ImmediateValues[i], e => Visit(e))
+                        .Append(")");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "This instance of values expression is not concrete.");
+            }
 
             Sql.DecrementIndent()
                 .AppendLine()
                 .AppendLine(")");
-            return tableExpression;
+
+            return valuesExpression;
         }
 
         protected virtual Expression VisitValues(ValuesExpression tableExpression)
@@ -181,9 +221,8 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
 
             Sql.Append("INSERT INTO ");
             Visit(upsertExpression.TargetTable);
-            Sql.AppendLine();
 
-            Sql.Append("(")
+            Sql.Append(" (")
                 .GenerateList(upsertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
                 .AppendLine(")");
 
@@ -216,8 +255,7 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
                     .GenerateList(
                         upsertExpression.ConflictConstraint.Properties,
                         e => Sql.Append(Helper.DelimitIdentifier(e.GetColumnName(soi))))
-                    .AppendLine(") DO UPDATE")
-                    .Append("SET ")
+                    .Append(") DO UPDATE SET ")
                     .GenerateList(
                         upsertExpression.OnConflictUpdate,
                         e => Sql.Append(Helper.DelimitIdentifier(e.Alias)).Append(" = ").Then(() => Visit(e.Expression)));
