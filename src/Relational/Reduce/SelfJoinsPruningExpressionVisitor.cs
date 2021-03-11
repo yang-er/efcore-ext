@@ -12,6 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         private readonly SelfJoinsPredicateComparer _comparer;
         private readonly ColumnRewritingExpressionVisitor _columnRewriting;
         private readonly bool _skipped;
+        private bool _processed;
 
         public SelfJoinsPruningExpressionVisitor(
             QueryCompilationContext queryCompilationContext,
@@ -40,6 +41,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             {
                 var tables = (List<TableExpressionBase>)parentSelect.Tables;
                 tables.Remove(join);
+                _columnRewriting.Visit(tables);
 
                 var projections = (List<ProjectionExpression>)parentSelect.Projection;
                 _columnRewriting.Visit(projections);
@@ -54,6 +56,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                     var predicate = MergePredicate(ExpressionType.AndAlso, predicate1, predicate2);
                     parentSelect.SetPredicate(predicate);
                 }
+
+                _processed = true;
             }
         }
 
@@ -83,7 +87,21 @@ namespace Microsoft.EntityFrameworkCore.Query
                 shaped = shaped.Update(newQuery, newShaper);
             }
 
+            if (_processed && newQuery.Projection.Count > 0)
+            {
+                shaped = PruneProjections(shaped);
+            }
+
             return shaped;
+        }
+
+        protected virtual ShapedQueryExpression PruneProjections(ShapedQueryExpression shapedQueryExpression)
+        {
+            var newQuery = (SelectExpression)shapedQueryExpression.QueryExpression;
+            var entityProjection = newQuery.GetEntityProjectionCache();
+            if (entityProjection.Count <= 1) return shapedQueryExpression; // skip most scenarios
+
+            return new ProjectionBindingPruningExpressionVisitor().VisitAndConvert(shapedQueryExpression, null);
         }
 
         protected override Expression VisitSelect(SelectExpression selectExpression)
@@ -106,6 +124,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 && unionToSelect.Limit == null
                 && unionToSelect.Offset == null)
             {
+                _processed = true;
                 return unionToSelect;
             }
 
@@ -113,6 +132,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             {
                 if (newTables[i] == selectTables[i]) continue;
                 var resulting = newTables[i];
+                _processed = true;
 
                 if (newTables[i] is SelectExpression newSelect
                     && newSelect.Orderings.Count == 0
@@ -219,6 +239,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     }
 
                     i--;
+                    _processed = true;
 
                     if (join.Table is TableExpression)
                     {

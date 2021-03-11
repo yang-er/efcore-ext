@@ -75,6 +75,13 @@ namespace Microsoft.EntityFrameworkCore.Query
             return AccessProjectionMapping(selectExpression);
         }
 
+        public static IDictionary<EntityProjectionExpression, IDictionary<IProperty, int>> GetEntityProjectionCache(
+            this SelectExpression selectExpression)
+        {
+            Check.NotNull(selectExpression, nameof(selectExpression));
+            return AccessEntityProjectionCache(selectExpression);
+        }
+
         public static void SetPredicate(
             this SelectExpression selectExpression,
             SqlExpression predicate)
@@ -309,6 +316,12 @@ namespace Microsoft.EntityFrameworkCore.Query
                 .Begin<SelectExpression>()
                 .AccessField("_projectionMapping")
                 .Compile<Func<SelectExpression, IDictionary<ProjectionMember, Expression>>>();
+
+        public static readonly Func<SelectExpression, IDictionary<EntityProjectionExpression, IDictionary<IProperty, int>>> AccessEntityProjectionCache
+            = ExpressionBuilder
+                .Begin<SelectExpression>()
+                .AccessField("_entityProjectionCache")
+                .Compile<Func<SelectExpression, IDictionary<EntityProjectionExpression, IDictionary<IProperty, int>>>>();
 
         public static readonly Action<SelectExpression, SqlExpression> ApplyPredicate
             = new Func<Expression<Action<SelectExpression, SqlExpression>>>(delegate
