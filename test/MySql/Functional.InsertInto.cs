@@ -17,7 +17,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_NormalSelectInto));
 
             AssertSql(@"
-
+INSERT INTO `ChangeLog_{{schema}}` (`Description`, `ChangedBy`, `Audit_IsDeleted`)
+SELECT CONCAT(COALESCE(`j`.`Server`, @__hh), '666') AS `Description`, `j`.`CompileError` AS `ChangedBy`, TRUE AS `Audit_IsDeleted`
+FROM `Judging_{{schema}}` AS `j`
 ");
         }
 
@@ -28,7 +30,10 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_WithAbstractType));
 
             AssertSql(@"
-
+INSERT INTO `Person_{{schema}}` (`Name`, `Class`)
+SELECT `p`.`Name`, `p`.`Subject` AS `Class`
+FROM `Person_{{schema}}` AS `p`
+WHERE `p`.`Discriminator` = 'Student'
 ");
         }
 
@@ -38,8 +43,16 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(CompiledQuery_WithComputedColumn));
 
-            AssertSql(@"
+            AssertSql31(@"
+INSERT INTO `Document_{{schema}}` (`Content`)
+SELECT CONCAT(`d`.`Content`, CONVERT(`d`.`ContentLength`, CHAR(11))) AS `Content`
+FROM `Document_{{schema}}` AS `d`
+");
 
+            AssertSql50(@"
+INSERT INTO `Document_{{schema}}` (`Content`)
+SELECT CONCAT(`d`.`Content`, CAST(`d`.`ContentLength` AS char) COLLATE utf8mb4_bin) AS `Content`
+FROM `Document_{{schema}}` AS `d`
 ");
         }
 
@@ -50,7 +63,9 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(NormalSelectInto));
 
             AssertSql(@"
-
+INSERT INTO `ChangeLog_{{schema}}` (`Description`, `ChangedBy`, `Audit_IsDeleted`)
+SELECT CONCAT(COALESCE(`j`.`Server`, @__hh_0), '666') AS `Description`, `j`.`CompileError` AS `ChangedBy`, TRUE AS `Audit_IsDeleted`
+FROM `Judging_{{schema}}` AS `j`
 ");
         }
 
@@ -61,7 +76,10 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(WithAbstractType));
 
             AssertSql(@"
-
+INSERT INTO `Person_{{schema}}` (`Name`, `Class`)
+SELECT `p`.`Name`, `p`.`Subject` AS `Class`
+FROM `Person_{{schema}}` AS `p`
+WHERE `p`.`Discriminator` = 'Student'
 ");
         }
 
@@ -71,8 +89,16 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(WithComputedColumn));
 
-            AssertSql(@"
+            AssertSql31(@"
+INSERT INTO `Document_{{schema}}` (`Content`)
+SELECT CONCAT(`d`.`Content`, CONVERT(`d`.`ContentLength`, CHAR(11))) AS `Content`
+FROM `Document_{{schema}}` AS `d`
+");
 
+            AssertSql50(@"
+INSERT INTO `Document_{{schema}}` (`Content`)
+SELECT CONCAT(`d`.`Content`, CAST(`d`.`ContentLength` AS char) COLLATE utf8mb4_bin) AS `Content`
+FROM `Document_{{schema}}` AS `d`
 ");
         }
     }

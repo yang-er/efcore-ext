@@ -7,7 +7,6 @@ using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 using Pomelo.EntityFrameworkCore.MySql.Query.ExpressionVisitors.Internal;
 using Pomelo.EntityFrameworkCore.MySql.Query.Internal;
 using System;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace Pomelo.EntityFrameworkCore.MySql.Query
@@ -145,11 +144,11 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
         protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
         {
-            Sql.Append("DELETE");
+            Sql.Append("DELETE ");
 
-            if (deleteExpression.JoinedTables.Any())
+            if (deleteExpression.JoinedTables.Count > 0)
             {
-                Sql.AppendLine().Append("FROM ");
+                Sql.Append("FROM ");
                 Sql.GenerateList(
                     deleteExpression.JoinedTables,
                     e => Visit(e),

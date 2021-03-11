@@ -100,13 +100,13 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchInsertInto
             {
                 entity.ToTable(nameof(Document) + "_" + DefaultSchema);
 
-                if (Database.IsSqlite()) return;
+                if (Database.IsSqlite() || Database.IsInMemory()) return;
 
                 entity.Property(p => p.ContentLength)
                     .HasComputedColumnSql(
                         Database.IsSqlServer() ? "CONVERT([int], len([Content]))" :
                         Database.IsNpgsql() ? "length(\"Content\")" :
-                        Database.IsInMemory() ? "" :
+                        Database.IsMySql() ? "CHAR_LENGTH(`Content`)" :
                         throw new NotImplementedException(),
                         true);
             });
