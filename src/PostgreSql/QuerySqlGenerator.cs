@@ -211,7 +211,16 @@ namespace Npgsql.EntityFrameworkCore.PostgreSQL.Query
                 .GenerateList(upsertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
                 .AppendLine(")");
 
-            if (upsertExpression.SourceTable != null)
+            if (upsertExpression.SourceTable is ValuesExpression valuesExpression)
+            {
+                TransientExpandValuesExpression.Process(
+                    valuesExpression,
+                    upsertExpression.Columns,
+                    this, Sql, Helper);
+
+                Sql.AppendLine();
+            }
+            else if (upsertExpression.SourceTable != null)
             {
                 Sql.Append("SELECT ")
                     .GenerateList(upsertExpression.Columns, e => Visit(e.Expression))
