@@ -16,7 +16,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             _model = model;
         }
 
-        protected virtual HashSet<string> TakeOutKeys(SqlExpression predicate, Func<ColumnExpression, string> accessor)
+        protected virtual HashSet<string> TakeOutKeys(TableExpressionBase left, TableExpressionBase right, SqlExpression predicate, Func<ColumnExpression, string> accessor)
         {
             var discovered = new HashSet<string>();
 
@@ -30,7 +30,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                 {
                     if (binaryExpression.Left is ColumnExpression col
                         && binaryExpression.Right is ColumnExpression col2
-                        && col.Name == accessor(col2))
+                        && col.Name == accessor(col2)
+                        && col.Table == left && col2.Table == right)
                     {
                         discovered.Add(col.Name);
                         return true;
@@ -80,7 +81,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return false;
             }
 
-            var joinFields = TakeOutKeys(predicate, column =>
+            var joinFields = TakeOutKeys(table, select, predicate, column =>
             {
                 // The select expression is pushed down, so the projection fields should have their column name.
                 if (column.Table != select) return null;
@@ -116,7 +117,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return false;
             }
 
-            var joinFields = TakeOutKeys(predicate, c => c.Name);
+            var joinFields = TakeOutKeys(table, table2, predicate, c => c.Name);
             if (joinFields == null)
             {
                 // Some problem occurred during join-field discovery
