@@ -214,11 +214,6 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
 
         protected virtual Expression VisitUpsert(UpsertExpression upsertExpression)
         {
-            if (upsertExpression.SourceTable is ValuesExpression values)
-            {
-                VisitValuesAsCommonTableExpression(values);
-            }
-
             Sql.Append("INSERT INTO ");
             Visit(upsertExpression.TargetTable);
 
@@ -226,7 +221,16 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
                 .GenerateList(upsertExpression.Columns, e => Sql.Append(Helper.DelimitIdentifier(e.Alias)))
                 .AppendLine(")");
 
-            if (upsertExpression.SourceTable != null)
+            if (upsertExpression.SourceTable is ValuesExpression valuesExpression)
+            {
+                TransientExpandValuesExpression.Process(
+                    valuesExpression,
+                    upsertExpression.Columns,
+                    this, Sql, Helper);
+
+                Sql.AppendLine();
+            }
+            else if (upsertExpression.SourceTable != null)
             {
                 Sql.Append("SELECT ")
                     .GenerateList(upsertExpression.Columns, e => Visit(e.Expression))

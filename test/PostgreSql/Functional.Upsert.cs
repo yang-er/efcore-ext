@@ -75,11 +75,7 @@ ON CONFLICT DO NOTHING
 
             AssertSql(@"
 INSERT INTO ""TwoRelation_{{schema}}"" AS t (""BbbId"", ""AaaId"")
-SELECT @__bbb_1, @__aaa_2
-FROM (
-    VALUES
-    (@__p_0_0_0, @__p_0_0_1)
-) AS cte (aaa, bbb)
+VALUES (@__bbb_1, @__aaa_2)
 ON CONFLICT DO NOTHING
 ");
         }
@@ -92,11 +88,7 @@ ON CONFLICT DO NOTHING
 
             AssertSql(@"
 INSERT INTO ""ThreeRelation_{{schema}}"" AS t (""BbbId"", ""AaaId"")
-SELECT cte.bbb, cte.aaa
-FROM (
-    VALUES
-    (@__p_0_0_0, @__p_0_0_1)
-) AS cte (aaa, bbb)
+VALUES (@__p_0_0_1, @__p_0_0_0)
 ON CONFLICT DO NOTHING
 ");
         }
@@ -140,12 +132,8 @@ ON CONFLICT ON CONSTRAINT ""PK_RankCache_{{schema}}"" DO UPDATE SET ""PointsPubl
 
             AssertSql(@"
 INSERT INTO ""RankCache_{{schema}}"" AS r (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
-SELECT 1, 1, cte.""Time"", cte.""Time"", cte.""ContestId"", cte.""TeamId""
-FROM (
-    VALUES
-    (@__p_0_0_0, @__p_0_0_1, @__p_0_0_2),
-    (@__p_0_1_0, @__p_0_1_1, @__p_0_1_2)
-) AS cte (""ContestId"", ""TeamId"", ""Time"")
+VALUES (1, 1, @__p_0_0_2, @__p_0_0_2, @__p_0_0_0, @__p_0_0_1),
+(1, 1, @__p_0_1_2, @__p_0_1_2, @__p_0_1_0, @__p_0_1_1)
 ON CONFLICT ON CONSTRAINT ""PK_RankCache_{{schema}}"" DO UPDATE SET ""PointsPublic"" = r.""PointsPublic"" + 1, ""TotalTimePublic"" = r.""TotalTimePublic"" + excluded.""TotalTimePublic""
 ");
         }
@@ -158,12 +146,8 @@ ON CONFLICT ON CONSTRAINT ""PK_RankCache_{{schema}}"" DO UPDATE SET ""PointsPubl
 
             AssertSql(@"
 INSERT INTO ""RankCache_{{schema}}"" AS r (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
-SELECT 1, 1, cte.""Time"", cte.""Time"", cte.""ContestId"", cte.""TeamId""
-FROM (
-    VALUES
-    (1, 2, @__time1),
-    (3, @__teamid2, 50)
-) AS cte (""ContestId"", ""TeamId"", ""Time"")
+VALUES (1, 1, @__time1, @__time1, 1, 2),
+(1, 1, 50, 50, 3, @__teamid2)
 ON CONFLICT ON CONSTRAINT ""PK_RankCache_{{schema}}"" DO UPDATE SET ""PointsPublic"" = r.""PointsPublic"" + 1, ""TotalTimePublic"" = r.""TotalTimePublic"" + excluded.""TotalTimePublic""
 ");
         }
