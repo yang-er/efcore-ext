@@ -1,10 +1,13 @@
-﻿using System;
+﻿using Pomelo.EntityFrameworkCore.MySql.Storage;
+using System;
 
 namespace Microsoft.EntityFrameworkCore.Tests
 {
     public class MySqlContextFactory<TContext> : RelationalContextFactoryBase<TContext>
         where TContext : DbContext
     {
+        public ServerVersion ServerVersion { get; private set; }
+
         protected override void Configure(DbContextOptionsBuilder optionsBuilder)
         {
             var connectionString =
@@ -16,10 +19,12 @@ namespace Microsoft.EntityFrameworkCore.Tests
                 $"Character Set=utf8;" +
                 $"TreatTinyAsBoolean=true;";
 
+            ServerVersion = ServerVersion.AutoDetect(connectionString);
+
             optionsBuilder.UseMySql(
                 connectionString,
 #if EFCORE50
-                ServerVersion.AutoDetect(connectionString),
+                ServerVersion,
 #endif
                 s => s.UseBulk());
         }

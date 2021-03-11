@@ -69,10 +69,15 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
         protected virtual Expression VisitValues(ValuesExpression valuesExpression)
         {
+            bool supportValuesRow =
+                _serverVersion.Type == ServerType.MySql &&
+                _serverVersion.Version >= new Version(8, 0, 19);
+
             Sql.Append("(")
                 .IncrementIndent()
-                .AppendLine()
-                .AppendLine("VALUES");
+                .AppendLine();
+
+            if (supportValuesRow) Sql.AppendLine("VALUES");
 
             if (valuesExpression.TupleCount.HasValue)
             {
@@ -86,26 +91,33 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
                 for (int i = 0; i < valuesExpression.TupleCount.Value; i++)
                 {
-                    if (i != 0) Sql.Append(",").AppendLine();
-                    Sql.Append("ROW(");
+                    if (i != 0) Sql.AppendIf(supportValuesRow, ",").AppendLine();
+                    Sql.Append(supportValuesRow ? "ROW(" : i == 0 ? "SELECT " : "UNION SELECT ");
 
                     for (int j = 0; j < valuesExpression.ColumnNames.Count; j++)
                     {
                         if (j != 0) Sql.Append(", ");
                         Sql.Append($"{paramName}_{i}_{j}");
+
+                        if (i == 0 && !supportValuesRow)
+                        {
+                            Sql.Append(AliasSeparator).Append(Helper.DelimitIdentifier(valuesExpression.ColumnNames[j]));
+                        }
                     }
 
-                    Sql.Append(")");
+                    Sql.AppendIf(supportValuesRow, ")");
                 }
             }
             else if (valuesExpression.ImmediateValues != null)
             {
                 for (int i = 0; i < valuesExpression.ImmediateValues.Count; i++)
                 {
-                    if (i != 0) Sql.Append(",").AppendLine();
-                    Sql.Append("ROW(")
-                        .GenerateList(valuesExpression.ImmediateValues[i], e => Visit(e))
-                        .Append(")");
+                    if (i != 0) Sql.AppendIf(supportValuesRow, ",").AppendLine();
+                    Sql.Append(supportValuesRow ? "ROW(" : "UNION SELECT ");
+
+                    Sql.GenerateList(valuesExpression.ImmediateValues[i], e => Visit(e));
+
+                    Sql.AppendIf(supportValuesRow, ")");
                 }
             }
             else
@@ -118,12 +130,16 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
                 .AppendLine()
                 .Append(")")
                 .Append(AliasSeparator)
-                .Append(Helper.DelimitIdentifier(valuesExpression.Alias))
-                .Append(" (")
-                .GenerateList(
-                    valuesExpression.ColumnNames,
-                    a => Sql.Append(Helper.DelimitIdentifier(a)))
-                .Append(")");
+                .Append(Helper.DelimitIdentifier(valuesExpression.Alias));
+
+            if (supportValuesRow)
+            {
+                Sql.Append(" (")
+                    .GenerateList(
+                        valuesExpression.ColumnNames,
+                        a => Sql.Append(Helper.DelimitIdentifier(a)))
+                    .Append(")");
+            }
 
             return valuesExpression;
         }
@@ -228,7 +244,8 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
         protected virtual Expression VisitDelete(DeleteExpression deleteExpression)
         {
-            Sql.Append("DELETE ");
+            Sql.Append("DELETE ")
+                .AppendLine(Helper.DelimitIdentifier(deleteExpression.Table.Alias));
 
             if (deleteExpression.JoinedTables.Count > 0)
             {
