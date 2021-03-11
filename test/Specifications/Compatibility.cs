@@ -49,6 +49,11 @@ namespace Microsoft.EntityFrameworkCore
                 "Npgsql.EntityFrameworkCore.PostgreSQL",
                 StringComparison.Ordinal);
 
+        public static bool IsMySql(this DatabaseFacade database)
+            => database.ProviderName.Equals(
+                "Pomelo.EntityFrameworkCore.MySql",
+                StringComparison.Ordinal);
+
         public static string ToSQL<TSource>(this IQueryable<TSource> queryable) where TSource : class
         {
             var enumerable = queryable.Provider.Execute<IEnumerable<TSource>>(queryable.Expression);

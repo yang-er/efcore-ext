@@ -17,7 +17,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_ConstantCondition));
 
             AssertSql(@"
-
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE (`i`.`ItemId` > 500) AND (`i`.`Price` = 3.0)
 ");
         }
 
@@ -28,7 +29,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_ContainsSomething));
 
             AssertSql(@"
-
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE `i`.`Name` IN ('jyntnytjyntjntnytnt', 'aaa')
 ");
         }
 
@@ -39,7 +41,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(CompiledQuery_ParameteredCondition));
 
             AssertSql(@"
-
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE `i`.`Name` = @__nameToDelete
 ");
         }
 
@@ -50,7 +53,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(ConstantCondition));
 
             AssertSql(@"
-
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE (`i`.`ItemId` > 500) AND (`i`.`Price` = 124.0)
 ");
         }
 
@@ -60,8 +64,14 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(ContainsAndAlsoEqual));
 
-            AssertSql(@"
+            AssertSql31(@"
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE `i`.`Description` IN ('info') OR (`i`.`Name` = @__nameToDelete_1)
+");
 
+            AssertSql50(@"
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE (`i`.`Description` = 'info') OR (`i`.`Name` = @__nameToDelete_1)
 ");
         }
 
@@ -72,7 +82,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(ContainsSomething));
 
             AssertSql(@"
-
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE `i`.`Description` IN ('info', 'aaa')
 ");
         }
 
@@ -82,8 +93,14 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(EmptyContains));
 
-            AssertSql(@"
+            AssertSql31(@"
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE TRUE = FALSE
+");
 
+            AssertSql50(@"
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE FALSE
 ");
         }
 
@@ -93,8 +110,14 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(ListAny));
 
-            AssertSql(@"
+            AssertSql31(@"
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE `i`.`Description` IN ('info')
+");
 
+            AssertSql50(@"
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE `i`.`Description` = 'info'
 ");
         }
 
@@ -105,7 +128,8 @@ namespace Microsoft.EntityFrameworkCore.Tests
             LogSql(nameof(ParameteredCondition));
 
             AssertSql(@"
-
+DELETE FROM `Item_{{schema}}` AS `i`
+WHERE `i`.`Name` = @__nameToDelete_0
 ");
         }
     }
