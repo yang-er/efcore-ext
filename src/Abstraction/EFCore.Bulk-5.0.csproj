@@ -6,6 +6,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix)</PackageId>
   </PropertyGroup>
 
   <ItemGroup>

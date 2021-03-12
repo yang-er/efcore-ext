@@ -18,25 +18,25 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{9326EF08
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{43502E08-17D1-4058-B588-0E268B175832}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk-5.0", "src\Abstraction\Microsoft.EntityFrameworkCore.Bulk-5.0.csproj", "{7D066852-F665-4FAB-B65A-5E8244496C24}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk-5.0", "src\Abstraction\EFCore.Bulk-5.0.csproj", "{7D066852-F665-4FAB-B65A-5E8244496C24}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.Relational-5.0", "src\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-5.0.csproj", "{2D90FC9F-939C-4086-8A3E-044115E283FD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.Relational-5.0", "src\Relational\EFCore.Bulk.Relational-5.0.csproj", "{2D90FC9F-939C-4086-8A3E-044115E283FD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.SqlServer-5.0", "src\SqlServer\Microsoft.EntityFrameworkCore.Bulk.SqlServer-5.0.csproj", "{70C4E27E-6992-4FD6-A1AC-E8A62FDC4645}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.SqlServer-5.0", "src\SqlServer\EFCore.Bulk.SqlServer-5.0.csproj", "{70C4E27E-6992-4FD6-A1AC-E8A62FDC4645}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.InMemory-5.0", "src\InMemory\Microsoft.EntityFrameworkCore.Bulk.InMemory-5.0.csproj", "{46ECB4BE-BCE4-4B86-9C6C-35E3F5D3E894}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.InMemory-5.0", "src\InMemory\EFCore.Bulk.InMemory-5.0.csproj", "{46ECB4BE-BCE4-4B86-9C6C-35E3F5D3E894}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.PostgreSql-5.0", "src\PostgreSql\Microsoft.EntityFrameworkCore.Bulk.PostgreSql-5.0.csproj", "{5782361D-3DEB-4496-91C5-96A281955D22}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.PostgreSql-5.0", "src\PostgreSql\EFCore.Bulk.PostgreSql-5.0.csproj", "{5782361D-3DEB-4496-91C5-96A281955D22}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk-3.1", "src\Abstraction\Microsoft.EntityFrameworkCore.Bulk-3.1.csproj", "{DC32E8FA-5BFD-4A86-96FB-072050963D12}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk-3.1", "src\Abstraction\EFCore.Bulk-3.1.csproj", "{DC32E8FA-5BFD-4A86-96FB-072050963D12}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.Relational-3.1", "src\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-3.1.csproj", "{6D3E0375-0E22-40BD-AD70-37525CB18521}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.Relational-3.1", "src\Relational\EFCore.Bulk.Relational-3.1.csproj", "{6D3E0375-0E22-40BD-AD70-37525CB18521}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.SqlServer-3.1", "src\SqlServer\Microsoft.EntityFrameworkCore.Bulk.SqlServer-3.1.csproj", "{ED56DCA5-CF8F-4307-8884-08D4D320B17D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.SqlServer-3.1", "src\SqlServer\EFCore.Bulk.SqlServer-3.1.csproj", "{ED56DCA5-CF8F-4307-8884-08D4D320B17D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.InMemory-3.1", "src\InMemory\Microsoft.EntityFrameworkCore.Bulk.InMemory-3.1.csproj", "{555C2D36-9173-46FB-84FE-330949D9CA77}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.InMemory-3.1", "src\InMemory\EFCore.Bulk.InMemory-3.1.csproj", "{555C2D36-9173-46FB-84FE-330949D9CA77}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.PostgreSql-3.1", "src\PostgreSql\Microsoft.EntityFrameworkCore.Bulk.PostgreSql-3.1.csproj", "{A3899B5A-DF45-4623-AA15-D54D699927A3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.PostgreSql-3.1", "src\PostgreSql\EFCore.Bulk.PostgreSql-3.1.csproj", "{A3899B5A-DF45-4623-AA15-D54D699927A3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}"
 EndProject
@@ -66,17 +66,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.Relational.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.Tests-5.0", "test\Specifications\EFCore.Bulk.Tests-5.0.csproj", "{F23EA667-1C64-41A6-8F2C-5EC305259469}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.Sqlite-3.1", "src\Sqlite\Microsoft.EntityFrameworkCore.Bulk.Sqlite-3.1.csproj", "{9E914C2E-9FFE-40FE-91CF-B04135CED97C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.Sqlite-3.1", "src\Sqlite\EFCore.Bulk.Sqlite-3.1.csproj", "{9E914C2E-9FFE-40FE-91CF-B04135CED97C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.Sqlite-5.0", "src\Sqlite\Microsoft.EntityFrameworkCore.Bulk.Sqlite-5.0.csproj", "{13798E19-8313-47BF-8907-DB675266AB95}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.Sqlite-5.0", "src\Sqlite\EFCore.Bulk.Sqlite-5.0.csproj", "{13798E19-8313-47BF-8907-DB675266AB95}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.Sqlite.Tests-3.1", "test\Sqlite\EFCore.Bulk.Sqlite.Tests-3.1.csproj", "{747EF2EF-E462-44BA-8200-63D3BED4964A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.Sqlite.Tests-5.0", "test\Sqlite\EFCore.Bulk.Sqlite.Tests-5.0.csproj", "{A323C7EC-C394-401D-B12F-C2974F9F2117}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.MySql-3.1", "src\MySql\Microsoft.EntityFrameworkCore.Bulk.MySql-3.1.csproj", "{C09DB743-C4FF-407A-8452-DCBF00FD54F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.MySql-3.1", "src\MySql\EFCore.Bulk.MySql-3.1.csproj", "{C09DB743-C4FF-407A-8452-DCBF00FD54F1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.EntityFrameworkCore.Bulk.MySql-5.0", "src\MySql\Microsoft.EntityFrameworkCore.Bulk.MySql-5.0.csproj", "{6949B761-394A-4863-873A-F57A693A7EA7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.MySql-5.0", "src\MySql\EFCore.Bulk.MySql-5.0.csproj", "{6949B761-394A-4863-873A-F57A693A7EA7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.MySql.Tests-3.1", "test\MySql\EFCore.Bulk.MySql.Tests-3.1.csproj", "{572D2AE3-840F-4A43-AA1F-1104328E74B5}"
 EndProject

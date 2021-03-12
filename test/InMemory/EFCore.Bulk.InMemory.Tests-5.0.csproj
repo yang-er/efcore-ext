@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\InMemory\Microsoft.EntityFrameworkCore.Bulk.InMemory-5.0.csproj" />
+    <ProjectReference Include="..\..\src\InMemory\EFCore.Bulk.InMemory-5.0.csproj" />
     <ProjectReference Include="..\Specifications\EFCore.Bulk.Tests-5.0.csproj" />
   </ItemGroup>
 

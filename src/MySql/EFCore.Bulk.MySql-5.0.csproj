@@ -5,6 +5,7 @@
     <DefineConstants>$(DefineConstants);EFCORE50;RELATIONAL;MYSQL</DefineConstants>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.MySql</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix).MySql</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +15,7 @@
   <ItemGroup>
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="$(EFCore50PomeloVersion)" Condition=" $(EFCore50MySourceDirectory) == '' " />
     <ProjectReference Include="$(EFCore50MySourceDirectory)\src\EFCore.MySql\EFCore.MySql.csproj" Condition=" $(EFCore50MySourceDirectory) != '' " />
-    <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-5.0.csproj" />
+    <ProjectReference Include="..\Relational\EFCore.Bulk.Relational-5.0.csproj" />
   </ItemGroup>
 
 </Project>

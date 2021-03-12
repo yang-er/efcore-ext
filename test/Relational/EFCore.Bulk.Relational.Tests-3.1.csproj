@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-3.1.csproj" />
+    <ProjectReference Include="..\..\src\Relational\EFCore.Bulk.Relational-3.1.csproj" />
     <ProjectReference Include="..\Specifications\EFCore.Bulk.Tests-3.1.csproj" />
   </ItemGroup>
 

@@ -19,11 +19,12 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
 
     <!-- Artifacts Directory -->
-    <BaseOutputPath>$(MSBuildThisFileDirectory)\artifacts\bin\$(MSBuildProjectName)\</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)\artifacts\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)artifacts\bin\$(MSBuildProjectName)\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 
     <!-- Versioning -->
     <XysMinorVersion>25</XysMinorVersion>
+    <ExtensionPackagePrefix>Microsoft.EntityFrameworkCore.Bulk</ExtensionPackagePrefix>
 
     <!-- Product versions -->
     <EFCore31Version>[3.1.11,5.0.0)</EFCore31Version>

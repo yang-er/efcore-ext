@@ -5,12 +5,13 @@
     <DefineConstants>$(DefineConstants);EFCORE50;IN_MEMORY</DefineConstants>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.InMemory</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix).InMemory</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EFCore50Version)" Condition=" $(EFCore50SourceDirectory) == '' " />
     <ProjectReference Include="$(EFCore50SourceDirectory)\src\EFCore.InMemory\EFCore.InMemory.csproj" Condition=" $(EFCore50SourceDirectory) != '' " />
-    <ProjectReference Include="..\Abstraction\Microsoft.EntityFrameworkCore.Bulk-5.0.csproj" />
+    <ProjectReference Include="..\Abstraction\EFCore.Bulk-5.0.csproj" />
   </ItemGroup>
 
 </Project>

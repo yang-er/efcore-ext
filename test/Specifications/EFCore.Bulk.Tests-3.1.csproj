@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Abstraction\Microsoft.EntityFrameworkCore.Bulk-3.1.csproj" />
+    <ProjectReference Include="..\..\src\Abstraction\EFCore.Bulk-3.1.csproj" />
     <ProjectReference Include="..\TestUtilities\EFCore.TestUtilities.csproj" />
   </ItemGroup>
 

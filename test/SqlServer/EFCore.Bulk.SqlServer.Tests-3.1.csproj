@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SqlServer\Microsoft.EntityFrameworkCore.Bulk.SqlServer-3.1.csproj" />
+    <ProjectReference Include="..\..\src\SqlServer\EFCore.Bulk.SqlServer-3.1.csproj" />
     <ProjectReference Include="..\Relational\EFCore.Bulk.Relational.Tests-3.1.csproj" />
   </ItemGroup>
 
