@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Relational\EFCore.Bulk.Relational.Tests-3.1.csproj" />
-    <ProjectReference Include="..\..\src\MySql\Microsoft.EntityFrameworkCore.Bulk.MySql-3.1.csproj" />
+    <ProjectReference Include="..\..\src\MySql\EFCore.Bulk.MySql-3.1.csproj" />
   </ItemGroup>
 
   <ItemGroup>

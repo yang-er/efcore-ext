@@ -5,6 +5,7 @@
     <DefineConstants>$(DefineConstants);EFCORE31;RELATIONAL;POSTGRE_SQL</DefineConstants>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.PostgreSql</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix).PostgreSql</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +15,7 @@
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(EFCore31NpgsqlVersion)" Condition=" $(EFCore31PgSourceDirectory) == '' " />
     <ProjectReference Include="$(EFCore31PgSourceDirectory)\src\EFCore.PG\EFCore.PG.csproj" Condition=" $(EFCore31PgSourceDirectory) != '' " />
-    <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-3.1.csproj" />
+    <ProjectReference Include="..\Relational\EFCore.Bulk.Relational-3.1.csproj" />
   </ItemGroup>
 
 </Project>

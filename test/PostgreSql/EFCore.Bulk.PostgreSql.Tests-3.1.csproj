@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Relational\EFCore.Bulk.Relational.Tests-3.1.csproj" />
-    <ProjectReference Include="..\..\src\PostgreSql\Microsoft.EntityFrameworkCore.Bulk.PostgreSql-3.1.csproj" />
+    <ProjectReference Include="..\..\src\PostgreSql\EFCore.Bulk.PostgreSql-3.1.csproj" />
   </ItemGroup>
 
   <ItemGroup>

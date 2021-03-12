@@ -5,6 +5,7 @@
     <DefineConstants>$(DefineConstants);EFCORE50;RELATIONAL</DefineConstants>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.Relational</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix).Relational</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +15,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCore50Version)" Condition=" $(EFCore50SourceDirectory) == '' " />
     <ProjectReference Include="$(EFCore50SourceDirectory)\src\EFCore.Relational\EFCore.Relational.csproj" Condition=" $(EFCore50SourceDirectory) != '' " />
-    <ProjectReference Include="..\Abstraction\Microsoft.EntityFrameworkCore.Bulk-5.0.csproj" />
+    <ProjectReference Include="..\Abstraction\EFCore.Bulk-5.0.csproj" />
   </ItemGroup>
 
 </Project>
