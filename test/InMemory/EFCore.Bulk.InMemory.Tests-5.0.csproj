@@ -19,10 +19,4 @@
     <ProjectReference Include="..\Specifications\EFCore.Bulk.Tests-5.0.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="obj\**" />
-    <EmbeddedResource Remove="obj\**" />
-    <None Remove="obj\**" />
-  </ItemGroup>
-
 </Project>

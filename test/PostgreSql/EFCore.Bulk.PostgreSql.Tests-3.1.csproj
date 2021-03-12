@@ -19,10 +19,4 @@
     <ProjectReference Include="..\..\src\PostgreSql\Microsoft.EntityFrameworkCore.Bulk.PostgreSql-3.1.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="obj\**" />
-    <EmbeddedResource Remove="obj\**" />
-    <None Remove="obj\**" />
-  </ItemGroup>
-
 </Project>
