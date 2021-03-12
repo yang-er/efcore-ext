@@ -1,6 +1,7 @@
 <Project>
 
   <PropertyGroup>
+
     <!-- Packaging Options -->
     <LangVersion>9.0</LangVersion>
     <Authors>borisdj;yang-er</Authors>
@@ -17,55 +18,36 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
 
+    <!-- Artifacts Directory -->
+    <BaseOutputPath>$(MSBuildThisFileDirectory)\artifacts\bin\$(MSBuildProjectName)\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)\artifacts\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+
     <!-- Versioning -->
-    <XysMinorVersion>22</XysMinorVersion>
+    <XysMinorVersion>25</XysMinorVersion>
 
-    <!-- Common Condition Names -->
-    <DotNetCoreVersion>Error</DotNetCoreVersion>
-    <IsUnitTest>False</IsUnitTest>
-    <DotNetCoreVersion Condition=" $(MSBuildProjectName.EndsWith('-5.0')) ">5.0</DotNetCoreVersion>
-    <DotNetCoreVersion Condition=" $(MSBuildProjectName.EndsWith('-3.1')) ">3.1</DotNetCoreVersion>
-    <IsUnitTest Condition=" $(MSBuildProjectName.EndsWith('.Tests-3.1')) ">True</IsUnitTest>
-    <IsUnitTest Condition=" $(MSBuildProjectName.EndsWith('.Tests-5.0')) ">True</IsUnitTest>
+    <!-- Product versions -->
+    <EFCore31Version>[3.1.11,5.0.0)</EFCore31Version>
+    <EFCore31NpgsqlVersion>[3.1.11,5.0.0)</EFCore31NpgsqlVersion>
+    <EFCore31PomeloVersion>[3.2.4,5.0.0)</EFCore31PomeloVersion>
+    <EFCore50Version>[5.0.2,6.0.0)</EFCore50Version>
+    <EFCore50NpgsqlVersion>[5.0.2,6.0.0)</EFCore50NpgsqlVersion>
+    <EFCore50PomeloVersion>5.0.0-alpha.2</EFCore50PomeloVersion>
+
   </PropertyGroup>
-
-  <!-- Project Defaults Bootstrapping -->
-  <PropertyGroup Condition=" $(DotNetCoreVersion) == '5.0' ">
-    <EntityFrameworkCoreVersion>[5.0.2,6.0.0)</EntityFrameworkCoreVersion>
-    <EFCoreNpgsqlCoreVersion>[5.0.2,6.0.0)</EFCoreNpgsqlCoreVersion>
-    <EFCorePomeloCoreVersion>5.0.0-alpha.2</EFCorePomeloCoreVersion>
-    <DefineConstants>$(DefineConstants);EFCORE50</DefineConstants>
-    <XysMinorVersion>$(XysMinorVersion)-preview</XysMinorVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" $(DotNetCoreVersion) == '3.1' ">
-    <EntityFrameworkCoreVersion>[3.1.11,5.0.0)</EntityFrameworkCoreVersion>
-    <EFCoreNpgsqlCoreVersion>[3.1.11,5.0.0)</EFCoreNpgsqlCoreVersion>
-    <EFCorePomeloCoreVersion>[3.2.4,5.0.0)</EFCorePomeloCoreVersion>
-    <DefineConstants>$(DefineConstants);EFCORE31</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" $(IsUnitTest) == 'True' ">
-    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
-    <DefineConstants>$(DefineConstants);EFCORE_TEST</DefineConstants>
-    <NoWarn>$(NoWarn);xUnit1013</NoWarn>
-  </PropertyGroup>
-
-  <ItemGroup Condition=" $(IsUnitTest) == 'True' ">
-    <AssemblyAttribute Include="Xunit.TestCaseOrdererAttribute">
-      <_Parameter1>Microsoft.EntityFrameworkCore.TestUtilities.Xunit.TestPriorityOrderer</_Parameter1>
-      <_Parameter2>Microsoft.EntityFrameworkCore.TestUtilities</_Parameter2>
-    </AssemblyAttribute>
-  </ItemGroup>
 
   <!-- Assembly Information -->
-  <PropertyGroup>
-    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)\artifacts\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
-    <Title>$(AssemblyName)</Title>
-    <PackageVersion>$(DotNetCoreVersion).$(XysMinorVersion)</PackageVersion>
-    <Version>$(DotNetCoreVersion).0</Version>
-    <AssemblyVersion>$(DotNetCoreVersion).0.0</AssemblyVersion>
-    <FileVersion>$(DotNetCoreVersion).0.0</FileVersion>
+  <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('-5.0')) ">
+    <PackageVersion>5.0.$(XysMinorVersion)</PackageVersion>
+    <Version>5.0.0</Version>
+    <AssemblyVersion>5.0.0.0</AssemblyVersion>
+    <FileVersion>5.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('-3.1')) ">
+    <PackageVersion>3.1.$(XysMinorVersion)</PackageVersion>
+    <Version>3.1.0</Version>
+    <AssemblyVersion>3.1.0.0</AssemblyVersion>
+    <FileVersion>3.1.0.0</FileVersion>
   </PropertyGroup>
 
   <!-- Source Code Debugging for EFCore -->

@@ -4,16 +4,13 @@
     <UseSourceDebugging>False</UseSourceDebugging>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" $(DotNetCoreVersion) == '5.0' AND $(UseSourceDebugging) == 'True' ">
-    <EFCoreSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore-5</EFCoreSourceDirectory>
-    <EFCorePgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg-5</EFCorePgSourceDirectory>
-    <EFCoreMySourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.my-5</EFCoreMySourceDirectory>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" $(DotNetCoreVersion) == '3.1' AND $(UseSourceDebugging) == 'True' ">
-    <EFCoreSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore</EFCoreSourceDirectory>
-    <EFCorePgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg</EFCorePgSourceDirectory>
-    <EFCoreMySourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.my</EFCoreMySourceDirectory>
+  <PropertyGroup Condition=" $(UseSourceDebugging) == 'True' ">
+    <EFCore50SourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore-5</EFCore50SourceDirectory>
+    <EFCore50PgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg-5</EFCore50PgSourceDirectory>
+    <EFCore50MySourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.my-5</EFCore50MySourceDirectory>
+    <EFCore31SourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore</EFCore31SourceDirectory>
+    <EFCore31PgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg</EFCore31PgSourceDirectory>
+    <EFCore31MySourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.my</EFCore31MySourceDirectory>
   </PropertyGroup>
 
 </Project>

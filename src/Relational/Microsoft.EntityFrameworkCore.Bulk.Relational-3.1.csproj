@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <DefineConstants>$(DefineConstants);RELATIONAL</DefineConstants>
+    <DefineConstants>$(DefineConstants);EFCORE31;RELATIONAL</DefineConstants>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.Relational</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
   </PropertyGroup>
@@ -12,9 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EntityFrameworkCoreVersion)" Condition=" $(EFCoreSourceDirectory) == '' " />
-    <ProjectReference Include="$(EFCoreSourceDirectory)\src\EFCore.Relational\EFCore.Relational.csproj" Condition=" $(EFCoreSourceDirectory) != '' " />
-    <ProjectReference Include="..\Abstraction\Microsoft.EntityFrameworkCore.Bulk-$(DotNetCoreVersion).csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCore31Version)" Condition=" $(EFCore31SourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCore31SourceDirectory)\src\EFCore.Relational\EFCore.Relational.csproj" Condition=" $(EFCore31SourceDirectory) != '' " />
+    <ProjectReference Include="..\Abstraction\Microsoft.EntityFrameworkCore.Bulk-3.1.csproj" />
   </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);EFCORE50</DefineConstants>
     <IsPackable>false</IsPackable>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.InMemory.Tests</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore.Tests</RootNamespace>
@@ -17,6 +18,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\InMemory\Microsoft.EntityFrameworkCore.Bulk.InMemory-5.0.csproj" />
     <ProjectReference Include="..\Specifications\EFCore.Bulk.Tests-5.0.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="Xunit.TestCaseOrdererAttribute">
+      <_Parameter1>Microsoft.EntityFrameworkCore.TestUtilities.Xunit.TestPriorityOrderer</_Parameter1>
+      <_Parameter2>Microsoft.EntityFrameworkCore.TestUtilities</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
 
 </Project>

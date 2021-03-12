@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <DefineConstants>$(DefineConstants);EFCORE31</DefineConstants>
     <IsPackable>false</IsPackable>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.Sqlite.Tests</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore.Tests</RootNamespace>
@@ -18,6 +19,13 @@
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.0.4" />
     <ProjectReference Include="..\Relational\EFCore.Bulk.Relational.Tests-3.1.csproj" />
     <ProjectReference Include="..\..\src\Sqlite\Microsoft.EntityFrameworkCore.Bulk.Sqlite-3.1.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="Xunit.TestCaseOrdererAttribute">
+      <_Parameter1>Microsoft.EntityFrameworkCore.TestUtilities.Xunit.TestPriorityOrderer</_Parameter1>
+      <_Parameter2>Microsoft.EntityFrameworkCore.TestUtilities</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
 
 </Project>
