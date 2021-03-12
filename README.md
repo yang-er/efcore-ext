@@ -35,13 +35,15 @@ options.UseSqlite(connection, o => o.UseBulk());
 options.UseMySql(connection, o => o.ServerVersion(..).UseBulk());
 ```
 
-For MySQL, **ServerVersion** is important, which is not explicitly passed with arguments in EFCore 3.1.
+For MySQL, setting **ServerVersion** is important, which is not explicitly passed with arguments in EFCore 3.1.
 
-If you want to try TableSplittingJoinsRemoval to remove useless self-joins, you may try
+If you want to try TableSplittingJoinsRemoval to remove useless self-joins, which tries to remove the redundant self-joins when using owned entity in EFCore 3.1, you may try
 
 ```csharp
 options.UseTableSplittingJoinsRemoval();
 ```
+
+The InMemory project is only used for unit tests, which is not efficient and may behave a little different from the relational providers.
 
 ## Delete
 
@@ -71,7 +73,7 @@ affectedRows = context.ItemAs.BatchUpdateJoin(
 ```csharp
 createdRows = context.Items
     .Where(a => a.ItemId <= 500)
-    .Select(a => new OtherItem { ...other props except identity pkey... })
+    .Select(a => new OtherItem { ...other props except auto increment key... })
     .Top(100)
     .BatchInsertInto(context.OtherItems);
 ```
@@ -122,23 +124,11 @@ context.Items.Merge(
 
 Note that when update/insert expressions are null, delete is true, it will become truncate.
 
-This function is only available in InMemory and SqlServer providers, since PostgreSQL removed supports for SQL MERGE.
+This function is only available in InMemory and SqlServer providers, since PostgreSQL removed supports for SQL MERGE, while SQLite and MySQL doesn't support this.
 
 ## Compiled Query
 
 You can use `EF.CompileQuery` or `EF.CompileAsyncQuery` for the extension methods appeared in this project.
-
-## Bulk\*\*\*\*
-
-It is removed now. It takes time to clear up the logics.
-
-## Cache
-
-```csharp
-options.UseCahce();
-
-await context.Items.CachedCountAsync("tag", TimeSpan.FromSeconds(10));
-```
 
 ## Developing this project
 

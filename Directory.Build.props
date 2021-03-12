@@ -5,12 +5,19 @@
     <!-- Packaging Options -->
     <LangVersion>9.0</LangVersion>
     <Authors>borisdj;yang-er</Authors>
-    <Description>Entity Framework Core Batch Extensions for Insert Update Delete and Read (CRUD) operations</Description>
+    <Description>
+      Entity Framework Core Batch Extensions for INSERT UPDATE DELETE UPSERT MERGE operations by generating SQLs. NOTE that you should install the corresponding provider package.
+
+      Commonly Used Extension Methods:
+      DbContext.Auditlogs.Where(a => a.Time == DateTime.Now.AddDays(-30)).BatchDelete();
+      DbContext.Employees.Where(a => a.IsActive).BatchUpdate(a => new Employee { Salary = a.Salary + 10000 });
+      DbContext.Votes.Upsert(() => new Vote { CommentId = cid, Votes = 1 }, v => new Vote { Votes = v.Votes + 1 });
+    </Description>
     <PackageProjectUrl>https://github.com/yang-er/efcore-ext</PackageProjectUrl>
     <Company />
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>EntityFrameworkCore</PackageTags>
-    <PackageReleaseNotes>Redesign the APIs, support INSERT INTO SELECT and MERGE INTO instructions.</PackageReleaseNotes>
+    <PackageTags>EntityFrameworkCore EFCore</PackageTags>
+    <PackageReleaseNotes>Brings DELETE / UPDATE / INSERT INTO SELECT / UPSERT / MERGE INTO into Various EFCore provider.</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/yang-er/efcore-ext</RepositoryUrl>
 
     <!-- Symbol Packaging -->
@@ -32,7 +39,7 @@
     <EFCore31PomeloVersion>[3.2.4,5.0.0)</EFCore31PomeloVersion>
     <EFCore50Version>[5.0.2,6.0.0)</EFCore50Version>
     <EFCore50NpgsqlVersion>[5.0.2,6.0.0)</EFCore50NpgsqlVersion>
-    <EFCore50PomeloVersion>5.0.0-alpha.2</EFCore50PomeloVersion>
+    <EFCore50PomeloVersion>[5.0.0-alpha.2,6.0.0)</EFCore50PomeloVersion>
 
   </PropertyGroup>
 
