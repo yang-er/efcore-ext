@@ -1,20 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <DefineConstants>$(DefineConstants);RELATIONAL;SQLITE</DefineConstants>
+    <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.Sqlite</AssemblyName>
+    <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Relational\Provider\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="$(EntityFrameworkCoreVersion)" Condition=" $(EFCoreSourceDirectory) == '' " />
     <ProjectReference Include="$(EFCoreSourceDirectory)\src\EFCore.Sqlite.Core\EFCore.Sqlite.Core.csproj" Condition=" $(EFCoreSourceDirectory) != '' " />
     <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-$(DotNetCoreVersion).csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="obj\**" />
-    <EmbeddedResource Remove="obj\**" />
-    <None Remove="obj\**" />
-    <Compile Include="..\RelationalSpecified\**" />
   </ItemGroup>
 
 </Project>

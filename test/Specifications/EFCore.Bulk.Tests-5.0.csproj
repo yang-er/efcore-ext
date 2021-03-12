@@ -17,10 +17,4 @@
     <ProjectReference Include="..\TestUtilities\EFCore.TestUtilities.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="obj\**" />
-    <EmbeddedResource Remove="obj\**" />
-    <None Remove="obj\**" />
-  </ItemGroup>
-
 </Project>
