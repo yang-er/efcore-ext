@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <DefineConstants>$(DefineConstants);EFCORE31</DefineConstants>
     <IsPackable>false</IsPackable>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.Relational.Tests</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore.Tests</RootNamespace>
@@ -10,6 +11,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-3.1.csproj" />
     <ProjectReference Include="..\Specifications\EFCore.Bulk.Tests-3.1.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="Xunit.TestCaseOrdererAttribute">
+      <_Parameter1>Microsoft.EntityFrameworkCore.TestUtilities.Xunit.TestPriorityOrderer</_Parameter1>
+      <_Parameter2>Microsoft.EntityFrameworkCore.TestUtilities</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
 
 </Project>

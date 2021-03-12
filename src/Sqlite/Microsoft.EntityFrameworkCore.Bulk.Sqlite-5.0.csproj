@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <DefineConstants>$(DefineConstants);RELATIONAL;SQLITE</DefineConstants>
+    <DefineConstants>$(DefineConstants);EFCORE50;RELATIONAL;SQLITE</DefineConstants>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.Sqlite</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
   </PropertyGroup>
@@ -12,9 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="$(EntityFrameworkCoreVersion)" Condition=" $(EFCoreSourceDirectory) == '' " />
-    <ProjectReference Include="$(EFCoreSourceDirectory)\src\EFCore.Sqlite.Core\EFCore.Sqlite.Core.csproj" Condition=" $(EFCoreSourceDirectory) != '' " />
-    <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-$(DotNetCoreVersion).csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="$(EFCore50Version)" Condition=" $(EFCore50SourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCore50SourceDirectory)\src\EFCore.Sqlite.Core\EFCore.Sqlite.Core.csproj" Condition=" $(EFCore50SourceDirectory) != '' " />
+    <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-5.0.csproj" />
   </ItemGroup>
 
 </Project>

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <DefineConstants>$(DefineConstants);RELATIONAL;SQL_SERVER</DefineConstants>
+    <DefineConstants>$(DefineConstants);EFCORE50;RELATIONAL;SQL_SERVER</DefineConstants>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.SqlServer</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
   </PropertyGroup>
@@ -12,9 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EntityFrameworkCoreVersion)" Condition=" $(EFCoreSourceDirectory) == '' " />
-    <ProjectReference Include="$(EFCoreSourceDirectory)\src\EFCore.SqlServer\EFCore.SqlServer.csproj" Condition=" $(EFCoreSourceDirectory) != '' " />
-    <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-$(DotNetCoreVersion).csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EFCore50Version)" Condition=" $(EFCore50SourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCore50SourceDirectory)\src\EFCore.SqlServer\EFCore.SqlServer.csproj" Condition=" $(EFCore50SourceDirectory) != '' " />
+    <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-5.0.csproj" />
   </ItemGroup>
 
 </Project>

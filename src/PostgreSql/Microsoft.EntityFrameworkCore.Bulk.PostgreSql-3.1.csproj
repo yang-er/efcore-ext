@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <DefineConstants>$(DefineConstants);RELATIONAL;POSTGRE_SQL</DefineConstants>
+    <DefineConstants>$(DefineConstants);EFCORE31;RELATIONAL;POSTGRE_SQL</DefineConstants>
     <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.PostgreSql</AssemblyName>
     <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
   </PropertyGroup>
@@ -12,9 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(EFCoreNpgsqlCoreVersion)" Condition=" $(EFCorePgSourceDirectory) == '' " />
-    <ProjectReference Include="$(EFCorePgSourceDirectory)\src\EFCore.PG\EFCore.PG.csproj" Condition=" $(EFCorePgSourceDirectory) != '' " />
-    <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-$(DotNetCoreVersion).csproj" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(EFCore31NpgsqlVersion)" Condition=" $(EFCore31PgSourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCore31PgSourceDirectory)\src\EFCore.PG\EFCore.PG.csproj" Condition=" $(EFCore31PgSourceDirectory) != '' " />
+    <ProjectReference Include="..\Relational\Microsoft.EntityFrameworkCore.Bulk.Relational-3.1.csproj" />
   </ItemGroup>
 
 </Project>
