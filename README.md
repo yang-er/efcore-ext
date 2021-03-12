@@ -13,15 +13,15 @@ Current version supports EFCore 3.1 and EFCore 5.0.
 Targeting `netstandard2.0` and used on EFCore 3.1 projects.
 Targeting `netstandard2.1` and used on EFCore 5.0 projects.
 
-- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk): EFCore Bulk extension definition
-- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.InMemory%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.InMemory): InMemory bulk operation provider
-- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.Relational%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.Relational): Basis of Relational providers
-- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.SqlServer%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.SqlServer): SqlServer bulk operation provider
-- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.PostgreSql%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.PostgreSql): Npgsql bulk operation provider
-- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.Sqlite%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.Sqlite): Sqlite bulk operation provider
-- [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fnuget.xylab.fun%2Fv3%2Fpackage%2FMicrosoft.EntityFrameworkCore.Bulk.MySql%2Fshields-io.json)](https://nuget.xylab.fun/packages/Microsoft.EntityFrameworkCore.Bulk.MySql): MySQL bulk operation provider
+- [![](https://img.shields.io/nuget/v/XiaoYang.EntityFrameworkCore.Bulk)](https://www.nuget.org/packages/XiaoYang.EntityFrameworkCore.Bulk): EFCore Bulk extension definition
+- [![](https://img.shields.io/nuget/v/XiaoYang.EntityFrameworkCore.Bulk.InMemory)](https://www.nuget.org/packages/XiaoYang.EntityFrameworkCore.Bulk.InMemory): InMemory bulk operation provider
+- [![](https://img.shields.io/nuget/v/XiaoYang.EntityFrameworkCore.Bulk.Relational)](https://www.nuget.org/packages/XiaoYang.EntityFrameworkCore.Bulk.Relational): Basis of Relational providers
+- [![](https://img.shields.io/nuget/v/XiaoYang.EntityFrameworkCore.Bulk.SqlServer)](https://www.nuget.org/packages/XiaoYang.EntityFrameworkCore.Bulk.SqlServer): SqlServer bulk operation provider
+- [![](https://img.shields.io/nuget/v/XiaoYang.EntityFrameworkCore.Bulk.PostgreSql)](https://www.nuget.org/packages/XiaoYang.EntityFrameworkCore.Bulk.PostgreSql): Npgsql bulk operation provider
+- [![](https://img.shields.io/nuget/v/XiaoYang.EntityFrameworkCore.Bulk.Sqlite)](https://www.nuget.org/packages/XiaoYang.EntityFrameworkCore.Bulk.Sqlite): Sqlite bulk operation provider
+- [![](https://img.shields.io/nuget/v/XiaoYang.EntityFrameworkCore.Bulk.MySql)](https://www.nuget.org/packages/XiaoYang.EntityFrameworkCore.Bulk.MySql): MySQL bulk operation provider
 
-When you want to split EFCore definition and database type, you may reference to `Microsoft.EntityFrameworkCore.Bulk` in your storage implementation project, and reference to `Microsoft.EntityFrameworkCore.Bulk.SqlServer` in your host startup project.
+When you want to split EFCore definition and database type, you may reference to `XiaoYang.EntityFrameworkCore.Bulk` in your storage implementation project, and reference to `XiaoYang.EntityFrameworkCore.Bulk.SqlServer` in your host startup project.
 
 ## Setup in project
 
@@ -135,3 +135,5 @@ You can use `EF.CompileQuery` or `EF.CompileAsyncQuery` for the extension method
 For release codes, please refer to branch **LKG**.
 
 The branch **dev** may not work properly.
+
+This project is inspired by [borisdj's EFCore.BulkExtensions](https://github.com/borisdj/EFCore.BulkExtensions).

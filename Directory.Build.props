@@ -16,7 +16,7 @@
     <PackageProjectUrl>https://github.com/yang-er/efcore-ext</PackageProjectUrl>
     <Company />
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>EntityFrameworkCore EFCore</PackageTags>
+    <PackageTags>EntityFrameworkCore EFCore Insert Update Upsert Merge Delete SqlServer PostgreSql MySql Sqlite EF</PackageTags>
     <PackageReleaseNotes>Brings DELETE / UPDATE / INSERT INTO SELECT / UPSERT / MERGE INTO into Various EFCore provider.</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/yang-er/efcore-ext</RepositoryUrl>
 
@@ -31,7 +31,7 @@
 
     <!-- Versioning -->
     <XysMinorVersion>25</XysMinorVersion>
-    <ExtensionPackagePrefix>Microsoft.EntityFrameworkCore.Bulk</ExtensionPackagePrefix>
+    <ExtensionPackagePrefix>XiaoYang.EntityFrameworkCore.Bulk</ExtensionPackagePrefix>
 
     <!-- Product versions -->
     <EFCore31Version>[3.1.11,5.0.0)</EFCore31Version>
