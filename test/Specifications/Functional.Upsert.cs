@@ -442,20 +442,13 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
                 compiledQuery(context);
             }
         }
-    }
 
-    public abstract class UpsertRegressionBase<TFactory> : QueryTestBase<UpsertContext, TFactory>
-        where TFactory : class, IDbContextFactory<UpsertContext>
-    {
-        protected UpsertRegressionBase(TFactory factory) : base(factory)
-        {
-        }
+        protected virtual string Issue6Test0 => throw new NotSupportedException();
+        protected virtual string Issue6Test1 => throw new NotSupportedException();
+        protected virtual string Issue6Test2 => throw new NotSupportedException();
 
-        protected abstract string Issue6Test0 { get; }
-        protected abstract string Issue6Test1 { get; }
-        protected abstract string Issue6Test2 { get; }
-
-        [ConditionalFact, TestPriority(6)]
+        [ConditionalFact, TestPriority(106)]
+        [DatabaseProviderSkipCondition(DatabaseProvider.InMemory)]
         public virtual void Issue6()
         {
             var template = new[]

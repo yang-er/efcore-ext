@@ -65,6 +65,27 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
 
         protected virtual Expression VisitValuesAsCommonTableExpression(ValuesExpression valuesExpression)
         {
+            if (valuesExpression.TupleCount == 0)
+            {
+                Sql.Append("WITH ")
+                    .Append(Helper.DelimitIdentifier(valuesExpression.Alias))
+                    .Append(AliasSeparator)
+                    .Append("(")
+                    .IncrementIndent()
+                    .AppendLine()
+                    .Append("SELECT ")
+                    .GenerateList(
+                        valuesExpression.ColumnNames,
+                        e => Sql.Append("NULL AS ").Append(Helper.DelimitIdentifier(e)))
+                    .AppendLine()
+                    .Append("WHERE 1=0")
+                    .DecrementIndent()
+                    .AppendLine()
+                    .AppendLine(")");
+
+                return valuesExpression;
+            }
+
             Sql.Append("WITH ")
                 .Append(Helper.DelimitIdentifier(valuesExpression.Alias))
                 .Append(" (")
@@ -223,12 +244,23 @@ namespace Microsoft.EntityFrameworkCore.Sqlite.Query
 
             if (upsertExpression.SourceTable is ValuesExpression valuesExpression)
             {
-                TransientExpandValuesExpression.Process(
-                    valuesExpression,
-                    upsertExpression.Columns,
-                    this, Sql, Helper);
+                if (valuesExpression.TupleCount == 0)
+                {
+                    Sql.Append("SELECT ")
+                        .GenerateList(
+                            upsertExpression.Columns,
+                            e => Sql.Append("NULL"))
+                        .AppendLine(" WHERE FALSE");
+                }
+                else
+                {
+                    TransientExpandValuesExpression.Process(
+                        valuesExpression,
+                        upsertExpression.Columns,
+                        this, Sql, Helper);
 
-                Sql.AppendLine();
+                    Sql.AppendLine();
+                }
             }
             else if (upsertExpression.SourceTable != null)
             {

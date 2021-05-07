@@ -188,5 +188,27 @@ VALUES (@__cid, @__teamid, 1, 1, @__time, @__time)
 ON DUPLICATE KEY UPDATE `PointsPublic` = `PointsPublic` + 1, `TotalTimePublic` = `TotalTimePublic` + @__time
 ");
         }
+
+        protected override string Issue6Test0 => @"
+INSERT INTO `RankCache_{{schema}}` (`ContestId`, `TeamId`, `TotalTimePublic`, `PointsPublic`, `PointsRestricted`, `TotalTimeRestricted`)
+SELECT NULL, NULL, NULL, NULL, NULL, NULL WHERE 1=0
+ON DUPLICATE KEY UPDATE `TotalTimePublic` = VALUES(`TotalTimePublic`)
+";
+
+        protected override string Issue6Test1 => @"
+INSERT INTO `RankCache_{{schema}}` (`ContestId`, `TeamId`, `TotalTimePublic`, `PointsPublic`, `PointsRestricted`, `TotalTimeRestricted`)
+VALUES (@__p_0_0_0, @__p_0_0_1, @__p_0_0_2, 0, 0, 0),
+(@__p_0_1_0, @__p_0_1_1, @__p_0_1_2, 0, 0, 0),
+(@__p_0_2_0, @__p_0_2_1, @__p_0_2_2, 0, 0, 0),
+(@__p_0_3_0, @__p_0_3_1, @__p_0_3_2, 0, 0, 0)
+ON DUPLICATE KEY UPDATE `TotalTimePublic` = VALUES(`TotalTimePublic`)
+";
+
+        protected override string Issue6Test2 => @"
+INSERT INTO `RankCache_{{schema}}` (`ContestId`, `TeamId`, `TotalTimePublic`, `PointsPublic`, `PointsRestricted`, `TotalTimeRestricted`)
+VALUES (@__p_0_0_0, @__p_0_0_1, @__p_0_0_2, 0, 0, 0),
+(@__p_0_1_0, @__p_0_1_1, @__p_0_1_2, 0, 0, 0)
+ON DUPLICATE KEY UPDATE `TotalTimePublic` = VALUES(`TotalTimePublic`)
+";
     }
 }

@@ -79,6 +79,26 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
         protected virtual Expression VisitValues(ValuesExpression valuesExpression)
         {
+            if (valuesExpression.TupleCount == 0)
+            {
+                Sql.Append("(")
+                    .IncrementIndent()
+                    .AppendLine()
+                    .Append("SELECT ")
+                    .GenerateList(
+                        valuesExpression.ColumnNames,
+                        e => Sql.Append("NULL AS ").Append(Helper.DelimitIdentifier(e)))
+                    .AppendLine()
+                    .Append("WHERE 1=0")
+                    .DecrementIndent()
+                    .AppendLine()
+                    .Append(")")
+                    .Append(AliasSeparator)
+                    .Append(Helper.DelimitIdentifier(valuesExpression.Alias));
+
+                return valuesExpression;
+            }
+
             bool supportValuesRow =
                 _serverVersion.Type == ServerType.MySql &&
                 _serverVersion.Version >= new Version(8, 0, 19);
@@ -287,10 +307,21 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
 
             if (upsertExpression.SourceTable is ValuesExpression valuesExpression)
             {
-                TransientExpandValuesExpression.Process(
-                    valuesExpression,
-                    upsertExpression.Columns,
-                    this, Sql, Helper);
+                if (valuesExpression.TupleCount == 0)
+                {
+                    Sql.Append("SELECT ")
+                        .GenerateList(
+                            upsertExpression.Columns,
+                            e => Sql.Append("NULL"))
+                        .Append(" WHERE 1=0");
+                }
+                else
+                {
+                    TransientExpandValuesExpression.Process(
+                        valuesExpression,
+                        upsertExpression.Columns,
+                        this, Sql, Helper);
+                }
             }
             else if (upsertExpression.SourceTable != null)
             {

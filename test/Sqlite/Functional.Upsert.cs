@@ -194,5 +194,27 @@ VALUES (@__cid, @__teamid, 1, 1, @__time, @__time)
 ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + @__time
 ");
         }
+
+        protected override string Issue6Test0 => @"
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""ContestId"", ""TeamId"", ""TotalTimePublic"", ""PointsPublic"", ""PointsRestricted"", ""TotalTimeRestricted"")
+SELECT NULL, NULL, NULL, NULL, NULL, NULL WHERE FALSE
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""TotalTimePublic"" = ""excluded"".""TotalTimePublic""
+";
+
+        protected override string Issue6Test1 => @"
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""ContestId"", ""TeamId"", ""TotalTimePublic"", ""PointsPublic"", ""PointsRestricted"", ""TotalTimeRestricted"")
+VALUES (@__p_0_0_0, @__p_0_0_1, @__p_0_0_2, 0, 0, 0),
+(@__p_0_1_0, @__p_0_1_1, @__p_0_1_2, 0, 0, 0),
+(@__p_0_2_0, @__p_0_2_1, @__p_0_2_2, 0, 0, 0),
+(@__p_0_3_0, @__p_0_3_1, @__p_0_3_2, 0, 0, 0)
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""TotalTimePublic"" = ""excluded"".""TotalTimePublic""
+";
+
+        protected override string Issue6Test2 => @"
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""ContestId"", ""TeamId"", ""TotalTimePublic"", ""PointsPublic"", ""PointsRestricted"", ""TotalTimeRestricted"")
+VALUES (@__p_0_0_0, @__p_0_0_1, @__p_0_0_2, 0, 0, 0),
+(@__p_0_1_0, @__p_0_1_1, @__p_0_1_2, 0, 0, 0)
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""TotalTimePublic"" = ""excluded"".""TotalTimePublic""
+";
     }
 }

@@ -19,14 +19,18 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
         Sqlite_31 = 1 << 6,
         Sqlite_50 = 1 << 7,
 
+        MySql_31 = 1 << 6,
+        MySql_50 = 1 << 7,
+
         InMemory = InMemory_31 | InMemory_50,
         SqlServer = SqlServer_31 | SqlServer_50,
         PostgreSQL = PostgreSQL_31 | PostgreSQL_50,
         Sqlite = Sqlite_31 | Sqlite_50,
+        MySql = MySql_31 | MySql_50,
 
-        Relational_31 = SqlServer_31 | PostgreSQL_31 | Sqlite_31,
-        Relational_50 = SqlServer_50 | PostgreSQL_50 | Sqlite_50,
-        Relational = SqlServer | PostgreSQL | Sqlite,
+        Relational_31 = SqlServer_31 | PostgreSQL_31 | Sqlite_31 | MySql_31,
+        Relational_50 = SqlServer_50 | PostgreSQL_50 | Sqlite_50 | MySql_50,
+        Relational = SqlServer | PostgreSQL | Sqlite | MySql,
 
         Version_31 = InMemory_31 | Relational_31,
         Version_50 = InMemory_50 | Relational_50,

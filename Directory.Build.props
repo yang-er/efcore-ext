@@ -6,9 +6,9 @@
     <LangVersion>9.0</LangVersion>
     <Authors>borisdj;yang-er</Authors>
     <Description>
-      Entity Framework Core Batch Extensions for INSERT UPDATE DELETE UPSERT MERGE operations by generating SQLs. NOTE that you should install the corresponding provider package.
+Entity Framework Core Batch Extensions for INSERT UPDATE DELETE UPSERT MERGE operations by generating SQLs. NOTE that you should install the corresponding provider package.
 
-      Commonly Used Extension Methods:
+Commonly Used Extension Methods:
       DbContext.Auditlogs.Where(a => a.Time == DateTime.Now.AddDays(-30)).BatchDelete();
       DbContext.Employees.Where(a => a.IsActive).BatchUpdate(a => new Employee { Salary = a.Salary + 10000 });
       DbContext.Votes.Upsert(() => new Vote { CommentId = cid, Votes = 1 }, v => new Vote { Votes = v.Votes + 1 });

@@ -253,15 +253,6 @@ WHEN NOT MATCHED BY TARGET
     THEN INSERT ([ContestId], [TeamId], [PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted]) VALUES ([cte].[Value1], [cte].[Value2], 1, 1, @__time, @__time);
 ");
         }
-    }
-
-    public class SqlServerUpsertRegression : UpsertRegressionBase<SqlServerContextFactory<UpsertContext>>
-    {
-        public SqlServerUpsertRegression(
-            SqlServerContextFactory<UpsertContext> factory)
-            : base(factory)
-        {
-        }
 
         protected override string Issue6Test0 => @"
 MERGE INTO [RankCache_{{schema}}] AS [r]
