@@ -57,6 +57,26 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.Query
 
         protected virtual Expression VisitValues(ValuesExpression valuesExpression)
         {
+            if (valuesExpression.TupleCount == 0)
+            {
+                Sql.Append("(")
+                    .IncrementIndent()
+                    .AppendLine()
+                    .Append("SELECT ")
+                    .GenerateList(
+                        valuesExpression.ColumnNames,
+                        e => Sql.Append("NULL AS ").Append(Helper.DelimitIdentifier(e)))
+                    .AppendLine()
+                    .Append("WHERE 1=0")
+                    .DecrementIndent()
+                    .AppendLine()
+                    .Append(")")
+                    .Append(AliasSeparator)
+                    .Append(Helper.DelimitIdentifier(valuesExpression.Alias));
+
+                return valuesExpression;
+            }
+
             Sql.Append("(")
                 .IncrementIndent()
                 .AppendLine()

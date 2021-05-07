@@ -301,7 +301,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
             }
         }
 
-        [ConditionalFact, TestPriority(7)]
+        [ConditionalFact, TestPriority(11)]
         public virtual void UpsertOne_CompiledQuery()
         {
             EnsureRank(Array.Empty<RankSource>());
@@ -330,7 +330,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
             }
         }
 
-        [ConditionalFact, TestPriority(7)]
+        [ConditionalFact, TestPriority(12)]
         public virtual void InsertIfNotExistOne()
         {
             EnsureRank(Array.Empty<RankSource>());
@@ -364,7 +364,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
             }
         }
 
-        [ConditionalFact, TestPriority(7)]
+        [ConditionalFact, TestPriority(10)]
         public virtual void InsertIfNotExistOne_CompiledQuery()
         {
             EnsureRank(Array.Empty<RankSource>());
@@ -441,6 +441,48 @@ namespace Microsoft.EntityFrameworkCore.Tests.Upsert
                 using var context = CreateContext();
                 compiledQuery(context);
             }
+        }
+    }
+
+    public abstract class UpsertRegressionBase<TFactory> : QueryTestBase<UpsertContext, TFactory>
+        where TFactory : class, IDbContextFactory<UpsertContext>
+    {
+        protected UpsertRegressionBase(TFactory factory) : base(factory)
+        {
+        }
+
+        protected abstract string Issue6Test0 { get; }
+        protected abstract string Issue6Test1 { get; }
+        protected abstract string Issue6Test2 { get; }
+
+        [ConditionalFact, TestPriority(6)]
+        public virtual void Issue6()
+        {
+            var template = new[]
+            {
+                new { A = 1, B = 2, C = 3 },
+                new { A = 4, B = 5, C = 6 },
+                new { A = 7, B = 8, C = 9 },
+                new { A = 10, B = 11, C = 12 },
+            };
+
+            void OneAction(int take, string sql)
+            {
+                using (CatchCommand())
+                {
+                    using var ctx = CreateContext();
+                    ctx.RankCache.Upsert(
+                        template.Take(take),
+                        s => new RankCache { ContestId = s.A, TeamId = s.B, TotalTimePublic = s.C, PointsPublic = 0, PointsRestricted = 0, TotalTimeRestricted = 0 },
+                        (s, r) => new RankCache { TotalTimePublic = r.TotalTimePublic });
+                }
+
+                AssertSql(sql);
+            }
+
+            OneAction(0, Issue6Test0);
+            OneAction(4, Issue6Test1);
+            OneAction(2, Issue6Test2);
         }
     }
 }

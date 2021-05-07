@@ -243,10 +243,13 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         protected virtual SelectExpression ProcessValuesExpansion(
             SelectExpression selectExpression,
-            IReadOnlyDictionary<string, object> parametersValues)
+            IReadOnlyDictionary<string, object> parametersValues,
+            out bool canCache)
         {
-            return new ValuesExpressionParameterExpandingVisitor(Dependencies.SqlExpressionFactory, parametersValues)
-                .VisitAndConvert(selectExpression, null);
+            var visitor = new ValuesExpressionParameterExpandingVisitor(Dependencies.SqlExpressionFactory, parametersValues);
+            selectExpression = visitor.VisitAndConvert(selectExpression, null);
+            canCache = visitor.CanCache;
+            return selectExpression;
         }
 
         public override SelectExpression Optimize(
@@ -255,7 +258,8 @@ namespace Microsoft.EntityFrameworkCore.Query
             out bool canCache)
         {
             selectExpression = base.Optimize(selectExpression, parametersValues, out canCache);
-            selectExpression = ProcessValuesExpansion(selectExpression, parametersValues);
+            selectExpression = ProcessValuesExpansion(selectExpression, parametersValues, out var canCache2);
+            canCache = canCache && canCache2;
             return selectExpression;
         }
     }

@@ -12,7 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         private readonly List<(ValuesExpression, ValuesExpression)> _replacement;
         private readonly ISqlExpressionFactory _sqlExpressionFactory;
 
-        public bool CanCache => _replacement.Count > 0;
+        public bool CanCache => _replacement.Count == 0;
 
         public ValuesExpressionParameterExpandingVisitor(
             ISqlExpressionFactory sqlExpressionFactory,

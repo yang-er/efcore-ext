@@ -254,4 +254,56 @@ WHEN NOT MATCHED BY TARGET
 ");
         }
     }
+
+    public class SqlServerUpsertRegression : UpsertRegressionBase<SqlServerContextFactory<UpsertContext>>
+    {
+        public SqlServerUpsertRegression(
+            SqlServerContextFactory<UpsertContext> factory)
+            : base(factory)
+        {
+        }
+
+        protected override string Issue6Test0 => @"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    SELECT NULL AS [A], NULL AS [B], NULL AS [C]
+    WHERE 1=0
+) AS [cte]
+    ON ([r].[ContestId] = [cte].[A]) AND ([r].[TeamId] = [cte].[B])
+WHEN MATCHED
+    THEN UPDATE SET [r].[TotalTimePublic] = [cte].[C]
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([ContestId], [TeamId], [TotalTimePublic], [PointsPublic], [PointsRestricted], [TotalTimeRestricted]) VALUES ([cte].[A], [cte].[B], [cte].[C], 0, 0, 0);
+";
+
+        protected override string Issue6Test1 => @"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    VALUES
+    (@__p_0_0_0, @__p_0_0_1, @__p_0_0_2),
+    (@__p_0_1_0, @__p_0_1_1, @__p_0_1_2),
+    (@__p_0_2_0, @__p_0_2_1, @__p_0_2_2),
+    (@__p_0_3_0, @__p_0_3_1, @__p_0_3_2)
+) AS [cte] ([A], [B], [C])
+    ON ([r].[ContestId] = [cte].[A]) AND ([r].[TeamId] = [cte].[B])
+WHEN MATCHED
+    THEN UPDATE SET [r].[TotalTimePublic] = [cte].[C]
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([ContestId], [TeamId], [TotalTimePublic], [PointsPublic], [PointsRestricted], [TotalTimeRestricted]) VALUES ([cte].[A], [cte].[B], [cte].[C], 0, 0, 0);
+";
+
+        protected override string Issue6Test2 => @"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    VALUES
+    (@__p_0_0_0, @__p_0_0_1, @__p_0_0_2),
+    (@__p_0_1_0, @__p_0_1_1, @__p_0_1_2)
+) AS [cte] ([A], [B], [C])
+    ON ([r].[ContestId] = [cte].[A]) AND ([r].[TeamId] = [cte].[B])
+WHEN MATCHED
+    THEN UPDATE SET [r].[TotalTimePublic] = [cte].[C]
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([ContestId], [TeamId], [TotalTimePublic], [PointsPublic], [PointsRestricted], [TotalTimeRestricted]) VALUES ([cte].[A], [cte].[B], [cte].[C], 0, 0, 0);
+";
+    }
 }
