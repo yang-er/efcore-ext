@@ -57,6 +57,13 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         public int JudgingId { get; set; }
     }
 
+    public class NullSemanticEntity
+    {
+        public int Id { get; set; }
+        public string Hello { get; set; }
+        public int Wt { get; set; }
+    }
+
     public class UpdateContext : DbContext, IDbContextWithSeeds
     {
         public DbSet<Item> Items { get; set; }
@@ -94,6 +101,12 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
             modelBuilder.Entity<Item>(entity =>
             {
                 entity.ToTable(nameof(Item) + "_" + DefaultSchema);
+            });
+
+            modelBuilder.Entity<NullSemanticEntity>(entity =>
+            {
+                entity.ToTable(nameof(NullSemanticEntity) + "_" + DefaultSchema);
+                entity.Property(e => e.Hello).IsRequired();
             });
         }
 
@@ -499,6 +512,23 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
                 using var context = CreateContext();
                 compiledQuery(context);
             }
+        }
+
+        [ConditionalFact, TestPriority(107)]
+        [DatabaseProviderSkipCondition(DatabaseProvider.SqlServer_31)]
+        public virtual void Issue7()
+        {
+            using var context = CreateContext();
+
+            string s = null;
+            var affected = context.Set<NullSemanticEntity>()
+                .Where(e => e.Hello == s)
+                .BatchUpdate(e => new NullSemanticEntity
+                {
+                    Wt = e.Wt + 1
+                });
+
+            Assert.Equal(0, affected);
         }
     }
 }
