@@ -28,6 +28,7 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
 
             var ver = dir.Contains("3.1", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.Version_31
                 : dir.Contains("5.0", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.Version_50
+                : dir.Contains("6.0", StringComparison.OrdinalIgnoreCase) ? DatabaseProvider.Version_60
                 : DatabaseProvider.None;
 
             return dp & ver;

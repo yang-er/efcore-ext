@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);EFCORE60;IN_MEMORY</DefineConstants>
+    <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.InMemory</AssemblyName>
+    <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix).InMemory</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EFCore60Version)" Condition=" $(EFCore60SourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCore60SourceDirectory)\src\EFCore.InMemory\EFCore.InMemory.csproj" Condition=" $(EFCore60SourceDirectory) != '' " />
+    <ProjectReference Include="..\Abstraction\EFCore.Bulk-6.0.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);EFCORE60</DefineConstants>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.InMemory.Tests</AssemblyName>
+    <RootNamespace>Microsoft.EntityFrameworkCore.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+    <PackageReference Include="xunit" Version="2.4.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
+    <PackageReference Include="coverlet.collector" Version="1.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\InMemory\EFCore.Bulk.InMemory-6.0.csproj" />
+    <ProjectReference Include="..\Specifications\EFCore.Bulk.Tests-6.0.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="Xunit.TestCaseOrdererAttribute">
+      <_Parameter1>Microsoft.EntityFrameworkCore.TestUtilities.Xunit.TestPriorityOrderer</_Parameter1>
+      <_Parameter2>Microsoft.EntityFrameworkCore.TestUtilities</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

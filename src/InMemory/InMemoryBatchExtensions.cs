@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.InMemory.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore
@@ -17,6 +19,15 @@ namespace Microsoft.EntityFrameworkCore
             builder1.AddOrUpdateExtension(new InMemoryBatchOptionsExtension());
             return builder;
         }
+
+#if EFCORE60
+        internal static void ReplaceProjectionMapping(
+            this InMemoryQueryExpression expression,
+            IReadOnlyDictionary<ProjectionMember, Expression> projectionMapping)
+        {
+            expression.ReplaceProjection(projectionMapping);
+        }
+#endif
     }
 
     internal class InMemoryBatchOptionsExtension : BatchOptionsExtension

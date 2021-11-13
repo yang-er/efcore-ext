@@ -545,7 +545,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             bool validated = expression.NodeType == ExpressionType.Constant
                 && expression.Type.IsConstructedGenericType
                 && expression.Type.GetGenericTypeDefinition() == typeof(EntityQueryable<>);
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
             bool validated = expression is QueryRootExpression;
 #endif
 

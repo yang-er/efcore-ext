@@ -14,7 +14,7 @@ using Microsoft.EntityFrameworkCore.Utilities;
 
 #if EFCORE31
 using ThirdParameter = Microsoft.EntityFrameworkCore.Metadata.IModel;
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
 using ThirdParameter = Microsoft.EntityFrameworkCore.Query.QueryCompilationContext;
 #endif
 
@@ -41,10 +41,7 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
         private void UpdateShaperExpression(ref ShapedQueryExpression shapedQueryExpression, Expression shaperExpression)
             => shapedQueryExpression.ShaperExpression = shaperExpression;
 
-        private IEnumerable<IProperty> GetAllPropertiesInHierarchy(IEntityType entityType)
-            => entityType.GetTypesInHierarchy().SelectMany(EntityTypeExtensions.GetDeclaredProperties);
-
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
 
         private static readonly MethodInfo _tryReadValueMethodInfo
             = ExpressionExtensions.ValueBufferTryReadValueMethod;
@@ -54,10 +51,6 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
 
         private void UpdateShaperExpression(ref ShapedQueryExpression shapedQueryExpression, Expression shaperExpression)
             => shapedQueryExpression = shapedQueryExpression.UpdateShaperExpression(shaperExpression);
-
-        private IEnumerable<IProperty> GetAllPropertiesInHierarchy(IEntityType entityType)
-            => entityType.GetAllBaseTypes().Concat(entityType.GetDerivedTypesInclusive())
-                .SelectMany(EntityTypeExtensions.GetDeclaredProperties);
 
 #endif
 
@@ -232,7 +225,18 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
 
             if (shaped == null ||
                 shaped.QueryExpression is not InMemoryQueryExpression queryExpression ||
+#if EFCORE31 || EFCORE50
                 queryExpression.ServerQueryExpression is not MethodCallExpression serverJoin ||
+#elif EFCORE60
+                queryExpression.ServerQueryExpression is not MethodCallExpression serverJoinSelect ||
+                serverJoinSelect.Method.Name != nameof(Enumerable.Select) ||
+                serverJoinSelect.Arguments[0] is not MethodCallExpression serverJoin ||
+                serverJoinSelect.Arguments[1] is not LambdaExpression anotherSelectNewLambda ||
+                anotherSelectNewLambda.Body is not NewExpression anotherSelectNew ||
+                anotherSelectNew.Arguments.Count != 1 ||
+                anotherSelectNew.Arguments[0] is not NewArrayExpression ||
+                anotherSelectNew.Type != typeof(ValueBuffer) ||
+#endif
                 serverJoin.Method.Name != nameof(Enumerable.Join) ||
                 serverJoin.Arguments[0] is not MethodCallExpression outerDefaultIfEmpty ||
                 serverJoin.Arguments[1] is not MethodCallExpression innerDefaultIfEmpty ||
@@ -301,7 +305,7 @@ namespace Microsoft.EntityFrameworkCore.InMemory.Query.Internal
 
                 return translated;
             }
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
             ShapedQueryExpression CheckTranslated(ShapedQueryExpression translated)
             {
                 return translated
