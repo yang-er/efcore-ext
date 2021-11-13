@@ -37,13 +37,23 @@ Commonly Used Extension Methods:
     <EFCore31Version>[3.1.11,5.0.0)</EFCore31Version>
     <EFCore31NpgsqlVersion>[3.1.11,5.0.0)</EFCore31NpgsqlVersion>
     <EFCore31PomeloVersion>[3.2.4,5.0.0)</EFCore31PomeloVersion>
-    <EFCore50Version>[5.0.2,6.0.0)</EFCore50Version>
-    <EFCore50NpgsqlVersion>[5.0.2,6.0.0)</EFCore50NpgsqlVersion>
-    <EFCore50PomeloVersion>[5.0.0-alpha.2,6.0.0)</EFCore50PomeloVersion>
+    <EFCore50Version>[5.0.5,6.0.0)</EFCore50Version>
+    <EFCore50NpgsqlVersion>[5.0.5,6.0.0)</EFCore50NpgsqlVersion>
+    <EFCore50PomeloVersion>[5.0.0,6.0.0)</EFCore50PomeloVersion>
+    <EFCore60Version>[6.0.0,7.0.0)</EFCore60Version>
+    <EFCore60NpgsqlVersion>[6.0.0,7.0.0)</EFCore60NpgsqlVersion>
+    <EFCore60PomeloVersion>[6.0.0,7.0.0)</EFCore60PomeloVersion>
 
   </PropertyGroup>
 
   <!-- Assembly Information -->
+  <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('-6.0')) ">
+    <PackageVersion>6.0.$(XysMinorVersion)</PackageVersion>
+    <Version>6.0.0</Version>
+    <AssemblyVersion>6.0.0.0</AssemblyVersion>
+    <FileVersion>6.0.0.0</FileVersion>
+  </PropertyGroup>
+
   <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('-5.0')) ">
     <PackageVersion>5.0.$(XysMinorVersion)</PackageVersion>
     <Version>5.0.0</Version>
