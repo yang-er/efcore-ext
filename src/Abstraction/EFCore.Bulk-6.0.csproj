@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);EFCORE60</DefineConstants>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>Microsoft.EntityFrameworkCore.Bulk</AssemblyName>
+    <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix)</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="$(EFCore60Version)" Condition=" $(EFCore60SourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCore60SourceDirectory)\src\EFCore\EFCore.csproj" Condition=" $(EFCore60SourceDirectory) != '' " />
+  </ItemGroup>
+
+</Project>

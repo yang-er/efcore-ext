@@ -172,7 +172,13 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             public override string LogFragment { get; }
 
+#if EFCORE31 || EFCORE50
             public override long GetServiceProviderHashCode() => 0;
+#elif EFCORE60
+            public override int GetServiceProviderHashCode() => 0;
+
+            public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other) => true;
+#endif
 
             public override void PopulateDebugInfo(IDictionary<string, string> debugInfo)
                 => debugInfo[_name] = "1";

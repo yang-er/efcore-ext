@@ -19,11 +19,21 @@ namespace Microsoft.EntityFrameworkCore.Query
             IBulkQueryTranslationPostprocessorFactory queryTranslationPostprocessorFactory,
             IBulkShapedQueryCompilingExpressionVisitorFactory shapedQueryCompilingExpressionVisitorFactory)
         {
+#if EFCORE31 || EFCORE50
             Dependencies = dependencies
                 .With(queryTranslationPreprocessorFactory)
                 .With(queryableMethodTranslatingExpressionVisitorFactory)
                 .With(queryTranslationPostprocessorFactory)
                 .With(shapedQueryCompilingExpressionVisitorFactory);
+#elif EFCORE60
+            Dependencies = dependencies with
+            {
+                QueryTranslationPreprocessorFactory = queryTranslationPreprocessorFactory,
+                QueryableMethodTranslatingExpressionVisitorFactory = queryableMethodTranslatingExpressionVisitorFactory,
+                QueryTranslationPostprocessorFactory = queryTranslationPostprocessorFactory,
+                ShapedQueryCompilingExpressionVisitorFactory = shapedQueryCompilingExpressionVisitorFactory,
+            };
+#endif
         }
 
         /// <summary>

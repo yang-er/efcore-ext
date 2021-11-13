@@ -21,8 +21,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
         ///     doing so can result in application failures when updating to a new Entity Framework Core release.
         /// </summary>
         public SupportCommonTableNavigationExpandingExpressionVisitor(
-#if EFCORE50
+#if EFCORE50 || EFCORE60
             QueryTranslationPreprocessor queryTranslationPreprocessor,
+#endif
+#if EFCORE60
+            INavigationExpansionExtensibilityHelper extensibilityHelper,
 #endif
             QueryCompilationContext queryCompilationContext,
             IEvaluatableExpressionFilter evaluatableExpressionFilter)
@@ -30,6 +33,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
             : base(queryCompilationContext, evaluatableExpressionFilter)
 #elif EFCORE50
             : base(queryTranslationPreprocessor, queryCompilationContext, evaluatableExpressionFilter)
+#elif EFCORE60
+            : base(queryTranslationPreprocessor, queryCompilationContext, evaluatableExpressionFilter, extensibilityHelper)
 #endif
         {
         }
@@ -59,8 +64,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
                 if (result == null)
                 {
-                    throw new InvalidOperationException(
-                        CoreStrings.QueryFailed(methodCallExpression.Print(), GetType().Name));
+                    throw TranslateFailed(methodCallExpression);
                 }
                 else
                 {
@@ -157,12 +161,8 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
 
                 default:
-                    throw TranslateFailed();
+                    throw TranslateFailed(query);
             }
-
-            Exception TranslateFailed()
-                => new InvalidOperationException(
-                    CoreStrings.QueryFailed(query.Print(), GetType().Name));
 
             Expression BatchUpdateExpand(Expression toUpdate)
             {
@@ -171,7 +171,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 // TODO: Is type hierarchy affected?
                 if (expanded is not MethodCallExpression fakeSelect ||
                     fakeSelect.Method.GetGenericMethodDefinition() != QueryableMethods.Select)
-                    throw TranslateFailed();
+                    throw TranslateFailed(query);
 
                 var newSelectTypes = fakeSelect.Method.GetGenericArguments();
                 return Expression.Call(
@@ -193,7 +193,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     || afterJoinSelect.Arguments[0] is not MethodCallExpression currentJoin
                     || currentJoin.Method.Name != nameof(QueryableMethods.Join)
                     || currentJoin.Method.GetGenericMethodDefinition() != QueryableMethods.Join)
-                    throw TranslateFailed();
+                    throw TranslateFailed(query);
 
                 var T = currentJoin.Method.GetGenericArguments();
                 var T2 = afterJoinSelect.Method.GetGenericArguments();
@@ -209,6 +209,14 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                     afterJoinSelect.Arguments[1]);
             }
         }
+
+        private static Exception TranslateFailed(Expression query)
+            => new InvalidOperationException(
+#if EFCORE31 || EFCORE50
+                CoreStrings.QueryFailed(query.Print(), nameof(SupportCommonTableNavigationExpandingExpressionVisitor)));
+#elif EFCORE60
+                CoreStrings.TranslationFailed(query.Print()));
+#endif
 
         private static readonly Func<Expression, Expression, Expression> NavigationExpansionExpressionFactory
             = new Func<Expression<Func<Expression, Expression, Expression>>>(delegate

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29318.209
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{9326EF08-EAD2-4D5B-B656-42F05BF99F0D}"
 	ProjectSection(SolutionItems) = preProject
@@ -77,6 +77,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.MySql.Tests-3.1", "test\MySql\EFCore.Bulk.MySql.Tests-3.1.csproj", "{572D2AE3-840F-4A43-AA1F-1104328E74B5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk.MySql.Tests-5.0", "test\MySql\EFCore.Bulk.MySql.Tests-5.0.csproj", "{27A3C373-8A85-45D7-88CA-F12263DE087A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EFCore.Bulk-6.0", "src\Abstraction\EFCore.Bulk-6.0.csproj", "{B5314B2B-6837-4C13-9777-5C09CBDBF369}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -200,6 +202,10 @@ Global
 		{27A3C373-8A85-45D7-88CA-F12263DE087A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27A3C373-8A85-45D7-88CA-F12263DE087A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{27A3C373-8A85-45D7-88CA-F12263DE087A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5314B2B-6837-4C13-9777-5C09CBDBF369}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5314B2B-6837-4C13-9777-5C09CBDBF369}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5314B2B-6837-4C13-9777-5C09CBDBF369}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5314B2B-6837-4C13-9777-5C09CBDBF369}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -234,6 +240,7 @@ Global
 		{6949B761-394A-4863-873A-F57A693A7EA7} = {43502E08-17D1-4058-B588-0E268B175832}
 		{572D2AE3-840F-4A43-AA1F-1104328E74B5} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
 		{27A3C373-8A85-45D7-88CA-F12263DE087A} = {2EBA01C1-ADFC-476A-8E08-02DD3EB0A973}
+		{B5314B2B-6837-4C13-9777-5C09CBDBF369} = {43502E08-17D1-4058-B588-0E268B175832}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F6CFFD1D-D456-4A8F-86FC-7CF2C893AB08}

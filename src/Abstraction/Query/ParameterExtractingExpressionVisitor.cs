@@ -25,7 +25,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
     {
 #if EFCORE31
         private const string QueryParameterPrefix = CompiledQueryCache.CompiledQueryParameterPrefix;
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
         private const string QueryParameterPrefix = QueryCompilationContext.QueryParameterPrefix;
 #endif
 
@@ -38,8 +38,12 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
         private readonly EvaluatableExpressionFindingExpressionVisitor _evaluatableExpressionFindingExpressionVisitor;
         private readonly ContextParameterReplacingExpressionVisitor _contextParameterReplacingExpressionVisitor;
 
+#if EFCORE31 || EFCORE50
         private readonly Dictionary<Expression, Expression> _evaluatedValues
             = new Dictionary<Expression, Expression>(ExpressionEqualityComparer.Instance);
+#elif EFCORE60
+        private readonly Dictionary<Expression, EvaluatedValues> _evaluatedValues = new(ExpressionEqualityComparer.Instance);
+#endif
 
         private IDictionary<Expression, bool> _evaluatableExpressions;
         private IQueryProvider _currentQueryProvider;
@@ -81,6 +85,11 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
         /// </summary>
         public virtual Expression ExtractParameters(Expression expression)
         {
+            return ExtractParameters(expression, clearEvaluatedValues: true);
+        }
+
+        private Expression ExtractParameters(Expression expression, bool clearEvaluatedValues)
+        {
             var oldEvaluatableExpressions = _evaluatableExpressions;
             _evaluatableExpressions = _evaluatableExpressionFindingExpressionVisitor.Find(expression);
 
@@ -91,7 +100,10 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
             finally
             {
                 _evaluatableExpressions = oldEvaluatableExpressions;
-                _evaluatedValues.Clear();
+                if (clearEvaluatedValues)
+                {
+                    _evaluatedValues.Clear();
+                }
             }
         }
 
@@ -108,12 +120,14 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 return null;
             }
 
+            //************* TODO: MODIFIED SECTION
             if (expression is UnaryExpression unaryExpression
                 && unaryExpression.NodeType == ExpressionType.Quote)
             {
                 _evaluatableExpressions.Remove(expression);
                 _evaluatableExpressions.Remove(unaryExpression.Operand);
             }
+            //************* TODO: MODIFIED SECTION
 
             if (_evaluatableExpressions.TryGetValue(expression, out var generateParameter)
                 && !PreserveInitializationConstant(expression, generateParameter)
@@ -255,7 +269,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 && ((constantValue && nodeType == ExpressionType.OrElse)
                     || (!constantValue && nodeType == ExpressionType.AndAlso));
 
-#if EFCORE50
+#if EFCORE50 || EFCORE60
 
         /// <summary>
         ///     This is an internal API that supports the Entity Framework Core infrastructure and not subject to
@@ -324,6 +338,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 : (Expression)constantExpression;
         }
 
+#if EFCORE31 || EFCORE50
         private Expression Evaluate(Expression expression, bool generateParameter)
         {
             if (_evaluatedValues.TryGetValue(expression, out var cachedValue))
@@ -387,6 +402,84 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
             return parameter;
         }
+#elif EFCORE60
+        private Expression Evaluate(Expression expression, bool generateParameter)
+        {
+            object parameterValue;
+            string parameterName;
+            if (_evaluatedValues.TryGetValue(expression, out var cachedValue))
+            {
+                var existingExpression = generateParameter ? cachedValue.Parameter : cachedValue.Constant;
+                if (existingExpression != null)
+                {
+                    return existingExpression;
+                }
+
+                parameterValue = cachedValue.Value;
+                parameterName = cachedValue.CandidateParameterName;
+            }
+            else
+            {
+                parameterValue = GetValue(expression, out parameterName);
+                cachedValue = new EvaluatedValues { CandidateParameterName = parameterName, Value = parameterValue };
+                _evaluatedValues[expression] = cachedValue;
+            }
+
+            if (parameterValue is IQueryable innerQueryable)
+            {
+                return ExtractParameters(innerQueryable.Expression, clearEvaluatedValues: false);
+            }
+
+            if (parameterName?.StartsWith(QueryFilterPrefix, StringComparison.Ordinal) != true)
+            {
+                if (parameterValue is Expression innerExpression)
+                {
+                    return ExtractParameters(innerExpression, clearEvaluatedValues: false);
+                }
+
+                if (!generateParameter)
+                {
+                    var constantValue = GenerateConstantExpression(parameterValue, expression.Type);
+
+                    cachedValue.Constant = constantValue;
+
+                    return constantValue;
+                }
+            }
+
+            if (parameterName == null)
+            {
+                parameterName = "p";
+            }
+
+            if (string.Equals(QueryFilterPrefix, parameterName, StringComparison.Ordinal))
+            {
+                parameterName = QueryFilterPrefix + "__p";
+            }
+
+            var compilerPrefixIndex
+                = parameterName.LastIndexOf(">", StringComparison.Ordinal);
+
+            if (compilerPrefixIndex != -1)
+            {
+                parameterName = parameterName[(compilerPrefixIndex + 1)..];
+            }
+
+            parameterName
+                = QueryParameterPrefix
+                + parameterName
+                + "_"
+                + _parameterValues.ParameterValues.Count;
+
+            _parameterValues.AddParameter(parameterName, parameterValue);
+
+            var parameter = Expression.Parameter(expression.Type, parameterName);
+
+            cachedValue.Parameter = parameter;
+
+            return parameter;
+        }
+#endif
 
         private sealed class ContextParameterReplacingExpressionVisitor : ExpressionVisitor
         {
@@ -524,7 +617,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
             {
                 _evaluatableExpressionFilter = evaluatableExpressionFilter;
                 _model = model;
-#if EFCORE50
+#if EFCORE50 || EFCORE60
                 _parameterize = parameterize;
 #elif EFCORE31
                 _parameterize = false;
@@ -565,7 +658,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
                 if (_evaluatable)
                 {
-#if EFCORE50
+#if EFCORE50 || EFCORE60
                     // Force parameterization when not in lambda
                     _evaluatableExpressions[expression] = _containsClosure || !_inLambda;
 #elif EFCORE31
@@ -647,7 +740,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
                     Visit(methodCallExpression.Arguments[i]);
 
-#if EFCORE50
+#if EFCORE50 || EFCORE60
                     if (_evaluatableExpressions.ContainsKey(methodCallExpression.Arguments[i])
                         && (parameterInfos[i].GetCustomAttribute<NotParameterizedAttribute>() != null
                             || _model.IsIndexerMethod(methodCallExpression.Method)))
@@ -690,7 +783,7 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
 
             protected override Expression VisitConstant(ConstantExpression constantExpression)
             {
-#if EFCORE50
+#if EFCORE50 || EFCORE60
                 _evaluatable = !(constantExpression.Value is IQueryable);
 #elif EFCORE31
                 _evaluatable = !(constantExpression.Value is IDetachableContext)
@@ -716,5 +809,15 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 => expression is MethodCallExpression methodCallExpression
                     && methodCallExpression.Method.DeclaringType == typeof(Queryable);
         }
+
+#if EFCORE60
+        private sealed class EvaluatedValues
+        {
+            public string CandidateParameterName { get; set; }
+            public object Value { get; set; }
+            public Expression Constant { get; set; }
+            public Expression Parameter { get; set; }
+        }
+#endif
     }
 }
