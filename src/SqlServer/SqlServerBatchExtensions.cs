@@ -30,12 +30,16 @@ namespace Microsoft.EntityFrameworkCore
             services.TryAdd<IBulkShapedQueryCompilingExpressionVisitorFactory, RelationalBulkShapedQueryCompilingExpressionVisitorFactory>();
             services.TryAdd<IBulkQueryTranslationPreprocessorFactory, RelationalBulkQueryTranslationPreprocessorFactory>();
             services.TryAdd<IBulkQueryTranslationPostprocessorFactory, BypassBulkQueryTranslationPostprocessorFactory>();
+#if EFCORE31 || EFCORE50
             services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, RelationalBulkQueryableMethodTranslatingExpressionVisitorFactory>();
+#elif EFCORE60
+            services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, SqlServerBulkQueryableMethodTranslatingExpressionVisitorFactory>();
+#endif
 
             services.TryAdd<IMethodCallTranslatorPlugin, MathTranslationPlugin>();
             services.TryAdd<IBulkQuerySqlGeneratorFactory, SqlServerBulkQuerySqlGeneratorFactory>();
             services.TryAdd<IQueryCompiler, SqlServerBulkQueryCompiler>();
-#if EFCORE50
+#if EFCORE50 || EFCORE60
             services.TryAdd<IRelationalBulkParameterBasedSqlProcessorFactory, RelationalBulkParameterBasedSqlProcessorFactory>();
             services.TryAdd<IBulkQueryCompilationContextFactory, SqlServerBulkQueryCompilationContextFactory>();
 #elif EFCORE31

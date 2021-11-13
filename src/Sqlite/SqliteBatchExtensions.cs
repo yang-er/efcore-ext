@@ -33,7 +33,7 @@ namespace Microsoft.EntityFrameworkCore
 
             services.TryAdd<IBulkQuerySqlGeneratorFactory, SqliteBulkQuerySqlGeneratorFactory>();
             services.TryAdd<IQueryCompiler, SqliteBulkQueryCompiler>();
-#if EFCORE50
+#if EFCORE50 || EFCORE60
             services.TryAdd<IRelationalBulkParameterBasedSqlProcessorFactory, RelationalBulkParameterBasedSqlProcessorFactory>();
             services.TryAdd<IBulkQueryCompilationContextFactory, SqliteBulkQueryCompilationContextFactory>();
 #elif EFCORE31

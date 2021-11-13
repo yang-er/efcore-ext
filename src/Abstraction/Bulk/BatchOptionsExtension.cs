@@ -41,10 +41,17 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         {
             return new Dictionary<Type, ServiceLifetime>
             {
+#if EFCORE31 || EFCORE50
                 { typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory), ServiceLifetime.Singleton },
                 { typeof(IBulkQueryTranslationPostprocessorFactory), ServiceLifetime.Singleton },
                 { typeof(IBulkQueryTranslationPreprocessorFactory), ServiceLifetime.Singleton },
                 { typeof(IBulkShapedQueryCompilingExpressionVisitorFactory), ServiceLifetime.Singleton },
+#elif EFCORE60
+                { typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory), ServiceLifetime.Scoped },
+                { typeof(IBulkQueryTranslationPostprocessorFactory), ServiceLifetime.Scoped },
+                { typeof(IBulkQueryTranslationPreprocessorFactory), ServiceLifetime.Scoped },
+                { typeof(IBulkShapedQueryCompilingExpressionVisitorFactory), ServiceLifetime.Scoped },
+#endif
                 { typeof(IBulkQueryCompilationContextFactory), ServiceLifetime.Scoped },
                 { typeof(IQueryCompiler), ServiceLifetime.Scoped },
             };

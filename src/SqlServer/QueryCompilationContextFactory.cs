@@ -1,4 +1,4 @@
-#if EFCORE50
+#if EFCORE50 || EFCORE60
 
 using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Query;

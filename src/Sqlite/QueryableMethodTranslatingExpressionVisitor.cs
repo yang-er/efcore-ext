@@ -12,7 +12,7 @@ using System.Linq.Expressions;
 
 #if EFCORE31
 using ThirdParameter = Microsoft.EntityFrameworkCore.Metadata.IModel;
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
 using ThirdParameter = Microsoft.EntityFrameworkCore.Query.QueryCompilationContext;
 #endif
 

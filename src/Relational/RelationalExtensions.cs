@@ -21,12 +21,19 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         internal override Dictionary<Type, ServiceLifetime> GetServiceLifetimes()
         {
             var dict = base.GetServiceLifetimes();
+#if EFCORE31 || EFCORE50
             dict.Add(typeof(IMethodCallTranslatorPlugin), ServiceLifetime.Singleton);
             dict.Add(typeof(IMemberTranslatorPlugin), ServiceLifetime.Singleton);
+#elif EFCORE60
+            dict.Add(typeof(IMethodCallTranslatorPlugin), ServiceLifetime.Scoped);
+            dict.Add(typeof(IMemberTranslatorPlugin), ServiceLifetime.Scoped);
+#endif
             dict.Add(typeof(IBulkQuerySqlGeneratorFactory), ServiceLifetime.Singleton);
             dict.Add(typeof(IAnonymousExpressionFactory), ServiceLifetime.Singleton);
-#if EFCORE50 || EFCORE60
+#if EFCORE50
             dict.Add(typeof(IRelationalBulkParameterBasedSqlProcessorFactory), ServiceLifetime.Singleton);
+#elif EFCORE60
+            dict.Add(typeof(IRelationalBulkParameterBasedSqlProcessorFactory), ServiceLifetime.Scoped);
 #endif
             return dict;
         }

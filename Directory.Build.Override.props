@@ -8,6 +8,9 @@
     <EFCore50SourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore-5</EFCore50SourceDirectory>
     <EFCore50PgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg-5</EFCore50PgSourceDirectory>
     <EFCore50MySourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.my-5</EFCore50MySourceDirectory>
+    <EFCore60SourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore-6</EFCore60SourceDirectory>
+    <EFCore60PgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg-6</EFCore60PgSourceDirectory>
+    <EFCore60MySourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.my-6</EFCore60MySourceDirectory>
     <EFCore31SourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore</EFCore31SourceDirectory>
     <EFCore31PgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg</EFCore31PgSourceDirectory>
     <EFCore31MySourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.my</EFCore31MySourceDirectory>
