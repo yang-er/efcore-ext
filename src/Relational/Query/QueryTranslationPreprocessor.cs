@@ -51,6 +51,14 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             if (_queryCompilationContext.QuerySplittingBehavior == QuerySplittingBehavior.SplitQuery)
                 query = new SplitIncludeRewritingExpressionVisitor().Visit(query);
+#elif EFCORE60
+            query = new InvocationExpressionRemovingExpressionVisitor().Visit(query);
+            query = NormalizeQueryableMethod(query);
+            query = new NullCheckRemovingExpressionVisitor().Visit(query);
+            query = new SubqueryMemberPushdownExpressionVisitor(QueryCompilationContext.Model).Visit(query);
+            query = new SupportCommonTableNavigationExpandingExpressionVisitor(this, Dependencies.NavigationExpansionExtensibilityHelper, QueryCompilationContext, Dependencies.EvaluatableExpressionFilter).Expand(query);
+            query = new QueryOptimizingExpressionVisitor().Visit(query);
+            query = new NullCheckRemovingExpressionVisitor().Visit(query);
 #endif
 
             return query;

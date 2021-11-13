@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Utilities;
@@ -25,6 +26,15 @@ namespace Microsoft.EntityFrameworkCore.Query
             Check.NotNull(factory, nameof(factory));
             return SqlParameterExpressionConstructor(parameterExpression, typeMapping);
         }
+
+#if EFCORE31 || EFCORE50
+        public static IRelationalCommand RentAndPopulateRelationalCommand(
+            this RelationalCommandCache relationalCommandCache,
+            QueryContext queryContext)
+        {
+            return relationalCommandCache.GetRelationalCommand(queryContext.ParameterValues);
+        }
+#endif
 
         public static ProjectionExpression Projection(
             this ISqlExpressionFactory factory,
@@ -116,7 +126,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             ApplyAlias(tableExpressionBase, alias);
         }
 
-#if EFCORE50
+#if EFCORE50 || EFCORE60
 
         public static TableExpression Table(
             this ISqlExpressionFactory factory,
@@ -280,7 +290,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 .CreateFactory()
               as Func<string, TableExpressionBase, Type, RelationalTypeMapping, bool, ColumnExpression>;
 
-#if EFCORE50
+#if EFCORE50 || EFCORE60
 
         public static readonly Func<ITableBase, TableExpression> TableExpressionConstructor
             = typeof(TableExpression)

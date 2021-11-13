@@ -15,7 +15,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             QueryTranslationPostprocessor queryTranslationPostprocessor,
             ISqlExpressionFactory sqlExpressionFactory,
             QueryCompilationContext queryCompilationContext)
-#if EFCORE50
+#if EFCORE50 || EFCORE60
             : base(dependencies, queryCompilationContext)
 #elif EFCORE31
             : base(dependencies)

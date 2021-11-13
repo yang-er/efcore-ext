@@ -13,6 +13,9 @@ namespace Microsoft.EntityFrameworkCore.Storage.Internal
         public override string InvariantName { get; }
 
         public ValuesRelationalParameter(AnonymousExpressionType type, string namePrefix, string invariantName)
+#if EFCORE60
+            : base(invariantName)
+#endif
         {
             Check.NotNull(type, nameof(type));
             Check.NotNull(namePrefix, nameof(namePrefix));

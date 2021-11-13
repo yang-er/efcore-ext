@@ -16,7 +16,7 @@ using Microsoft.EntityFrameworkCore.Utilities;
 #if EFCORE31
 using ThirdParameter = Microsoft.EntityFrameworkCore.Metadata.IModel;
 using RelationalEntityShaperExpression = Microsoft.EntityFrameworkCore.Query.EntityShaperExpression;
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
 using ThirdParameter = Microsoft.EntityFrameworkCore.Query.QueryCompilationContext;
 #endif
 
@@ -72,7 +72,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         protected virtual ShapedQueryExpression Fail(string message) => null;
 
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
 
         private IModel AccessModel(ThirdParameter thirdParameter) => thirdParameter.Model;
 
@@ -703,7 +703,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 return translated;
             }
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
             ShapedQueryExpression CheckTranslated(ShapedQueryExpression translated)
             {
                 return translated

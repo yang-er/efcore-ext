@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Threading.Tasks;
@@ -22,12 +23,12 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             using (_queryContext.ConcurrencyDetector.EnterCriticalSection())
             {
-#if EFCORE50
+#if EFCORE50 || EFCORE60
                 EntityFrameworkEventSource.Log.QueryExecuting();
 #endif
 
                 return _relationalCommandCache
-                    .GetRelationalCommand(_queryContext.ParameterValues)
+                    .RentAndPopulateRelationalCommand(_queryContext)
                     .ExecuteNonQuery(
                         new RelationalCommandParameterObject(
                             _queryContext.Connection,
@@ -42,12 +43,12 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             using (_queryContext.ConcurrencyDetector.EnterCriticalSection())
             {
-#if EFCORE50
+#if EFCORE50 || EFCORE60
                 EntityFrameworkEventSource.Log.QueryExecuting();
 #endif
 
                 return await _relationalCommandCache
-                    .GetRelationalCommand(_queryContext.ParameterValues)
+                    .RentAndPopulateRelationalCommand(_queryContext)
                     .ExecuteNonQueryAsync(
                         new RelationalCommandParameterObject(
                             _queryContext.Connection,

@@ -12,7 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         {
             var set = base.GetRequiredServices();
             set.Add(typeof(IBulkQuerySqlGeneratorFactory));
-#if EFCORE50
+#if EFCORE50 || EFCORE60
             set.Add(typeof(IRelationalBulkParameterBasedSqlProcessorFactory));
 #endif
             return set;
@@ -25,7 +25,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             dict.Add(typeof(IMemberTranslatorPlugin), ServiceLifetime.Singleton);
             dict.Add(typeof(IBulkQuerySqlGeneratorFactory), ServiceLifetime.Singleton);
             dict.Add(typeof(IAnonymousExpressionFactory), ServiceLifetime.Singleton);
-#if EFCORE50
+#if EFCORE50 || EFCORE60
             dict.Add(typeof(IRelationalBulkParameterBasedSqlProcessorFactory), ServiceLifetime.Singleton);
 #endif
             return dict;

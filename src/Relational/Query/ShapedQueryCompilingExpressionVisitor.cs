@@ -53,7 +53,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             return commandCache;
         }
 
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
 
         private RelationalCommandCache CreateCommandCache(SelectExpression selectExpression)
         {
@@ -102,7 +102,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         public RelationalBulkShapedQueryCompilingExpressionVisitorFactory(
             ShapedQueryCompilingExpressionVisitorDependencies dependencies,
             RelationalShapedQueryCompilingExpressionVisitorDependencies relationalDependencies,
-#if EFCORE50
+#if EFCORE50 || EFCORE60
             IRelationalBulkParameterBasedSqlProcessorFactory parameterBasedSqlProcessorFactory,
 #endif
             IBulkQuerySqlGeneratorFactory querySqlGeneratorFactory)
@@ -113,10 +113,24 @@ namespace Microsoft.EntityFrameworkCore.Query
 #if EFCORE50
             Check.NotNull(parameterBasedSqlProcessorFactory, nameof(parameterBasedSqlProcessorFactory));
             relationalDependencies = relationalDependencies.With(parameterBasedSqlProcessorFactory);
+#elif EFCORE60
+            Check.NotNull(parameterBasedSqlProcessorFactory, nameof(parameterBasedSqlProcessorFactory));
+            relationalDependencies = relationalDependencies with
+            {
+                RelationalParameterBasedSqlProcessorFactory = parameterBasedSqlProcessorFactory
+            };
 #endif
 
+#if EFCORE31 || EFCORE50
             Check.NotNull(querySqlGeneratorFactory, nameof(querySqlGeneratorFactory));
             relationalDependencies = relationalDependencies.With(querySqlGeneratorFactory);
+#elif EFCORE60
+            Check.NotNull(querySqlGeneratorFactory, nameof(querySqlGeneratorFactory));
+            relationalDependencies = relationalDependencies with
+            {
+                QuerySqlGeneratorFactory = querySqlGeneratorFactory
+            };
+#endif
 
             _dependencies = dependencies;
             _relationalDependencies = relationalDependencies;

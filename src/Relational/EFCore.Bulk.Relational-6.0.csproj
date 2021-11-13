@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);EFCORE60;RELATIONAL</DefineConstants>
+    <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.Relational</AssemblyName>
+    <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix).Relational</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Provider\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCore60Version)" Condition=" $(EFCore60SourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCore60SourceDirectory)\src\EFCore.Relational\EFCore.Relational.csproj" Condition=" $(EFCore60SourceDirectory) != '' " />
+    <ProjectReference Include="..\Abstraction\EFCore.Bulk-6.0.csproj" />
+  </ItemGroup>
+
+</Project>

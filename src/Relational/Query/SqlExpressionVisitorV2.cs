@@ -170,7 +170,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override Expression VisitSubSelect(ScalarSubqueryExpression scalarSubqueryExpression)
             => BaseVisitExtension(scalarSubqueryExpression);
 
-#elif EFCORE50
+#elif EFCORE50 || EFCORE60
 
         /// <inheritdoc />
         protected override Expression VisitScalarSubquery(ScalarSubqueryExpression scalarSubqueryExpression)

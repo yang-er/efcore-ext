@@ -42,7 +42,7 @@ namespace Microsoft.EntityFrameworkCore.Query.SqlExpressions
         public override string ToString() => "excluded." + Name;
 
         /// <inheritdoc />
-#if EFCORE50
+#if EFCORE50 || EFCORE60
         protected override void Print(ExpressionPrinter expressionPrinter)
 #elif EFCORE31
         public override void Print(ExpressionPrinter expressionPrinter)
