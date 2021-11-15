@@ -356,7 +356,6 @@ namespace Microsoft.EntityFrameworkCore.Query
             var columnNames = entityType.GetColumns();
             var projectionMapping = selectExpression.GetProjectionMapping();
             var projections = (List<ProjectionExpression>)selectExpression.Projection;
-            var newProjectionMapping = new Dictionary<ProjectionMember, Expression>();
             if (projections.Count > 0)
             {
                 return Fail("The insert query contains client evaluation parts.");
@@ -370,11 +369,11 @@ namespace Microsoft.EntityFrameworkCore.Query
                     throw new NotImplementedException("Unknown projection mapping failed.");
                 }
 
-                newProjectionMapping.Add(mapping.Key, Expression.Constant(projections.Count));
                 projections.Add(_sqlExpressionFactory.Projection(sqlExpression, fieldName));
             }
 
-            selectExpression.ReplaceProjection(newProjectionMapping);
+            // We don't need any projection mapping here
+            selectExpression.ReplaceProjection(new Dictionary<ProjectionMember, Expression>());
 
             return TranslateWrapped(
                 new SelectIntoExpression(

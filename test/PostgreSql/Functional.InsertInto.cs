@@ -43,9 +43,15 @@ WHERE p.""Discriminator"" = 'Student'
 
             LogSql(nameof(CompiledQuery_WithComputedColumn));
 
-            AssertSql(@"
+            AssertSql(V31 | V50, @"
 INSERT INTO ""Document_{{schema}}"" (""Content"")
 SELECT d.""Content"" || CAST(d.""ContentLength"" AS text) AS ""Content""
+FROM ""Document_{{schema}}"" AS d
+");
+
+            AssertSql(V60, @"
+INSERT INTO ""Document_{{schema}}"" (""Content"")
+SELECT d.""Content"" || d.""ContentLength""::text AS ""Content""
 FROM ""Document_{{schema}}"" AS d
 ");
         }
@@ -83,9 +89,15 @@ WHERE p.""Discriminator"" = 'Student'
 
             LogSql(nameof(WithComputedColumn));
 
-            AssertSql(@"
+            AssertSql(V31 | V50, @"
 INSERT INTO ""Document_{{schema}}"" (""Content"")
 SELECT d.""Content"" || CAST(d.""ContentLength"" AS text) AS ""Content""
+FROM ""Document_{{schema}}"" AS d
+");
+
+            AssertSql(V60, @"
+INSERT INTO ""Document_{{schema}}"" (""Content"")
+SELECT d.""Content"" || d.""ContentLength""::text AS ""Content""
 FROM ""Document_{{schema}}"" AS d
 ");
         }

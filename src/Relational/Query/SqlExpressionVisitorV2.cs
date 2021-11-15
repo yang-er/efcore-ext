@@ -198,6 +198,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 MergeExpression mergeExpression => VisitMerge(mergeExpression),
                 ValuesExpression valuesExpression => VisitValues(valuesExpression),
                 UpdateExpression updateExpression => VisitUpdate(updateExpression),
+                UpsertExpression upsertExpression => VisitUpsert(upsertExpression),
                 SelectIntoExpression selectIntoExpression => VisitSelectInto(selectIntoExpression),
                 _ => base.VisitExtension(extensionExpression)
             };

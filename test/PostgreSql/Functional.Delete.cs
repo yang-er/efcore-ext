@@ -35,10 +35,16 @@ FROM ""Item_{{schema}}"" AS i
 WHERE i.""Name"" IN ('jyntnytjyntjntnytnt', 'aaa')
 ");
 
-            AssertSql(V50 | V60, @"
+            AssertSql(V50, @"
 DELETE
 FROM ""Item_{{schema}}"" AS i
 WHERE i.""Name"" = ANY (@__descriptionsToDelete) OR ((i.""Name"" IS NULL) AND (array_position(@__descriptionsToDelete, NULL) IS NOT NULL))
+");
+
+            AssertSql(V60, @"
+DELETE
+FROM ""Item_{{schema}}"" AS i
+WHERE i.""Name"" = ANY (@__descriptionsToDelete) OR (i.""Name"" IS NULL AND array_position(@__descriptionsToDelete, NULL) IS NOT NULL)
 ");
         }
 
@@ -80,10 +86,16 @@ FROM ""Item_{{schema}}"" AS i
 WHERE i.""Description"" IN ('info') OR (i.""Name"" = @__nameToDelete_1)
 ");
 
-            AssertSql(V50 | V60, @"
+            AssertSql(V50, @"
 DELETE
 FROM ""Item_{{schema}}"" AS i
 WHERE (i.""Description"" = ANY (@__descriptionsToDelete_0) OR ((i.""Description"" IS NULL) AND (array_position(@__descriptionsToDelete_0, NULL) IS NOT NULL))) OR (i.""Name"" = @__nameToDelete_1)
+");
+
+            AssertSql(V60, @"
+DELETE
+FROM ""Item_{{schema}}"" AS i
+WHERE (i.""Description"" = ANY (@__descriptionsToDelete_0) OR (i.""Description"" IS NULL AND array_position(@__descriptionsToDelete_0, NULL) IS NOT NULL)) OR (i.""Name"" = @__nameToDelete_1)
 ");
         }
 
@@ -99,10 +111,16 @@ FROM ""Item_{{schema}}"" AS i
 WHERE i.""Description"" IN ('info', 'aaa')
 ");
 
-            AssertSql(V50 | V60, @"
+            AssertSql(V50, @"
 DELETE
 FROM ""Item_{{schema}}"" AS i
 WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR ((i.""Description"" IS NULL) AND (array_position(@__descriptionsToDelete_0, NULL) IS NOT NULL))
+");
+
+            AssertSql(V60, @"
+DELETE
+FROM ""Item_{{schema}}"" AS i
+WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR (i.""Description"" IS NULL AND array_position(@__descriptionsToDelete_0, NULL) IS NOT NULL)
 ");
         }
 
@@ -118,10 +136,16 @@ FROM ""Item_{{schema}}"" AS i
 WHERE TRUE = FALSE
 ");
 
-            AssertSql(V50 | V60, @"
+            AssertSql(V50, @"
 DELETE
 FROM ""Item_{{schema}}"" AS i
 WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR ((i.""Description"" IS NULL) AND (array_position(@__descriptionsToDelete_0, NULL) IS NOT NULL))
+");
+
+            AssertSql(V60, @"
+DELETE
+FROM ""Item_{{schema}}"" AS i
+WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR (i.""Description"" IS NULL AND array_position(@__descriptionsToDelete_0, NULL) IS NOT NULL)
 ");
         }
 
@@ -131,10 +155,16 @@ WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR ((i.""Description""
 
             LogSql(nameof(ListAny));
 
-            AssertSql(@"
+            AssertSql(V31 | V50, @"
 DELETE
 FROM ""Item_{{schema}}"" AS i
 WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR ((i.""Description"" IS NULL) AND (array_position(@__descriptionsToDelete_0, NULL) IS NOT NULL))
+");
+
+            AssertSql(V60, @"
+DELETE
+FROM ""Item_{{schema}}"" AS i
+WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR (i.""Description"" IS NULL AND array_position(@__descriptionsToDelete_0, NULL) IS NOT NULL)
 ");
         }
 
