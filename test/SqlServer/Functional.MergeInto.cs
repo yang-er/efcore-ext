@@ -16,7 +16,7 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(SourceFromSql));
 
-            AssertSql(@"
+            AssertSql(V31 | V50, @"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING (
     SELECT [r].[ContestId], [r].[TeamId], [r].[Public], [r].[Time]
@@ -39,6 +39,33 @@ WHEN NOT MATCHED BY TARGET
         WHEN [r0].[Public] = CAST(1 AS bit) THEN [r0].[Time]
         ELSE 0
     END, [r0].[Time], [r0].[ContestId], [r0].[TeamId])
+WHEN NOT MATCHED BY SOURCE
+    THEN DELETE;
+");
+
+            AssertSql(V60, @"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    SELECT [r].[ContestId], [r].[TeamId], [r].[Public], [r].[Time]
+    FROM [RankSource_{{schema}}] AS [r]
+) AS [m]
+    ON ([r].[ContestId] = [m].[ContestId]) AND ([r].[TeamId] = [m].[TeamId])
+WHEN MATCHED
+    THEN UPDATE SET [r].[PointsPublic] = CASE
+        WHEN [m].[Public] = CAST(1 AS bit) THEN [r].[PointsPublic] + 1
+        ELSE [r].[PointsPublic]
+    END, [r].[TotalTimePublic] = CASE
+        WHEN [m].[Public] = CAST(1 AS bit) THEN [r].[TotalTimePublic] + [m].[Time]
+        ELSE [r].[TotalTimePublic]
+    END, [r].[PointsRestricted] = [r].[PointsRestricted] + 1, [r].[TotalTimeRestricted] = [r].[TotalTimeRestricted] + [m].[Time]
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted], [ContestId], [TeamId]) VALUES (CASE
+        WHEN [m].[Public] = CAST(1 AS bit) THEN 1
+        ELSE 0
+    END, 1, CASE
+        WHEN [m].[Public] = CAST(1 AS bit) THEN [m].[Time]
+        ELSE 0
+    END, [m].[Time], [m].[ContestId], [m].[TeamId])
 WHEN NOT MATCHED BY SOURCE
     THEN DELETE;
 ");

@@ -195,15 +195,16 @@ namespace Microsoft.EntityFrameworkCore.Query
             var mapping = new Dictionary<ProjectionMember, Expression>();
             var rootMember = new ProjectionMember();
             var shaperArguments = new List<Expression>(entityType.Fields.Count);
+            var valuesReference = select.GetTableReference(values);
 
             foreach (var field in entityType.Fields)
             {
                 var projectionMember = rootMember.Append(field.PropertyInfo);
-                mapping[projectionMember] = _sqlExpressionFactory.Column(field.Name, values, field.Type, field.TypeMapping, field.Nullable);
+                mapping[projectionMember] = _sqlExpressionFactory.Column(field.Name, valuesReference, field.Type, field.TypeMapping, field.Nullable);
                 shaperArguments.Add(field.CreateProjectionBinding(select, projectionMember));
             }
 
-            select.ReplaceProjectionMapping(mapping);
+            select.ReplaceProjection(mapping);
             var shaper = entityType.CreateShaper(shaperArguments);
             return new ShapedQueryExpression(select, shaper);
         }
@@ -217,7 +218,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 groupBy: new List<SqlExpression>(),
                 orderings: new List<OrderingExpression>());
 
-            selectExpression.ReplaceProjectionMapping(
+            selectExpression.ReplaceProjection(
                 new Dictionary<ProjectionMember, Expression>
                 {
                     [new ProjectionMember()] = new AffectedRowsExpression(),
@@ -373,7 +374,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 projections.Add(_sqlExpressionFactory.Projection(sqlExpression, fieldName));
             }
 
-            selectExpression.ReplaceProjectionMapping(newProjectionMapping);
+            selectExpression.ReplaceProjection(newProjectionMapping);
 
             return TranslateWrapped(
                 new SelectIntoExpression(

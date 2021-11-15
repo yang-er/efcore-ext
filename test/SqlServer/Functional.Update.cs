@@ -16,14 +16,14 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(CompiledQuery_ConcatenateBody));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE [i]
 SET [i].[Name] = [i].[Name] + @__suffix, [i].[Quantity] = [i].[Quantity] + @__incrementStep
 FROM [Item_{{schema}}] AS [i]
 WHERE [i].[ItemId] <= 500
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE [i]
 SET [i].[Name] = COALESCE([i].[Name], N'') + @__suffix, [i].[Quantity] = [i].[Quantity] + @__incrementStep
 FROM [Item_{{schema}}] AS [i]
@@ -51,7 +51,7 @@ WHERE [i].[ItemId] <= 388
 
             LogSql(nameof(CompiledQuery_HasOwnedType));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE [c]
 SET [c].[Audit_IsDeleted] = CASE
     WHEN [t].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
@@ -65,10 +65,19 @@ LEFT JOIN (
 ) AS [t] ON [c].[ChangeLogId] = [t].[ChangeLogId]
 ");
 
-            AssertSql50(@"
+            AssertSql(V50, @"
 UPDATE [c]
 SET [c].[Audit_IsDeleted] = CASE
     WHEN [c].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
+    ELSE CAST(0 AS bit)
+END
+FROM [ChangeLog_{{schema}}] AS [c]
+");
+
+            AssertSql(V60, @"
+UPDATE [c]
+SET [c].[Audit_IsDeleted] = CASE
+    WHEN [c].[Audit_IsDeleted] = CAST(0 AS bit) THEN CAST(1 AS bit)
     ELSE CAST(0 AS bit)
 END
 FROM [ChangeLog_{{schema}}] AS [c]
@@ -155,14 +164,14 @@ FROM [Judging_{{schema}}] AS [j]
 
             LogSql(nameof(ConcatenateBody));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE [i]
 SET [i].[Name] = [i].[Name] + @__suffix_1, [i].[Quantity] = [i].[Quantity] + @__incrementStep_2
 FROM [Item_{{schema}}] AS [i]
 WHERE ([i].[ItemId] <= 500) AND ([i].[Price] >= @__price_0)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE [i]
 SET [i].[Name] = COALESCE([i].[Name], N'') + @__suffix_1, [i].[Quantity] = [i].[Quantity] + @__incrementStep_2
 FROM [Item_{{schema}}] AS [i]
@@ -190,7 +199,7 @@ WHERE ([i].[ItemId] <= 388) AND ([i].[Price] >= @__price_0)
 
             LogSql(nameof(HasOwnedType));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE [c]
 SET [c].[Audit_IsDeleted] = CASE
     WHEN [t].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
@@ -204,10 +213,19 @@ LEFT JOIN (
 ) AS [t] ON [c].[ChangeLogId] = [t].[ChangeLogId]
 ");
 
-            AssertSql50(@"
+            AssertSql(V50, @"
 UPDATE [c]
 SET [c].[Audit_IsDeleted] = CASE
     WHEN [c].[Audit_IsDeleted] <> CAST(1 AS bit) THEN CAST(1 AS bit)
+    ELSE CAST(0 AS bit)
+END
+FROM [ChangeLog_{{schema}}] AS [c]
+");
+
+            AssertSql(V60, @"
+UPDATE [c]
+SET [c].[Audit_IsDeleted] = CASE
+    WHEN [c].[Audit_IsDeleted] = CAST(0 AS bit) THEN CAST(1 AS bit)
     ELSE CAST(0 AS bit)
 END
 FROM [ChangeLog_{{schema}}] AS [c]

@@ -16,13 +16,13 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(CompiledQuery_ConcatenateBody));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE `Item_{{schema}}` AS `i`
 SET `i`.`Name` = CONCAT(`i`.`Name`, @__suffix), `i`.`Quantity` = `i`.`Quantity` + @__incrementStep
 WHERE `i`.`ItemId` <= 500
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE `Item_{{schema}}` AS `i`
 SET `i`.`Name` = CONCAT(COALESCE(`i`.`Name`, ''), @__suffix), `i`.`Quantity` = `i`.`Quantity` + @__incrementStep
 WHERE `i`.`ItemId` <= 500
@@ -48,7 +48,7 @@ WHERE `i`.`ItemId` <= 388
 
             LogSql(nameof(CompiledQuery_HasOwnedType));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE `ChangeLog_{{schema}}` AS `c`
 LEFT JOIN (
     SELECT `c0`.`ChangeLogId`, `c0`.`ChangedBy`, `c0`.`Audit_IsDeleted`
@@ -58,7 +58,7 @@ LEFT JOIN (
 SET `c`.`Audit_IsDeleted` = NOT (`t`.`Audit_IsDeleted`)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE `ChangeLog_{{schema}}` AS `c`
 SET `c`.`Audit_IsDeleted` = NOT (`c`.`Audit_IsDeleted`)
 ");
@@ -136,13 +136,13 @@ SET `j`.`CompileError` = NULL, `j`.`ExecuteMemory` = NULL, `j`.`PreviousJudgingI
 
             LogSql(nameof(ConcatenateBody));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE `Item_{{schema}}` AS `i`
 SET `i`.`Name` = CONCAT(`i`.`Name`, @__suffix_1), `i`.`Quantity` = `i`.`Quantity` + @__incrementStep_2
 WHERE (`i`.`ItemId` <= 500) AND (`i`.`Price` >= @__price_0)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE `Item_{{schema}}` AS `i`
 SET `i`.`Name` = CONCAT(COALESCE(`i`.`Name`, ''), @__suffix_1), `i`.`Quantity` = `i`.`Quantity` + @__incrementStep_2
 WHERE (`i`.`ItemId` <= 500) AND (`i`.`Price` >= @__price_0)
@@ -168,7 +168,7 @@ WHERE (`i`.`ItemId` <= 388) AND (`i`.`Price` >= @__price_0)
 
             LogSql(nameof(HasOwnedType));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE `ChangeLog_{{schema}}` AS `c`
 LEFT JOIN (
     SELECT `c0`.`ChangeLogId`, `c0`.`ChangedBy`, `c0`.`Audit_IsDeleted`
@@ -178,7 +178,7 @@ LEFT JOIN (
 SET `c`.`Audit_IsDeleted` = NOT (`t`.`Audit_IsDeleted`)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE `ChangeLog_{{schema}}` AS `c`
 SET `c`.`Audit_IsDeleted` = NOT (`c`.`Audit_IsDeleted`)
 ");

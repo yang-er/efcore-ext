@@ -43,13 +43,13 @@ WHERE `p`.`Discriminator` = 'Student'
 
             LogSql(nameof(CompiledQuery_WithComputedColumn));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 INSERT INTO `Document_{{schema}}` (`Content`)
 SELECT CONCAT(`d`.`Content`, CONVERT(`d`.`ContentLength`, CHAR(11))) AS `Content`
 FROM `Document_{{schema}}` AS `d`
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 INSERT INTO `Document_{{schema}}` (`Content`)
 SELECT CONCAT(`d`.`Content`, CAST(`d`.`ContentLength` AS char) COLLATE utf8mb4_bin) AS `Content`
 FROM `Document_{{schema}}` AS `d`
@@ -89,13 +89,13 @@ WHERE `p`.`Discriminator` = 'Student'
 
             LogSql(nameof(WithComputedColumn));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 INSERT INTO `Document_{{schema}}` (`Content`)
 SELECT CONCAT(`d`.`Content`, CONVERT(`d`.`ContentLength`, CHAR(11))) AS `Content`
 FROM `Document_{{schema}}` AS `d`
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 INSERT INTO `Document_{{schema}}` (`Content`)
 SELECT CONCAT(`d`.`Content`, CAST(`d`.`ContentLength` AS char) COLLATE utf8mb4_bin) AS `Content`
 FROM `Document_{{schema}}` AS `d`

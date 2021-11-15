@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.TestUtilities.Xunit;
+using System;
 using System.Diagnostics;
 using Xunit;
 
@@ -11,6 +12,10 @@ namespace Microsoft.EntityFrameworkCore.Tests
     {
         private readonly TFactory _factory;
 
+        protected const DatabaseProvider V31 = DatabaseProvider.Version_31;
+        protected const DatabaseProvider V50 = DatabaseProvider.Version_50;
+        protected const DatabaseProvider V60 = DatabaseProvider.Version_60;
+
         protected TContext CreateContext()
         {
             return _factory.Create();
@@ -21,11 +26,16 @@ namespace Microsoft.EntityFrameworkCore.Tests
             _factory.CommandTracer.AssertSql(sql.Replace("{{schema}}", _factory.UniqueId));
         }
 
-        [Conditional("EFCORE31")]
-        protected void AssertSql31(string sql) => AssertSql(sql);
-
-        [Conditional("EFCORE50")]
-        protected void AssertSql50(string sql) => AssertSql(sql);
+        protected void AssertSql(DatabaseProvider version, string sql)
+        {
+#if EFCORE31
+            if ((version & V31) == V31) AssertSql(sql);
+#elif EFCORE50
+            if ((version & V50) == V50) AssertSql(sql);
+#elif EFCORE60
+            if ((version & V60) == V60) AssertSql(sql);
+#endif
+        }
 
         [Conditional("LOG_SQL")]
         protected void LogSql(string fileName)

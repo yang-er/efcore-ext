@@ -68,13 +68,13 @@ WHERE ([i].[ItemId] > 500) AND ([i].[Price] = 124.0)
 
             LogSql(nameof(ContainsAndAlsoEqual));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE [i].[Description] IN (N'info') OR ([i].[Name] = @__nameToDelete_1)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE ([i].[Description] = N'info') OR ([i].[Name] = @__nameToDelete_1)
@@ -100,13 +100,13 @@ WHERE [i].[Description] IN (N'info', N'aaa')
 
             LogSql(nameof(EmptyContains));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE CAST(1 AS bit) = CAST(0 AS bit)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE 0 = 1
@@ -119,13 +119,13 @@ WHERE 0 = 1
 
             LogSql(nameof(ListAny));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE [i].[Description] IN (N'info')
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 DELETE [i]
 FROM [Item_{{schema}}] AS [i]
 WHERE [i].[Description] = N'info'

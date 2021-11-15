@@ -25,7 +25,18 @@ namespace Microsoft.EntityFrameworkCore.Query
 
         protected override Expression VisitColumn(ColumnExpression columnExpression)
         {
+#if EFCORE60
+            return columnExpression;
+
+            // TODO: clear out these code
+            var result =
+                columnExpression.Table is InnerJoinExpression innerJoin
+                    && innerJoin.Table is ValuesExpression valuesExpression
+                ? (TableExpressionBase)Visit(valuesExpression)
+                : (TableExpressionBase)Visit(columnExpression.Table);
+#else
             var result = (TableExpressionBase)Visit(columnExpression.Table);
+#endif
             return result != columnExpression.Table
                 ? _sqlExpressionFactory.Column(columnExpression, result)
                 : columnExpression;

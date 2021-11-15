@@ -16,13 +16,13 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(CompiledQuery_ConcatenateBody));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Name"" = i.""Name"" || @__suffix, ""Quantity"" = i.""Quantity"" + @__incrementStep
 WHERE i.""ItemId"" <= 500
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Name"" = COALESCE(i.""Name"", '') || @__suffix, ""Quantity"" = i.""Quantity"" + @__incrementStep
 WHERE i.""ItemId"" <= 500
@@ -115,12 +115,12 @@ SET ""Another"" = (
 
             LogSql(nameof(CompiledQuery_SetNull));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE ""Judging_{{schema}}"" AS j
 SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""Server"" = NULL, ""Status"" = GREATEST(j.""Status"", 8)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE ""Judging_{{schema}}"" AS j
 SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""Server"" = NULL, ""Status"" = greatest(j.""Status"", 8)
 ");
@@ -132,13 +132,13 @@ SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = N
 
             LogSql(nameof(ConcatenateBody));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Name"" = i.""Name"" || @__suffix_1, ""Quantity"" = i.""Quantity"" + @__incrementStep_2
 WHERE (i.""ItemId"" <= 500) AND (i.""Price"" >= @__price_0)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Name"" = COALESCE(i.""Name"", '') || @__suffix_1, ""Quantity"" = i.""Quantity"" + @__incrementStep_2
 WHERE (i.""ItemId"" <= 500) AND (i.""Price"" >= @__price_0)
@@ -231,12 +231,12 @@ SET ""Another"" = (
 
             LogSql(nameof(SetNull));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE ""Judging_{{schema}}"" AS j
 SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""StartTime"" = NOW(), ""Server"" = NULL, ""Status"" = GREATEST(j.""Status"", 8)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE ""Judging_{{schema}}"" AS j
 SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""StartTime"" = NOW(), ""Server"" = NULL, ""Status"" = greatest(j.""Status"", 8)
 ");

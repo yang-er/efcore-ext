@@ -64,12 +64,12 @@ WHERE (""i"".""ItemId"" > 500) AND (""i"".""Price"" = '124.0')
 
             LogSql(nameof(ContainsAndAlsoEqual));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 DELETE FROM ""Item_{{schema}}"" AS ""i""
 WHERE ""i"".""Description"" IN ('info') OR (""i"".""Name"" = @__nameToDelete_1)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 DELETE FROM ""Item_{{schema}}"" AS ""i""
 WHERE (""i"".""Description"" = 'info') OR (""i"".""Name"" = @__nameToDelete_1)
 ");
@@ -93,12 +93,12 @@ WHERE ""i"".""Description"" IN ('info', 'aaa')
 
             LogSql(nameof(EmptyContains));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 DELETE FROM ""Item_{{schema}}"" AS ""i""
 WHERE 1 = 0
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 DELETE FROM ""Item_{{schema}}"" AS ""i""
 WHERE 0
 ");
@@ -110,12 +110,12 @@ WHERE 0
 
             LogSql(nameof(ListAny));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 DELETE FROM ""Item_{{schema}}"" AS ""i""
 WHERE ""i"".""Description"" IN ('info')
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 DELETE FROM ""Item_{{schema}}"" AS ""i""
 WHERE ""i"".""Description"" = 'info'
 ");

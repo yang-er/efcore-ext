@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <Compile Remove="Provider\**" />
+    <Compile Remove="**\*.60.cs" />
+    <Compile Remove="**\*.31.cs" />
   </ItemGroup>
 
   <ItemGroup>

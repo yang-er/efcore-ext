@@ -43,15 +43,21 @@ WHERE [p].[Discriminator] = N'Student'
 
             LogSql(nameof(CompiledQuery_WithComputedColumn));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 INSERT INTO [Document_{{schema}}] ([Content])
 SELECT [d].[Content] + CONVERT(VARCHAR(11), [d].[ContentLength]) AS [Content]
 FROM [Document_{{schema}}] AS [d]
 ");
 
-            AssertSql50(@"
+            AssertSql(V50, @"
 INSERT INTO [Document_{{schema}}] ([Content])
 SELECT [d].[Content] + COALESCE(CONVERT(VARCHAR(11), [d].[ContentLength]), N'') AS [Content]
+FROM [Document_{{schema}}] AS [d]
+");
+
+            AssertSql(V60, @"
+INSERT INTO [Document_{{schema}}] ([Content])
+SELECT [d].[Content] + COALESCE(CONVERT(varchar(11), [d].[ContentLength]), N'') AS [Content]
 FROM [Document_{{schema}}] AS [d]
 ");
         }
@@ -89,15 +95,21 @@ WHERE [p].[Discriminator] = N'Student'
 
             LogSql(nameof(WithComputedColumn));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 INSERT INTO [Document_{{schema}}] ([Content])
 SELECT [d].[Content] + CONVERT(VARCHAR(11), [d].[ContentLength]) AS [Content]
 FROM [Document_{{schema}}] AS [d]
 ");
 
-            AssertSql50(@"
+            AssertSql(V50, @"
 INSERT INTO [Document_{{schema}}] ([Content])
 SELECT [d].[Content] + COALESCE(CONVERT(VARCHAR(11), [d].[ContentLength]), N'') AS [Content]
+FROM [Document_{{schema}}] AS [d]
+");
+
+            AssertSql(V60, @"
+INSERT INTO [Document_{{schema}}] ([Content])
+SELECT [d].[Content] + COALESCE(CONVERT(varchar(11), [d].[ContentLength]), N'') AS [Content]
 FROM [Document_{{schema}}] AS [d]
 ");
         }

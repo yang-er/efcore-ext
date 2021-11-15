@@ -60,7 +60,15 @@ namespace Microsoft.EntityFrameworkCore
             var type = enumerable.GetType().GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var queryContext = (QueryContext)type.Single(e => e.Name == "_relationalQueryContext").GetValue(enumerable);
             var commandCache = type.Single(e => e.Name == "_relationalCommandCache").GetValue(enumerable);
+#if EFCORE31 || EFCORE50
             var command = commandCache.GetType().GetMethod("GetRelationalCommand").Invoke(commandCache, new[] { queryContext.ParameterValues });
+#elif EFCORE60
+            var command = AppDomain.CurrentDomain.GetAssemblies()
+                .Single(a => a.GetName().Name == "Microsoft.EntityFrameworkCore.Relational")
+                .GetType("Microsoft.EntityFrameworkCore.Internal.RelationCommandCacheExtensions")
+                .GetMethod("RentAndPopulateRelationalCommand")
+                .Invoke(null, new object[] { commandCache, queryContext });
+#endif
             return (string)command.GetType().GetProperty("CommandText").GetValue(command);
         }
 

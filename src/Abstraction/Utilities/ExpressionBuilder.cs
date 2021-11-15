@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Microsoft.EntityFrameworkCore.Utilities
@@ -27,9 +28,24 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             return this;
         }
 
+        public ExpressionBuilder AccessProperty(string propertyName)
+        {
+            Current = Expression.Property(
+                Current,
+                Current.Type.GetProperty(propertyName, InstanceLevel));
+
+            return this;
+        }
+
         public ExpressionBuilder As<T>()
         {
             Current = Expression.Convert(Current, typeof(T));
+            return this;
+        }
+
+        public ExpressionBuilder As(Type type)
+        {
+            Current = Expression.Convert(Current, type);
             return this;
         }
 

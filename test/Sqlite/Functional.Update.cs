@@ -18,13 +18,13 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             LogSql(nameof(CompiledQuery_ConcatenateBody));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE ""Item_{{schema}}"" AS ""i""
 SET ""Name"" = ""i"".""Name"" || @__suffix, ""Quantity"" = ""i"".""Quantity"" + @__incrementStep
 WHERE ""i"".""ItemId"" <= 500
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE ""Item_{{schema}}"" AS ""i""
 SET ""Name"" = COALESCE(""i"".""Name"", '') || @__suffix, ""Quantity"" = ""i"".""Quantity"" + @__incrementStep
 WHERE ""i"".""ItemId"" <= 500
@@ -129,13 +129,13 @@ SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = N
 
             LogSql(nameof(ConcatenateBody));
 
-            AssertSql31(@"
+            AssertSql(V31, @"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Name"" = ""i"".""Name"" || @__suffix_1, ""Quantity"" = ""i"".""Quantity"" + @__incrementStep_2
 WHERE (""i"".""ItemId"" <= 500) AND (ef_compare(""i"".""Price"", @__price_0) >= 0)
 ");
 
-            AssertSql50(@"
+            AssertSql(V50 | V60, @"
 UPDATE ""Item_{{schema}}"" AS ""i""
 SET ""Name"" = COALESCE(""i"".""Name"", '') || @__suffix_1, ""Quantity"" = ""i"".""Quantity"" + @__incrementStep_2
 WHERE (""i"".""ItemId"" <= 500) AND (ef_compare(""i"".""Price"", @__price_0) >= 0)

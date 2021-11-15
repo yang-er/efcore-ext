@@ -138,7 +138,7 @@ WHEN NOT MATCHED BY TARGET
 
             LogSql(nameof(Upsert_FromSql));
 
-            AssertSql(@"
+            AssertSql(V31 | V50, @"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING (
     SELECT [r].[ContestId], [r].[TeamId], [r].[Public], [r].[Time]
@@ -149,6 +149,19 @@ WHEN MATCHED
     THEN UPDATE SET [r].[PointsPublic] = [r].[PointsPublic] + 1, [r].[TotalTimePublic] = [r].[TotalTimePublic] + [r0].[Time]
 WHEN NOT MATCHED BY TARGET
     THEN INSERT ([PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted], [ContestId], [TeamId]) VALUES (1, 1, [r0].[Time], [r0].[Time], [r0].[ContestId], [r0].[TeamId]);
+");
+
+            AssertSql(V60, @"
+MERGE INTO [RankCache_{{schema}}] AS [r]
+USING (
+    SELECT [r].[ContestId], [r].[TeamId], [r].[Public], [r].[Time]
+    FROM [RankSource_{{schema}}] AS [r]
+) AS [m]
+    ON ([r].[ContestId] = [m].[ContestId]) AND ([r].[TeamId] = [m].[TeamId])
+WHEN MATCHED
+    THEN UPDATE SET [r].[PointsPublic] = [r].[PointsPublic] + 1, [r].[TotalTimePublic] = [r].[TotalTimePublic] + [m].[Time]
+WHEN NOT MATCHED BY TARGET
+    THEN INSERT ([PointsPublic], [PointsRestricted], [TotalTimePublic], [TotalTimeRestricted], [ContestId], [TeamId]) VALUES (1, 1, [m].[Time], [m].[Time], [m].[ContestId], [m].[TeamId]);
 ");
         }
 
