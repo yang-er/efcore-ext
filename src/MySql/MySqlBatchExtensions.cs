@@ -22,7 +22,7 @@ namespace Microsoft.EntityFrameworkCore
     {
         public override string Name => "MySqlBatchExtension";
 
-        protected override void ApplyServices(BatchServicesBuilder services)
+        protected override void ApplyServices(ExtensionServicesBuilder services)
         {
             services.TryAdd<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
 
@@ -33,7 +33,7 @@ namespace Microsoft.EntityFrameworkCore
 
             services.TryAdd<IBulkQuerySqlGeneratorFactory, MySqlBulkQuerySqlGeneratorFactory>();
             services.TryAdd<IQueryCompiler, MySqlBulkQueryCompiler>();
-#if EFCORE50
+#if EFCORE50 || EFCORE60
             services.TryAdd<IRelationalBulkParameterBasedSqlProcessorFactory, RelationalBulkParameterBasedSqlProcessorFactory>();
             services.TryAdd<IBulkQueryCompilationContextFactory, MySqlBulkQueryCompilationContextFactory>();
 #elif EFCORE31

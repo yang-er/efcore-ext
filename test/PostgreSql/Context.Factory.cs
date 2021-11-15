@@ -14,7 +14,7 @@ namespace Microsoft.EntityFrameworkCore.Tests
                 $"Port=5432;" +
                 $"Database=mengqinyu;" +
                 $"Pooling=true;",
-                s => s.UseBulk());
+                s => s.UseBulk().UseLegacyDateTimeOffset());
         }
 
         protected override void EnsureCreated(TContext context)

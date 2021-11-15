@@ -21,7 +21,7 @@ namespace Microsoft.EntityFrameworkCore.Tests
 
             ServerVersion = ServerVersion.AutoDetect(connectionString);
 
-#if EFCORE50
+#if EFCORE50 || EFCORE60
             optionsBuilder.UseMySql(
                 connectionString,
                 ServerVersion,

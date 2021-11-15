@@ -19,6 +19,7 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
         private readonly ServerVersion _serverVersion;
         private TableExpressionBase _implicitTable;
 
+#if EFCORE31 || EFCORE50
         public MySqlBulkQuerySqlGenerator(
             QuerySqlGeneratorDependencies dependencies,
             MySqlSqlExpressionFactory sqlExpressionFactory,
@@ -27,6 +28,15 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
         {
             _serverVersion = options.ServerVersion;
         }
+#elif EFCORE60
+        public MySqlBulkQuerySqlGenerator(
+            QuerySqlGeneratorDependencies dependencies,
+            IMySqlOptions options)
+            : base(dependencies, options)
+        {
+            _serverVersion = options.ServerVersion;
+        }
+#endif
 
         public ISqlGenerationHelper Helper => Dependencies.SqlGenerationHelper;
 
@@ -375,7 +385,9 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
         public virtual QuerySqlGenerator Create()
             => new MySqlBulkQuerySqlGenerator(
                 _dependencies,
+#if EFCORE31 || EFCORE50
                 _sqlExpressionFactory,
+#endif
                 _mysqlOptions);
     }
 }

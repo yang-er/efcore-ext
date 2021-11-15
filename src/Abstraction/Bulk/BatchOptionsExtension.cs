@@ -10,9 +10,9 @@ using System.Linq;
 namespace Microsoft.EntityFrameworkCore.Bulk
 {
     /// <summary>
-    /// The extension of batch operations.
+    /// The essential extension base class.
     /// </summary>
-    public abstract class BatchOptionsExtension : IDbContextOptionsExtension
+    public abstract class DbContextOptionsExtension : IDbContextOptionsExtension
     {
         private DbContextOptionsExtensionInfo _info;
 
@@ -23,13 +23,12 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         public abstract string Name { get; }
 
         /// <inheritdoc cref="IDbContextOptionsExtension.ApplyServices(IServiceCollection)" />
-        protected abstract void ApplyServices(BatchServicesBuilder services);
+        protected abstract void ApplyServices(ExtensionServicesBuilder services);
 
         /// <inheritdoc />
-        public void ApplyServices(IServiceCollection services)
+        public virtual void ApplyServices(IServiceCollection services)
         {
-            services.AddScoped<BulkQueryCompilationContextDependencies>();
-            var builder = new BatchServicesBuilder(services, GetRequiredServices(), GetServiceLifetimes());
+            var builder = new ExtensionServicesBuilder(services, GetRequiredServices(), GetServiceLifetimes());
             ApplyServices(builder);
             builder.Validate();
         }
@@ -39,22 +38,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         /// </summary>
         internal virtual Dictionary<Type, ServiceLifetime> GetServiceLifetimes()
         {
-            return new Dictionary<Type, ServiceLifetime>
-            {
-#if EFCORE31 || EFCORE50
-                { typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory), ServiceLifetime.Singleton },
-                { typeof(IBulkQueryTranslationPostprocessorFactory), ServiceLifetime.Singleton },
-                { typeof(IBulkQueryTranslationPreprocessorFactory), ServiceLifetime.Singleton },
-                { typeof(IBulkShapedQueryCompilingExpressionVisitorFactory), ServiceLifetime.Singleton },
-#elif EFCORE60
-                { typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory), ServiceLifetime.Scoped },
-                { typeof(IBulkQueryTranslationPostprocessorFactory), ServiceLifetime.Scoped },
-                { typeof(IBulkQueryTranslationPreprocessorFactory), ServiceLifetime.Scoped },
-                { typeof(IBulkShapedQueryCompilingExpressionVisitorFactory), ServiceLifetime.Scoped },
-#endif
-                { typeof(IBulkQueryCompilationContextFactory), ServiceLifetime.Scoped },
-                { typeof(IQueryCompiler), ServiceLifetime.Scoped },
-            };
+            return new Dictionary<Type, ServiceLifetime>();
         }
 
         /// <summary>
@@ -62,26 +46,18 @@ namespace Microsoft.EntityFrameworkCore.Bulk
         /// </summary>
         internal virtual HashSet<Type> GetRequiredServices()
         {
-            return new HashSet<Type>
-            {
-                typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory),
-                typeof(IBulkQueryTranslationPostprocessorFactory),
-                typeof(IBulkQueryTranslationPreprocessorFactory),
-                typeof(IBulkShapedQueryCompilingExpressionVisitorFactory),
-                typeof(IBulkQueryCompilationContextFactory),
-                typeof(IQueryCompiler),
-            };
+            return new HashSet<Type>();
         }
 
         /// <inheritdoc />
-        public void Validate(IDbContextOptions options)
+        public virtual void Validate(IDbContextOptions options)
         {
         }
 
         /// <summary>
         /// Build the services.
         /// </summary>
-        protected sealed class BatchServicesBuilder
+        protected sealed class ExtensionServicesBuilder
         {
             private IReadOnlyDictionary<Type, ServiceLifetime> ServiceLifetimes { get; }
 
@@ -91,7 +67,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             private IServiceCollection ServiceCollection { get; }
 
-            internal BatchServicesBuilder(
+            internal ExtensionServicesBuilder(
                 IServiceCollection services,
                 HashSet<Type> unhandled,
                 IReadOnlyDictionary<Type, ServiceLifetime> serviceLifetimes)
@@ -168,7 +144,7 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             private readonly string _name;
 
             public ExtensionInfo(
-                BatchOptionsExtension extension)
+                DbContextOptionsExtension extension)
                 : base(extension)
             {
                 _name = extension.Name;
@@ -189,6 +165,58 @@ namespace Microsoft.EntityFrameworkCore.Bulk
 
             public override void PopulateDebugInfo(IDictionary<string, string> debugInfo)
                 => debugInfo[_name] = "1";
+        }
+    }
+
+    /// <summary>
+    /// The extension of batch operations.
+    /// </summary>
+    public abstract class BatchOptionsExtension : DbContextOptionsExtension
+    {
+        /// <inheritdoc />
+        public override sealed void ApplyServices(IServiceCollection services)
+        {
+            services.AddScoped<BulkQueryCompilationContextDependencies>();
+            base.ApplyServices(services);
+        }
+
+        /// <summary>
+        /// Gets the service lifetime mapping.
+        /// </summary>
+        internal override Dictionary<Type, ServiceLifetime> GetServiceLifetimes()
+        {
+            return new Dictionary<Type, ServiceLifetime>
+            {
+#if EFCORE31 || EFCORE50
+                { typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory), ServiceLifetime.Singleton },
+                { typeof(IBulkQueryTranslationPostprocessorFactory), ServiceLifetime.Singleton },
+                { typeof(IBulkQueryTranslationPreprocessorFactory), ServiceLifetime.Singleton },
+                { typeof(IBulkShapedQueryCompilingExpressionVisitorFactory), ServiceLifetime.Singleton },
+#elif EFCORE60
+                { typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory), ServiceLifetime.Scoped },
+                { typeof(IBulkQueryTranslationPostprocessorFactory), ServiceLifetime.Scoped },
+                { typeof(IBulkQueryTranslationPreprocessorFactory), ServiceLifetime.Scoped },
+                { typeof(IBulkShapedQueryCompilingExpressionVisitorFactory), ServiceLifetime.Scoped },
+#endif
+                { typeof(IBulkQueryCompilationContextFactory), ServiceLifetime.Scoped },
+                { typeof(IQueryCompiler), ServiceLifetime.Scoped },
+            };
+        }
+
+        /// <summary>
+        /// Gets the services that required a <see cref="IServiceAnnotation{TService, TImplementation}"/>.
+        /// </summary>
+        internal override HashSet<Type> GetRequiredServices()
+        {
+            return new HashSet<Type>
+            {
+                typeof(IBulkQueryableMethodTranslatingExpressionVisitorFactory),
+                typeof(IBulkQueryTranslationPostprocessorFactory),
+                typeof(IBulkQueryTranslationPreprocessorFactory),
+                typeof(IBulkShapedQueryCompilingExpressionVisitorFactory),
+                typeof(IBulkQueryCompilationContextFactory),
+                typeof(IQueryCompiler),
+            };
         }
     }
 }

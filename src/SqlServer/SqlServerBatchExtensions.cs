@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.SqlServer.Query;
 using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
 
 namespace Microsoft.EntityFrameworkCore
 {
@@ -17,13 +20,45 @@ namespace Microsoft.EntityFrameworkCore
             ((IDbContextOptionsBuilderInfrastructure)builder1).AddOrUpdateExtension(ext);
             return builder;
         }
+
+        public static SqlServerDbContextOptionsBuilder UseMathExtensions(this SqlServerDbContextOptionsBuilder builder)
+        {
+            var builder1 = ((IRelationalDbContextOptionsBuilderInfrastructure)builder).OptionsBuilder;
+            var ext = new SqlServerMathExtension();
+            ((IDbContextOptionsBuilderInfrastructure)builder1).AddOrUpdateExtension(ext);
+            return builder;
+        }
+    }
+
+    public class SqlServerMathExtension : DbContextOptionsExtension
+    {
+        public override string Name => "SqlServerMathExtensions";
+
+        internal override Dictionary<Type, ServiceLifetime> GetServiceLifetimes()
+        {
+            return new Dictionary<Type, ServiceLifetime>
+            {
+#if EFCORE31 || EFCORE50
+                { typeof(IMethodCallTranslatorPlugin), ServiceLifetime.Singleton },
+                { typeof(IMemberTranslatorPlugin), ServiceLifetime.Singleton },
+#elif EFCORE60
+                { typeof(IMethodCallTranslatorPlugin), ServiceLifetime.Scoped },
+                { typeof(IMemberTranslatorPlugin), ServiceLifetime.Scoped },
+#endif
+            };
+        }
+
+        protected override void ApplyServices(ExtensionServicesBuilder services)
+        {
+            services.TryAdd<IMethodCallTranslatorPlugin, MathTranslationPlugin>();
+        }
     }
 
     public class SqlServerBatchOptionsExtension : RelationalBatchOptionsExtension
     {
         public override string Name => "SqlServerBatchExtension";
 
-        protected override void ApplyServices(BatchServicesBuilder services)
+        protected override void ApplyServices(ExtensionServicesBuilder services)
         {
             services.TryAdd<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
 
@@ -36,7 +71,6 @@ namespace Microsoft.EntityFrameworkCore
             services.TryAdd<IBulkQueryableMethodTranslatingExpressionVisitorFactory, SqlServerBulkQueryableMethodTranslatingExpressionVisitorFactory>();
 #endif
 
-            services.TryAdd<IMethodCallTranslatorPlugin, MathTranslationPlugin>();
             services.TryAdd<IBulkQuerySqlGeneratorFactory, SqlServerBulkQuerySqlGeneratorFactory>();
             services.TryAdd<IQueryCompiler, SqlServerBulkQueryCompiler>();
 #if EFCORE50 || EFCORE60

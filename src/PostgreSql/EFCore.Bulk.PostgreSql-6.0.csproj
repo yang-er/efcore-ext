@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);EFCORE60;RELATIONAL;POSTGRE_SQL</DefineConstants>
+    <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.PostgreSql</AssemblyName>
+    <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix).PostgreSql</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Relational\Provider\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(EFCore60NpgsqlVersion)" Condition=" $(EFCore60PgSourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCore60PgSourceDirectory)\src\EFCore.PG\EFCore.PG.csproj" Condition=" $(EFCore60PgSourceDirectory) != '' " />
+    <ProjectReference Include="..\Relational\EFCore.Bulk.Relational-6.0.csproj" />
+  </ItemGroup>
+
+</Project>

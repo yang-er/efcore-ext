@@ -12,7 +12,7 @@ namespace Microsoft.EntityFrameworkCore.Tests
                 $"Database=EFCoreBulkTest;" +
                 $"Trusted_Connection=True;" +
                 $"MultipleActiveResultSets=true",
-                s => s.UseBulk());
+                s => s.UseBulk().UseMathExtensions());
         }
 
         protected override void EnsureCreated(TContext context)

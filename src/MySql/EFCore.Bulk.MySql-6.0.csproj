@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);EFCORE60;RELATIONAL;MYSQL</DefineConstants>
+    <AssemblyName>Microsoft.EntityFrameworkCore.Bulk.MySql</AssemblyName>
+    <RootNamespace>Microsoft.EntityFrameworkCore</RootNamespace>
+    <PackageId>$(ExtensionPackagePrefix).MySql</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Relational\Provider\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="$(EFCore60PomeloVersion)" Condition=" $(EFCore60MySourceDirectory) == '' " />
+    <ProjectReference Include="$(EFCore60MySourceDirectory)\src\EFCore.MySql\EFCore.MySql.csproj" Condition=" $(EFCore60MySourceDirectory) != '' " />
+    <ProjectReference Include="..\Relational\EFCore.Bulk.Relational-6.0.csproj" />
+  </ItemGroup>
+
+</Project>

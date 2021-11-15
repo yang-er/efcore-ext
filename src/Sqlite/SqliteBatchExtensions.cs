@@ -22,7 +22,7 @@ namespace Microsoft.EntityFrameworkCore
     {
         public override string Name => "SqliteBatchExtension";
 
-        protected override void ApplyServices(BatchServicesBuilder services)
+        protected override void ApplyServices(ExtensionServicesBuilder services)
         {
             services.TryAdd<IAnonymousExpressionFactory, AnonymousExpressionFactory>();
 
