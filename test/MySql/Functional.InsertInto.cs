@@ -49,9 +49,15 @@ SELECT CONCAT(`d`.`Content`, CONVERT(`d`.`ContentLength`, CHAR(11))) AS `Content
 FROM `Document_{{schema}}` AS `d`
 ");
 
-            AssertSql(V50 | V60, @"
+            AssertSql(V50, @"
 INSERT INTO `Document_{{schema}}` (`Content`)
 SELECT CONCAT(`d`.`Content`, CAST(`d`.`ContentLength` AS char) COLLATE utf8mb4_bin) AS `Content`
+FROM `Document_{{schema}}` AS `d`
+");
+
+            AssertSql(V60, @"
+INSERT INTO `Document_{{schema}}` (`Content`)
+SELECT CONCAT(`d`.`Content`, CAST(`d`.`ContentLength` AS char)) AS `Content`
 FROM `Document_{{schema}}` AS `d`
 ");
         }
@@ -95,9 +101,15 @@ SELECT CONCAT(`d`.`Content`, CONVERT(`d`.`ContentLength`, CHAR(11))) AS `Content
 FROM `Document_{{schema}}` AS `d`
 ");
 
-            AssertSql(V50 | V60, @"
+            AssertSql(V50, @"
 INSERT INTO `Document_{{schema}}` (`Content`)
 SELECT CONCAT(`d`.`Content`, CAST(`d`.`ContentLength` AS char) COLLATE utf8mb4_bin) AS `Content`
+FROM `Document_{{schema}}` AS `d`
+");
+
+            AssertSql(V60, @"
+INSERT INTO `Document_{{schema}}` (`Content`)
+SELECT CONCAT(`d`.`Content`, CAST(`d`.`ContentLength` AS char)) AS `Content`
 FROM `Document_{{schema}}` AS `d`
 ");
         }

@@ -107,13 +107,23 @@ ON DUPLICATE KEY UPDATE `PointsPublic` = `PointsPublic` + 1, `TotalTimePublic` =
 
             LogSql(nameof(Upsert_FromSql));
 
-            AssertSql(@"
+            AssertSql(V31 | V50, @"
 INSERT INTO `RankCache_{{schema}}` (`PointsPublic`, `PointsRestricted`, `TotalTimePublic`, `TotalTimeRestricted`, `ContestId`, `TeamId`)
 SELECT 1, 1, `r0`.`Time`, `r0`.`Time`, `r0`.`ContestId`, `r0`.`TeamId`
 FROM (
     SELECT `r`.`ContestId`, `r`.`TeamId`, `r`.`Public`, `r`.`Time`
     FROM `RankSource_{{schema}}` AS `r`
 ) AS `r0`
+ON DUPLICATE KEY UPDATE `PointsPublic` = `PointsPublic` + 1, `TotalTimePublic` = `TotalTimePublic` + VALUES(`TotalTimePublic`)
+");
+
+            AssertSql(V60, @"
+INSERT INTO `RankCache_{{schema}}` (`PointsPublic`, `PointsRestricted`, `TotalTimePublic`, `TotalTimeRestricted`, `ContestId`, `TeamId`)
+SELECT 1, 1, `m`.`Time`, `m`.`Time`, `m`.`ContestId`, `m`.`TeamId`
+FROM (
+    SELECT `r`.`ContestId`, `r`.`TeamId`, `r`.`Public`, `r`.`Time`
+    FROM `RankSource_{{schema}}` AS `r`
+) AS `m`
 ON DUPLICATE KEY UPDATE `PointsPublic` = `PointsPublic` + 1, `TotalTimePublic` = `TotalTimePublic` + VALUES(`TotalTimePublic`)
 ");
         }
