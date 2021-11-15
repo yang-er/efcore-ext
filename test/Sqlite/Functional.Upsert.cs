@@ -113,13 +113,23 @@ ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r""."
 
             LogSql(nameof(Upsert_FromSql));
 
-            AssertSql(@"
+            AssertSql(V31 | V50, @"
 INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
 SELECT 1, 1, ""r0"".""Time"", ""r0"".""Time"", ""r0"".""ContestId"", ""r0"".""TeamId""
 FROM (
     SELECT ""r"".""ContestId"", ""r"".""TeamId"", ""r"".""Public"", ""r"".""Time""
     FROM ""RankSource_{{schema}}"" AS ""r""
 ) AS ""r0"" WHERE TRUE
+ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
+");
+
+            AssertSql(V60, @"
+INSERT INTO ""RankCache_{{schema}}"" AS ""r"" (""PointsPublic"", ""PointsRestricted"", ""TotalTimePublic"", ""TotalTimeRestricted"", ""ContestId"", ""TeamId"")
+SELECT 1, 1, ""m"".""Time"", ""m"".""Time"", ""m"".""ContestId"", ""m"".""TeamId""
+FROM (
+    SELECT ""r"".""ContestId"", ""r"".""TeamId"", ""r"".""Public"", ""r"".""Time""
+    FROM ""RankSource_{{schema}}"" AS ""r""
+) AS ""m"" WHERE TRUE
 ON CONFLICT (""ContestId"", ""TeamId"") DO UPDATE SET ""PointsPublic"" = ""r"".""PointsPublic"" + 1, ""TotalTimePublic"" = ""r"".""TotalTimePublic"" + ""excluded"".""TotalTimePublic""
 ");
         }

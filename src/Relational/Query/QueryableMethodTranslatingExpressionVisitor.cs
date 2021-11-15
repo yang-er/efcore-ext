@@ -90,7 +90,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
 #endif
 
-        private void ManualReshape(Expression body, IEntityType entityType, Action<IProperty, Expression> fieldCallback)
+        private void ManualReshape(Expression body, IEntityType entityType, Action<IProperty, Expression> fieldCallback, Action<string> fail)
         {
             NewExpression newExpression;
             IEnumerable<MemberBinding> bindings;
@@ -108,13 +108,13 @@ namespace Microsoft.EntityFrameworkCore.Query
                     break;
 
                 default:
-                    Fail($"Type of {body.NodeType} is not supported in upsert yet.");
+                    fail($"Type of {body.NodeType} is not supported in upsert yet.");
                     return;
             }
 
             if (newExpression.Constructor.GetParameters().Length > 0)
             {
-                Fail("Non-simple constructor is not supported.");
+                fail("Non-simple constructor is not supported.");
                 return;
             }
 
@@ -122,7 +122,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             {
                 if (item is not MemberAssignment assignment)
                 {
-                    Fail("Non-assignment binding is not supported.");
+                    fail("Non-assignment binding is not supported.");
                     return;
                 }
 
@@ -136,17 +136,17 @@ namespace Microsoft.EntityFrameworkCore.Query
                 var navigation = entityType.FindNavigation(assignment.Member);
                 if (navigation == null)
                 {
-                    Fail($"Unknown member \"{assignment.Member}\" is not supported in update yet.");
+                    fail($"Unknown member \"{assignment.Member}\" is not supported in update yet.");
                     return;
                 }
                 else if (!navigation.ForeignKey.IsOwnership)
                 {
-                    Fail($"Wrong member \"{navigation.ForeignKey}\". Only owned-navigation member can be upserted.");
+                    fail($"Wrong member \"{navigation.ForeignKey}\". Only owned-navigation member can be upserted.");
                     return;
                 }
                 else
                 {
-                    ManualReshape(assignment.Expression, navigation.ForeignKey.DeclaringEntityType, fieldCallback);
+                    ManualReshape(assignment.Expression, navigation.ForeignKey.DeclaringEntityType, fieldCallback, fail);
                 }
             }
         }
@@ -310,6 +310,11 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return Fail("The update body contains client evaluation parts.");
             }
 
+            if (!ValidateShaperNoClientEvaluation(((ShapedQueryExpression)shaped).ShaperExpression, entityType))
+            {
+                return Fail("Translated fields are incomplete, either not supported feature or client evaluation is involved.");
+            }
+
             // Get the concrete update field expression
             var projectionMapping = selectExpression.GetProjectionMapping();
             var setFields = new List<ProjectionExpression>(projectionMapping.Count);
@@ -333,6 +338,33 @@ namespace Microsoft.EntityFrameworkCore.Query
                     predicate: selectExpression.Predicate,
                     fields: setFields,
                     tables: selectExpression.Tables));
+
+            bool ValidateShaperNoClientEvaluation(Expression shaper, IEntityType entityType)
+            {
+                bool failed = false;
+                ManualReshape(
+                    shaper,
+                    entityType,
+                    (_, exp) =>
+                    {
+                        if (exp is UnaryExpression unaryExpression
+                            && unaryExpression.NodeType == ExpressionType.Convert
+                            && unaryExpression.Operand is ProjectionBindingExpression)
+                        {
+                            // Convert something to non-nullable, this is acceptable.
+                        }
+                        else if (exp is ProjectionBindingExpression)
+                        {
+                            // Original projected, this is acceptable.
+                        }
+                        else
+                        {
+                            failed = true;
+                        }
+                    },
+                    fail => failed = true);
+                return !failed;
+            }
         }
 
         protected virtual ShapedQueryExpression TranslateSelectInto(Expression shaped, Type rootType)
@@ -444,7 +476,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                     insertFields.Add(
                         _sqlExpressionFactory.Projection(
                             _sqlTranslator.Translate(expression),
-                            property.GetColumnName(soi))));
+                            property.GetColumnName(soi))),
+                failMsg => Fail(failMsg));
 
             if (update.IsBodyConstantNull())
             {
@@ -471,7 +504,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                         updateFields.Add(
                             _sqlExpressionFactory.Projection(
                                 excludedRewriter.VisitAndConvert(_sqlTranslator.Translate(expression), null),
-                                property.GetColumnName(soi))));
+                                property.GetColumnName(soi))),
+                    failMsg => Fail(failMsg));
             }
 
             return TranslateWrapped(
@@ -519,7 +553,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                     insertFields.Add(
                         _sqlExpressionFactory.Projection(
                             _sqlTranslator.Translate(expression),
-                            property.GetColumnName(soi))));
+                            property.GetColumnName(soi))),
+                failMsg => Fail(failMsg));
 
             if (update.IsBodyConstantNull())
             {
@@ -539,7 +574,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                         updateFields.Add(
                             _sqlExpressionFactory.Projection(
                                 _sqlTranslator.Translate(expression),
-                                property.GetColumnName(soi))));
+                                property.GetColumnName(soi))),
+                    failMsg => Fail(failMsg));
             }
 
             return TranslateWrapped(
@@ -610,7 +646,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                         insert.Add(
                             _sqlExpressionFactory.Projection(
                                 _sqlTranslator.Translate(expression),
-                                property.GetColumnName(soi))));
+                                property.GetColumnName(soi))),
+                    failMsg => Fail(failMsg));
             }
 
             if (!updateExpression.IsBodyConstantNull())
@@ -626,7 +663,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                         update.Add(
                             _sqlExpressionFactory.Projection(
                                 _sqlTranslator.Translate(expression),
-                                property.GetColumnName(soi))));
+                                property.GetColumnName(soi))),
+                    failMsg => Fail(failMsg));
             }
 
             if (selectExpression.Tables.Count != 2

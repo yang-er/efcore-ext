@@ -224,7 +224,24 @@ SET ""Another"" = (
 
         public override void SetNull()
         {
-            Assert.Throws<InvalidOperationException>(() => base.SetNull());
+            using var scope = CatchCommand();
+            using var context = CreateContext();
+
+            context.Judgings
+                .BatchUpdate(a => new Judging
+                {
+                    CompileError = null,
+                    ExecuteMemory = null,
+                    PreviousJudgingId = null,
+                    TotalScore = null,
+                    Server = null,
+                    Status = Math.Max(a.Status, 8),
+                });
+
+            AssertSql(@"
+UPDATE ""Judging_{{schema}}"" AS ""j""
+SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""Server"" = NULL, ""Status"" = max(""j"".""Status"", 8)
+");
         }
     }
 }

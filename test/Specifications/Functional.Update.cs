@@ -514,6 +514,34 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
             }
         }
 
+        [ConditionalFact, TestPriority(17)]
+        [DatabaseProviderSkipCondition(DatabaseProvider.InMemory)]
+        public virtual void ClientEvaluation_FieldNotFull()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+            {
+                using var scope = CatchCommand();
+                using var context = CreateContext();
+
+                context.Judgings
+                    .BatchUpdate(a => new Judging
+                    {
+                        CompileError = null,
+                        Status = ClientEvaluationEnforcer(a),
+                    });
+            });
+
+            Assert.Contains("could not be translated", ex.Message);
+
+#if EFCORE50 || EFCORE60
+            if (!ex.Message.Contains("The update body contains client evaluation parts.")
+                && !ex.Message.Contains("Translated fields are incomplete, either not supported feature or client evaluation is involved."))
+            {
+                throw new Exception("Assert.Contains() Failure, no client evaluation text notified.");
+            }
+#endif
+        }
+
         [ConditionalFact, TestPriority(107)]
         [DatabaseProviderSkipCondition(DatabaseProvider.SqlServer_31)]
         public virtual void Issue7()
@@ -529,6 +557,11 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
                 });
 
             Assert.Equal(0, affected);
+        }
+
+        private int ClientEvaluationEnforcer(Judging judging)
+        {
+            return 0;
         }
     }
 }

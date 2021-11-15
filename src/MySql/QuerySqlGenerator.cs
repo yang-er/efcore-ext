@@ -370,16 +370,22 @@ namespace Pomelo.EntityFrameworkCore.MySql.Query
     {
         private readonly QuerySqlGeneratorDependencies _dependencies;
         private readonly IMySqlOptions _mysqlOptions;
+#if EFCORE31 || EFCORE50
         private readonly MySqlSqlExpressionFactory _sqlExpressionFactory;
+#endif
 
         public MySqlBulkQuerySqlGeneratorFactory(
             QuerySqlGeneratorDependencies dependencies,
+#if EFCORE31 || EFCORE50
             ISqlExpressionFactory sqlExpressionFactory,
+#endif
             IMySqlOptions mysqlOptions)
         {
             _dependencies = dependencies;
             _mysqlOptions = mysqlOptions;
+#if EFCORE31 || EFCORE50
             _sqlExpressionFactory = (MySqlSqlExpressionFactory)sqlExpressionFactory;
+#endif
         }
 
         public virtual QuerySqlGenerator Create()
