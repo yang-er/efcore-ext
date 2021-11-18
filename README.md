@@ -8,10 +8,11 @@ Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, M
 
 Some features like shadow properties update, value conversion hasn't been tested. PRs about the testcases are welcome.
 
-Current version supports EFCore 3.1 and EFCore 5.0.
+Current version supports EFCore 3.1 and EFCore 5.0. Still trying to support EFCore 6.0.
 
 Targeting `netstandard2.0` and used on EFCore 3.1 projects.
 Targeting `netstandard2.1` and used on EFCore 5.0 projects.
+Targeting `net6.0` and used on EFCore 6.0 projects.
 
 - [![](https://img.shields.io/nuget/v/XiaoYang.EntityFrameworkCore.Bulk)](https://www.nuget.org/packages/XiaoYang.EntityFrameworkCore.Bulk): EFCore Bulk extension definition
 - [![](https://img.shields.io/nuget/v/XiaoYang.EntityFrameworkCore.Bulk.InMemory)](https://www.nuget.org/packages/XiaoYang.EntityFrameworkCore.Bulk.InMemory): InMemory bulk operation provider
@@ -36,6 +37,10 @@ options.UseMySql(connection, o => o.ServerVersion(..).UseBulk());
 ```
 
 For MySQL, setting **ServerVersion** is important, which is not explicitly passed with arguments in EFCore 3.1.
+
+For PostgreSQL, you can attach `.UseLegacyDateTimeOffset()` after `.UseBulk()` to use the legacy DateTimeOffset behavior.
+
+For Microsot SQL Server, you can attach `.UseMathExtensions()` after `.UseBulk()` to use Math.Max/Min function.
 
 If you want to try TableSplittingJoinsRemoval to remove useless self-joins, which tries to remove the redundant self-joins when using owned entity in EFCore 3.1, you may try
 

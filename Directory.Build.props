@@ -30,7 +30,7 @@ Commonly Used Extension Methods:
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 
     <!-- Versioning -->
-    <XysMinorVersion>26</XysMinorVersion>
+    <XysMinorVersion>27</XysMinorVersion>
     <ExtensionPackagePrefix>XiaoYang.EntityFrameworkCore.Bulk</ExtensionPackagePrefix>
 
     <!-- Product versions -->
