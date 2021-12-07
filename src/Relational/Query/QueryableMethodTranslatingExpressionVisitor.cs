@@ -315,6 +315,10 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return Fail("Translated fields are incomplete, either not supported feature or client evaluation is involved.");
             }
 
+#if EFCORE60
+            selectExpression = selectExpression.UniquefyAliases();
+#endif
+
             // Get the concrete update field expression
             var projectionMapping = selectExpression.GetProjectionMapping();
             var setFields = new List<ProjectionExpression>(projectionMapping.Count);

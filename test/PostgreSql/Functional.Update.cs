@@ -241,5 +241,30 @@ UPDATE ""Judging_{{schema}}"" AS j
 SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = NULL, ""TotalScore"" = NULL, ""StartTime"" = NOW(), ""Server"" = NULL, ""Status"" = greatest(j.""Status"", 8)
 ");
         }
+
+        public override void BodyScalarQueryWithWhere()
+        {
+            base.BodyScalarQueryWithWhere();
+
+            LogSql(nameof(BodyScalarQueryWithWhere));
+
+            AssertSql(V31 | V50, @"
+UPDATE ""Contest_{{schema}}"" AS c0
+SET ""Count"" = (
+    SELECT COUNT(*)::INT
+    FROM ""ContestTeam_{{schema}}"" AS c
+    WHERE (c.""ContestId"" = c0.""Id"") AND (c.""Status"" = @__b_1))
+WHERE c0.""Id"" = @__a_0
+");
+
+            AssertSql(V60, @"
+UPDATE ""Contest_{{schema}}"" AS c
+SET ""Count"" = (
+    SELECT COUNT(*)::INT
+    FROM ""ContestTeam_{{schema}}"" AS c0
+    WHERE (c0.""ContestId"" = c.""Id"") AND (c0.""Status"" = @__b_1))
+WHERE c.""Id"" = @__a_0
+");
+        }
     }
 }

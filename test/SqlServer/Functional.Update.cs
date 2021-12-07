@@ -305,5 +305,32 @@ END
 FROM [Judging_{{schema}}] AS [j]
 ");
         }
+
+        public override void BodyScalarQueryWithWhere()
+        {
+            base.BodyScalarQueryWithWhere();
+
+            LogSql(nameof(BodyScalarQueryWithWhere));
+
+            AssertSql(V31 | V50, @"
+UPDATE [c0]
+SET [c0].[Count] = (
+    SELECT COUNT(*)
+    FROM [ContestTeam_{{schema}}] AS [c]
+    WHERE ([c].[ContestId] = [c0].[Id]) AND ([c].[Status] = @__b_1))
+FROM [Contest_{{schema}}] AS [c0]
+WHERE [c0].[Id] = @__a_0
+");
+
+            AssertSql(V60, @"
+UPDATE [c]
+SET [c].[Count] = (
+    SELECT COUNT(*)
+    FROM [ContestTeam_{{schema}}] AS [c0]
+    WHERE ([c0].[ContestId] = [c].[Id]) AND ([c0].[Status] = @__b_1))
+FROM [Contest_{{schema}}] AS [c]
+WHERE [c].[Id] = @__a_0
+");
+        }
     }
 }

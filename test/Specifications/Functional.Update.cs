@@ -64,12 +64,27 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
         public int Wt { get; set; }
     }
 
+    public class Contest
+    {
+        public int Id { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class ContestTeam
+    {
+        public int ContestId { get; set; }
+        public int TeamId { get; set; }
+        public int Status { get; set; }
+    }
+
     public class UpdateContext : DbContext, IDbContextWithSeeds
     {
         public DbSet<Item> Items { get; set; }
         public DbSet<ChangeLog> ChangeLogs { get; set; }
         public DbSet<Judging> Judgings { get; set; }
         public DbSet<Detail> Details { get; set; }
+        public DbSet<Contest> Contests { get; set; }
+        public DbSet<ContestTeam> ContestTeams { get; set; }
         public string DefaultSchema { get; }
 
         public UpdateContext(string schema, DbContextOptions options)
@@ -107,6 +122,18 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
             {
                 entity.ToTable(nameof(NullSemanticEntity) + "_" + DefaultSchema);
                 entity.Property(e => e.Hello).IsRequired();
+            });
+
+            modelBuilder.Entity<Contest>(entity =>
+            {
+                entity.ToTable(nameof(Contest) + "_" + DefaultSchema);
+            });
+
+            modelBuilder.Entity<ContestTeam>(entity =>
+            {
+                entity.ToTable(nameof(ContestTeam) + "_" + DefaultSchema);
+                entity.HasOne<Contest>().WithMany().HasForeignKey(t => t.ContestId);
+                entity.HasKey(e => new { e.ContestId, e.TeamId });
             });
         }
 
@@ -540,6 +567,22 @@ namespace Microsoft.EntityFrameworkCore.Tests.BatchUpdate
                 throw new Exception("Assert.Contains() Failure, no client evaluation text notified.");
             }
 #endif
+        }
+
+        [ConditionalFact, TestPriority(18)]
+        public virtual void BodyScalarQueryWithWhere()
+        {
+            using var scope = CatchCommand();
+            using var context = CreateContext();
+            int a = 0, b = 1;
+
+            context.Contests
+                .Where(c => c.Id == a)
+                .BatchUpdate(c => new Contest
+                {
+                    Count = context.ContestTeams
+                        .Count(ct => ct.ContestId == c.Id && ct.Status == b)
+                });
         }
 
         [ConditionalFact, TestPriority(107)]

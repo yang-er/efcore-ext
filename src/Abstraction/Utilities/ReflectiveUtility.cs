@@ -34,6 +34,15 @@ namespace Microsoft.EntityFrameworkCore.Utilities
             => lambdaExpression.Body is ConstantExpression constantExpression
                 && constantExpression.Value == null;
 
+        public static TDelegate CreateFactory<TDelegate>(this ConstructorInfo constructor)
+        {
+            var @params = constructor.GetParameters()
+                .Select(p => Expression.Parameter(p.ParameterType))
+                .ToArray();
+
+            return Expression.Lambda<TDelegate>(Expression.New(constructor, @params), @params).Compile();
+        }
+
         public static Delegate CreateFactory(this ConstructorInfo constructor)
         {
             var @params = constructor.GetParameters()

@@ -249,5 +249,30 @@ UPDATE `Judging_{{schema}}` AS `j`
 SET `j`.`CompileError` = NULL, `j`.`ExecuteMemory` = NULL, `j`.`PreviousJudgingId` = NULL, `j`.`TotalScore` = NULL, `j`.`StartTime` = UTC_TIMESTAMP(), `j`.`Server` = NULL, `j`.`Status` = GREATEST(`j`.`Status`, 8)
 ");
         }
+
+        public override void BodyScalarQueryWithWhere()
+        {
+            base.BodyScalarQueryWithWhere();
+
+            LogSql(nameof(BodyScalarQueryWithWhere));
+
+            AssertSql(V31 | V50, @"
+UPDATE `Contest_{{schema}}` AS `c0`
+SET `c0`.`Count` = (
+    SELECT COUNT(*)
+    FROM `ContestTeam_{{schema}}` AS `c`
+    WHERE (`c`.`ContestId` = `c0`.`Id`) AND (`c`.`Status` = @__b_1))
+WHERE `c0`.`Id` = @__a_0
+");
+
+            AssertSql(V60, @"
+UPDATE `Contest_{{schema}}` AS `c`
+SET `c`.`Count` = (
+    SELECT COUNT(*)
+    FROM `ContestTeam_{{schema}}` AS `c0`
+    WHERE (`c0`.`ContestId` = `c`.`Id`) AND (`c0`.`Status` = @__b_1))
+WHERE `c`.`Id` = @__a_0
+");
+        }
     }
 }

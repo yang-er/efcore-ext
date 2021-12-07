@@ -17,6 +17,11 @@ namespace Microsoft.EntityFrameworkCore.Query
             Expression outerShaper)
             => outerSelectExpression.AddCrossJoin(innerSource, outerShaper);
 
+        internal static SelectExpression UniquefyAliases(
+            this SelectExpression selectExpression)
+            => AliasUniquefierConstructor(new HashSet<string>(StringComparer.OrdinalIgnoreCase))
+                .VisitAndConvert(selectExpression, null);
+
         private static ColumnExpression ColumnExpressionConstructor(string name, TableReferenceExpression table, Type type, RelationalTypeMapping typeMapping, bool nullable)
             => ConcreteColumnExpressionConstructor(name, table, type, typeMapping, nullable);
 
@@ -117,6 +122,13 @@ namespace Microsoft.EntityFrameworkCore.Query
                 return Expression.Lambda<Action<SelectExpression, SelectExpression>>(body, para1, para2);
             })
             .Invoke().Compile();
+
+        private static readonly Func<HashSet<string>, ExpressionVisitor> AliasUniquefierConstructor
+            = typeof(SelectExpression)
+                .GetNestedType("AliasUniquefier", GeneralBindingFlags)
+                .GetConstructors()
+                .Single()
+                .CreateFactory<Func<HashSet<string>, ExpressionVisitor>>();
 
         private static readonly Type TableReferenceExpressionType
             = typeof(SelectExpression).GetNestedType("TableReferenceExpression", System.Reflection.BindingFlags.NonPublic);
