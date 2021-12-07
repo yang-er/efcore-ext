@@ -18,35 +18,15 @@ namespace Microsoft.EntityFrameworkCore.Tests
     public class SqliteContextFactory<TContext> : RelationalContextFactoryBase<TContext>
         where TContext : DbContext
     {
+        protected override string ScriptSplit => ";\r\n\r\n";
+
+        protected override string DropTableCommand => "DROP TABLE IF EXISTS \"{0}\"";
+
         protected override void Configure(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite(
                 SqliteConnectionHolder.Singleton,
                 s => s.UseBulk());
-        }
-
-        protected override void EnsureCreated(TContext context)
-        {
-            if (!context.Database.EnsureCreated())
-            {
-                var script = context.Database.GenerateCreateScript();
-                foreach (var line in script.Trim().Split(";\r\n\r\n", StringSplitOptions.RemoveEmptyEntries))
-                {
-                    context.Database.ExecuteSqlRaw(line.Trim());
-                }
-            }
-        }
-
-        protected override void EnsureDeleted(TContext context)
-        {
-            foreach (var item in context.Model.GetEntityTypes())
-            {
-                var tableName = item.GetTableName();
-                if (tableName != null)
-                {
-                    context.Database.ExecuteSqlRaw($"DROP TABLE IF EXISTS \"{tableName}\"");
-                }
-            }
         }
     }
 }
