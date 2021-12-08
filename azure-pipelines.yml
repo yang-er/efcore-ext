@@ -1,0 +1,60 @@
+trigger:
+  branches:
+    include:
+    - '*'
+  tags:
+    include:
+    - '*'
+
+resources:
+  repositories:
+  - repository: "Azure Repos Mirror"
+    type: git
+    name: efcore/efcore-ext
+
+variables:
+- group: azure-repos-sync
+
+jobs:
+- job: Build
+  displayName: "Build, Test and Publish"
+
+  pool:
+    vmImage: windows-latest
+
+  steps:
+  - task: UseDotNet@2
+    inputs:
+      packageType: 'sdk'
+      version: '6.0.x'
+    displayName: 'Setup Build Environment'
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'build'
+    displayName: 'Build the Module'
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'test'
+      testRunTitle: 'Run unit tests'
+    displayName: 'Run Unit Tests'
+
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'custom'
+      custom: 'pack'
+      arguments: '-c Release -o $(Build.ArtifactStagingDirectory)'
+    displayName: 'Package for NuGet'
+
+- job: Sync
+  displayName: "Sync with Azure Repos"
+
+  pool:
+    vmImage: windows-latest
+
+  steps:
+  - task: gitmirror@0
+    inputs:
+      GitRepoUrl: 'https://tlylz:$(SYNC_PAT)@dev.azure.com/tlylz/efcore/_git/efcore-ext'
+    displayName: 'Sync via Git Tools'
