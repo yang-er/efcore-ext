@@ -23,6 +23,15 @@ jobs:
     vmImage: windows-2022
 
   steps:
+  - script: |
+      choco install postgresql13 --force --params '/Password:Password12!'
+    displayName: 'Setup PostgreSQL'
+
+  - script: |
+      choco install mysql --version=8.0.26
+      mysql -h localhost -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'Password12!';"
+    displayName: 'Setup MySQL'
+
   - task: UseDotNet@2
     inputs:
       packageType: 'sdk'
@@ -40,16 +49,6 @@ jobs:
       packageType: 'sdk'
       version: '6.0.x'
     displayName: 'Install .NET 6.0'
-
-  - script: |
-      net start postgresql-x64-14
-      "%PGBIN%\psql" -c "ALTER USER postgres WITH PASSWORD 'Password12!';" "user=postgres dbname=postgres password=root"
-    displayName: 'Setup PostgreSQL'
-
-  - script: |
-      choco install 'mysql' '--version=8.0.26'
-      mysql -h localhost -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'Password12!';"
-    displayName: 'Setup MySQL'
 
   - task: DotNetCoreCLI@2
     inputs:
