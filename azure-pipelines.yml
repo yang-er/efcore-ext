@@ -20,14 +20,36 @@ jobs:
   displayName: "Build, Test and Publish"
 
   pool:
-    vmImage: windows-latest
+    vmImage: windows-2022
 
   steps:
   - task: UseDotNet@2
     inputs:
       packageType: 'sdk'
+      version: '3.1.x'
+    displayName: 'Install .NET Core 3.1'
+
+  - task: UseDotNet@2
+    inputs:
+      packageType: 'sdk'
+      version: '5.0.x'
+    displayName: 'Install .NET 5.0'
+
+  - task: UseDotNet@2
+    inputs:
+      packageType: 'sdk'
       version: '6.0.x'
-    displayName: 'Setup Build Environment'
+    displayName: 'Install .NET 6.0'
+
+  - script: |
+      net start postgresql-x64-14
+      "%PGBIN%\psql" -c "ALTER USER postgres WITH PASSWORD 'Password12!';" "user=postgres dbname=postgres password=root"
+    displayName: 'Setup PostgreSQL'
+
+  - script: |
+      choco install 'mysql' '--version=8.0.26'
+      mysql -h localhost -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'Password12!';"
+    displayName: 'Setup MySQL'
 
   - task: DotNetCoreCLI@2
     inputs:
@@ -46,6 +68,13 @@ jobs:
       custom: 'pack'
       arguments: '-c Release -o $(Build.ArtifactStagingDirectory)'
     displayName: 'Package for NuGet'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'drop'
+      publishLocation: 'Container'
+    displayName: 'Publish Artifacts'
 
 - job: Sync
   displayName: "Sync with Azure Repos"
