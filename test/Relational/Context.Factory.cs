@@ -8,9 +8,22 @@ namespace Microsoft.EntityFrameworkCore.Tests
         ContextFactoryBase<TContext>
         where TContext : DbContext
     {
+        protected string Suffix { get; }
+
         protected abstract string ScriptSplit { get; }
 
         protected abstract string DropTableCommand { get; }
+
+        protected RelationalContextFactoryBase()
+        {
+#if EFCORE31
+            Suffix = "v31";
+#elif EFCORE50
+            Suffix = "v50";
+#elif EFCORE60
+            Suffix = "v60";
+#endif
+        }
 
         protected override void PostConfigure(DbContextOptionsBuilder optionsBuilder)
         {

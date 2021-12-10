@@ -11,7 +11,7 @@
         {
             optionsBuilder.UseSqlServer(
                 $"Server=(localdb)\\mssqllocaldb;" +
-                $"Database=EFCoreBulkTest;" +
+                $"Database=efcorebulktest{Suffix};" +
                 $"Trusted_Connection=True;" +
                 $"MultipleActiveResultSets=true",
                 s => s.UseBulk().UseMathExtensions());

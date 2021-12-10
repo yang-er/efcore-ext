@@ -23,8 +23,12 @@ jobs:
     vmImage: windows-2022
 
   steps:
-  - script: |
-      choco install postgresql13 --force --params '/Password:Password12!'
+  - task: PowerShell@2
+    inputs:
+      targetType: 'inline'
+      script: |
+        Set-Service postgresql-x64-14 -StartupType Manual
+        Start-Service postgresql-x64-14
     displayName: 'Setup PostgreSQL'
 
   - script: |
@@ -52,20 +56,27 @@ jobs:
 
   - task: DotNetCoreCLI@2
     inputs:
+      command: 'restore'
+      feedsToUse: 'select'
+    displayName: 'Restore Dependency'
+
+  - task: DotNetCoreCLI@2
+    inputs:
       command: 'build'
-    displayName: 'Build the Module'
+      arguments: '--no-restore'
+    displayName: 'Build Plugin'
 
   - task: DotNetCoreCLI@2
     inputs:
       command: 'test'
-      testRunTitle: 'Run unit tests'
+      arguments: '--no-restore'
     displayName: 'Run Unit Tests'
 
   - task: DotNetCoreCLI@2
     inputs:
       command: 'custom'
       custom: 'pack'
-      arguments: '-c Release -o $(Build.ArtifactStagingDirectory)'
+      arguments: '--no-restore -c Release -o $(Build.ArtifactStagingDirectory)'
     displayName: 'Package for NuGet'
 
   - task: PublishBuildArtifacts@1

@@ -16,7 +16,7 @@ namespace Microsoft.EntityFrameworkCore.Tests
             var connectionString =
                 $"Server=localhost;" +
                 $"Port=3306;" +
-                $"Database=efcorebulktest;" +
+                $"Database=efcorebulktest{Suffix};" +
                 $"User=root;" +
                 $"Password=Password12!;" +
                 $"Character Set=utf8;" +
