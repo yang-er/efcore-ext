@@ -22,7 +22,12 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
             TestMethodDisplayOptions defaultMethodDisplayOptions,
             ITestMethod testMethod,
             object[] testMethodArguments = null)
-            : base(diagnosticMessageSink, defaultMethodDisplay, defaultMethodDisplayOptions, testMethod, testMethodArguments)
+            : base(
+                  diagnosticMessageSink,
+                  defaultMethodDisplay,
+                  defaultMethodDisplayOptions,
+                  testMethod,
+                  testMethodArguments)
         {
         }
 
@@ -32,13 +37,25 @@ namespace Microsoft.EntityFrameworkCore.TestUtilities.Xunit
             object[] constructorArguments,
             ExceptionAggregator aggregator,
             CancellationTokenSource cancellationTokenSource)
-            => await XunitTestCaseExtensions.TrySkipAsync(this, messageBus)
-                ? new RunSummary { Total = 1, Skipped = 1 }
-                : await base.RunAsync(
-                    diagnosticMessageSink,
-                    messageBus,
+        {
+            if (await XunitTestCaseExtensions.TrySkipAsync(this, messageBus))
+            {
+                return new RunSummary { Total = 1, Skipped = 1 };
+            }
+            else
+            {
+                var runner = new ContextualTestCaseRunner(
+                    this,
+                    DisplayName,
+                    SkipReason,
                     constructorArguments,
+                    TestMethodArguments,
+                    messageBus,
                     aggregator,
                     cancellationTokenSource);
+
+                return await runner.RunAsync();
+            }
+        }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Linq.Expressions;
-using Xunit;
 
 namespace Microsoft.EntityFrameworkCore.Tests
 {
