@@ -14,8 +14,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.CompiledQuery_NormalUpdate();
 
-            LogSql(nameof(CompiledQuery_NormalUpdate));
-
             AssertSql(@"
 UPDATE ""ItemA_{{schema}}"" AS ""i""
 SET ""Value"" = (""i"".""Value"" + ""t"".""Value"") - @__cc
@@ -31,8 +29,6 @@ WHERE (""i"".""Id"" = @__bb) AND (""i"".""Id"" = ""t"".""Id"")
         public override void LocalTableJoin()
         {
             base.LocalTableJoin();
-
-            LogSql(nameof(LocalTableJoin));
 
             AssertSql(@"
 WITH ""cte"" (""Id"", ""Value"") AS (
@@ -51,8 +47,6 @@ WHERE (""i"".""Id"" <> 2) AND (""i"".""Id"" = ""cte"".""Id"")
         public override void NormalUpdate()
         {
             base.NormalUpdate();
-
-            LogSql(nameof(NormalUpdate));
 
             AssertSql(@"
 UPDATE ""ItemA_{{schema}}"" AS ""i""

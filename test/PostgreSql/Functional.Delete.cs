@@ -14,8 +14,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.CompiledQuery_ConstantCondition();
 
-            LogSql(nameof(CompiledQuery_ConstantCondition));
-
             AssertSql(@"
 DELETE
 FROM ""Item_{{schema}}"" AS i
@@ -26,8 +24,6 @@ WHERE (i.""ItemId"" > 500) AND (i.""Price"" = 3.0)
         public override void CompiledQuery_ContainsSomething()
         {
             base.CompiledQuery_ContainsSomething();
-
-            LogSql(nameof(CompiledQuery_ContainsSomething));
 
             AssertSql(V31, @"
 DELETE
@@ -52,8 +48,6 @@ WHERE i.""Name"" = ANY (@__descriptionsToDelete) OR (i.""Name"" IS NULL AND arra
         {
             base.CompiledQuery_ParameteredCondition();
 
-            LogSql(nameof(CompiledQuery_ParameteredCondition));
-
             AssertSql(@"
 DELETE
 FROM ""Item_{{schema}}"" AS i
@@ -65,8 +59,6 @@ WHERE i.""Name"" = @__nameToDelete
         {
             base.ConstantCondition();
 
-            LogSql(nameof(ConstantCondition));
-
             AssertSql(@"
 DELETE
 FROM ""Item_{{schema}}"" AS i
@@ -77,8 +69,6 @@ WHERE (i.""ItemId"" > 500) AND (i.""Price"" = 124.0)
         public override void ContainsAndAlsoEqual()
         {
             base.ContainsAndAlsoEqual();
-
-            LogSql(nameof(ContainsAndAlsoEqual));
 
             AssertSql(V31, @"
 DELETE
@@ -103,8 +93,6 @@ WHERE (i.""Description"" = ANY (@__descriptionsToDelete_0) OR (i.""Description""
         {
             base.ContainsSomething();
 
-            LogSql(nameof(ContainsSomething));
-
             AssertSql(V31, @"
 DELETE
 FROM ""Item_{{schema}}"" AS i
@@ -127,8 +115,6 @@ WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR (i.""Description"" 
         public override void EmptyContains()
         {
             base.EmptyContains();
-
-            LogSql(nameof(EmptyContains));
 
             AssertSql(V31, @"
 DELETE
@@ -153,8 +139,6 @@ WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR (i.""Description"" 
         {
             base.ListAny();
 
-            LogSql(nameof(ListAny));
-
             AssertSql(V31 | V50, @"
 DELETE
 FROM ""Item_{{schema}}"" AS i
@@ -171,8 +155,6 @@ WHERE i.""Description"" = ANY (@__descriptionsToDelete_0) OR (i.""Description"" 
         public override void ParameteredCondition()
         {
             base.ParameteredCondition();
-
-            LogSql(nameof(ParameteredCondition));
 
             AssertSql(@"
 DELETE

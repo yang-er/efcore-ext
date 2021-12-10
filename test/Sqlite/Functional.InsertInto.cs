@@ -14,8 +14,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.CompiledQuery_NormalSelectInto();
 
-            LogSql(nameof(CompiledQuery_NormalSelectInto));
-
             AssertSql(@"
 INSERT INTO ""ChangeLog_{{schema}}"" (""Description"", ""ChangedBy"", ""Audit_IsDeleted"")
 SELECT COALESCE(""j"".""Server"", @__hh) || '666' AS ""Description"", ""j"".""CompileError"" AS ""ChangedBy"", 1 AS ""Audit_IsDeleted""
@@ -26,8 +24,6 @@ FROM ""Judging_{{schema}}"" AS ""j""
         public override void CompiledQuery_WithAbstractType()
         {
             base.CompiledQuery_WithAbstractType();
-
-            LogSql(nameof(CompiledQuery_WithAbstractType));
 
             AssertSql(@"
 INSERT INTO ""Person_{{schema}}"" (""Name"", ""Class"")
@@ -41,8 +37,6 @@ WHERE ""p"".""Discriminator"" = 'Student'
         {
             base.NormalSelectInto();
 
-            LogSql(nameof(NormalSelectInto));
-
             AssertSql(@"
 INSERT INTO ""ChangeLog_{{schema}}"" (""Description"", ""ChangedBy"", ""Audit_IsDeleted"")
 SELECT COALESCE(""j"".""Server"", @__hh_0) || '666' AS ""Description"", ""j"".""CompileError"" AS ""ChangedBy"", 1 AS ""Audit_IsDeleted""
@@ -53,8 +47,6 @@ FROM ""Judging_{{schema}}"" AS ""j""
         public override void WithAbstractType()
         {
             base.WithAbstractType();
-
-            LogSql(nameof(WithAbstractType));
 
             AssertSql(@"
 INSERT INTO ""Person_{{schema}}"" (""Name"", ""Class"")

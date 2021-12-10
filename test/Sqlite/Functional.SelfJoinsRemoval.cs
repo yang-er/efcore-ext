@@ -14,8 +14,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.GroupJoin_2_3();
 
-            LogSql(nameof(GroupJoin_2_3));
-
             AssertSql(@"
 SELECT ""c"".""ChangeLogId"", ""c"".""Description"", ""c"".""ChangedBy"", ""c"".""Audit_IsDeleted"", ""c"".""Audit_What_HelloString"", ""o"".""Id"", ""o"".""Happy"", ""o"".""Other"", ""o"".""Apple_AnotherString"", ""o"".""ChangedBy"", ""o"".""Apple_Audit_IsDeleted"", ""o"".""Apple_What_AnotherString"", ""o"".""Audit_Taq"", ""o"".""Banana_Taq"", ""o"".""Banana_AnotherString"", ""o"".""Cherry_AnotherString"", ""o"".""Cherry_Taq""
 FROM ""ChangeLog_{{schema}}"" AS ""c""
@@ -26,8 +24,6 @@ LEFT JOIN ""OwnedThree_{{schema}}"" AS ""o"" ON ""c"".""ChangeLogId"" = ""o"".""
         public override void GroupJoin_3_2()
         {
             base.GroupJoin_3_2();
-
-            LogSql(nameof(GroupJoin_3_2));
 
             AssertSql(@"
 SELECT ""o"".""Id"", ""o"".""Happy"", ""o"".""Other"", ""o"".""Apple_AnotherString"", ""o"".""ChangedBy"", ""o"".""Apple_Audit_IsDeleted"", ""o"".""Apple_What_AnotherString"", ""o"".""Audit_Taq"", ""o"".""Banana_Taq"", ""o"".""Banana_AnotherString"", ""o"".""Cherry_AnotherString"", ""o"".""Cherry_Taq"", ""c"".""ChangeLogId"", ""c"".""Description"", ""c"".""ChangedBy"", ""c"".""Audit_IsDeleted"", ""c"".""Audit_What_HelloString""
@@ -40,8 +36,6 @@ LEFT JOIN ""ChangeLog_{{schema}}"" AS ""c"" ON ""o"".""Id"" = ""c"".""ChangeLogI
         {
             base.HasOneWithOne_SharedTable();
 
-            LogSql(nameof(HasOneWithOne_SharedTable));
-
             AssertSql(@"
 SELECT ""m"".""Id"", ""m"".""What"", ""m"".""Other""
 FROM ""MiniInfo_{{schema}}"" AS ""m""
@@ -51,8 +45,6 @@ FROM ""MiniInfo_{{schema}}"" AS ""m""
         public override void InnerJoin_2_3()
         {
             base.InnerJoin_2_3();
-
-            LogSql(nameof(InnerJoin_2_3));
 
             AssertSql(@"
 SELECT ""c"".""ChangeLogId"", ""c"".""Description"", ""c"".""ChangedBy"", ""c"".""Audit_IsDeleted"", ""c"".""Audit_What_HelloString"", ""o"".""Id"", ""o"".""Happy"", ""o"".""Other"", ""o"".""Apple_AnotherString"", ""o"".""ChangedBy"", ""o"".""Apple_Audit_IsDeleted"", ""o"".""Apple_What_AnotherString"", ""o"".""Audit_Taq"", ""o"".""Banana_Taq"", ""o"".""Banana_AnotherString"", ""o"".""Cherry_AnotherString"", ""o"".""Cherry_Taq""
@@ -65,8 +57,6 @@ INNER JOIN ""OwnedThree_{{schema}}"" AS ""o"" ON ""c"".""ChangeLogId"" = ""o""."
         {
             base.InnerJoin_3_2();
 
-            LogSql(nameof(InnerJoin_3_2));
-
             AssertSql(@"
 SELECT ""o"".""Id"", ""o"".""Happy"", ""o"".""Other"", ""o"".""Apple_AnotherString"", ""o"".""ChangedBy"", ""o"".""Apple_Audit_IsDeleted"", ""o"".""Apple_What_AnotherString"", ""o"".""Audit_Taq"", ""o"".""Banana_Taq"", ""o"".""Banana_AnotherString"", ""o"".""Cherry_AnotherString"", ""o"".""Cherry_Taq"", ""c"".""ChangeLogId"", ""c"".""Description"", ""c"".""ChangedBy"", ""c"".""Audit_IsDeleted"", ""c"".""Audit_What_HelloString""
 FROM ""OwnedThree_{{schema}}"" AS ""o""
@@ -78,8 +68,6 @@ INNER JOIN ""ChangeLog_{{schema}}"" AS ""c"" ON ""o"".""Id"" = ""c"".""ChangeLog
         {
             base.Owned();
 
-            LogSql(nameof(Owned));
-
             AssertSql(@"
 SELECT ""c"".""ChangeLogId"", ""c"".""Description"", ""c"".""ChangedBy"", ""c"".""Audit_IsDeleted"", ""c"".""Audit_What_HelloString""
 FROM ""ChangeLog_{{schema}}"" AS ""c""
@@ -89,8 +77,6 @@ FROM ""ChangeLog_{{schema}}"" AS ""c""
         public override void OwnedThenUnionDistinct()
         {
             base.OwnedThenUnionDistinct();
-
-            LogSql(nameof(OwnedThenUnionDistinct));
 
             AssertSql(@"
 SELECT ""c"".""ChangeLogId"", ""c"".""Description"", ""c"".""ChangedBy"", ""c"".""Audit_IsDeleted"", ""c"".""Audit_What_HelloString""
@@ -103,8 +89,6 @@ WHERE ((""c"".""ChangeLogId"" > 80) OR (""c"".""ChangeLogId"" < 20)) OR (""c""."
         {
             base.Owned_SkipTrimming();
 
-            LogSql(nameof(Owned_SkipTrimming));
-
             AssertSql(@"
 SELECT ""n"".""Id"", ""n"".""Age"", ""n"".""Name""
 FROM ""NormalEntity_{{schema}}"" AS ""n""
@@ -115,8 +99,6 @@ INNER JOIN ""NormalEntity_{{schema}}"" AS ""n0"" ON ""n"".""Id"" = ""n0"".""Id""
         public override void ReallyJoin()
         {
             base.ReallyJoin();
-
-            LogSql(nameof(ReallyJoin));
 
             AssertSql(@"
 SELECT ""o"".""Id"", ""o"".""Happy"", ""o"".""Other"", ""o"".""Apple_AnotherString"", ""o"".""ChangedBy"", ""o"".""Apple_Audit_IsDeleted"", ""o"".""Apple_What_AnotherString"", ""o"".""Audit_Taq"", ""o"".""Banana_Taq"", ""o"".""Banana_AnotherString"", ""o"".""Cherry_AnotherString"", ""o"".""Cherry_Taq"", ""o0"".""Id"", ""o0"".""Happy"", ""o0"".""Other"", ""o0"".""Apple_AnotherString"", ""o0"".""ChangedBy"", ""o0"".""Apple_Audit_IsDeleted"", ""o0"".""Apple_What_AnotherString"", ""o0"".""Audit_Taq"", ""o0"".""Banana_Taq"", ""o0"".""Banana_AnotherString"", ""o0"".""Cherry_AnotherString"", ""o0"".""Cherry_Taq"", ""o1"".""Id"", ""o1"".""Happy"", ""o1"".""Other"", ""o1"".""Apple_AnotherString"", ""o1"".""ChangedBy"", ""o1"".""Apple_Audit_IsDeleted"", ""o1"".""Apple_What_AnotherString"", ""o1"".""Audit_Taq"", ""o1"".""Banana_Taq"", ""o1"".""Banana_AnotherString"", ""o1"".""Cherry_AnotherString"", ""o1"".""Cherry_Taq""
@@ -130,8 +112,6 @@ WHERE ""o"".""Other"" <> 3
         public override void ReallyUnionDistinct()
         {
             base.ReallyUnionDistinct();
-
-            LogSql(nameof(ReallyUnionDistinct));
 
             AssertSql(@"
 SELECT ""n"".""Id"", ""n"".""Name"", ""n"".""Age"", 1 AS ""Type""
@@ -152,8 +132,6 @@ WHERE ""n1"".""Age"" = 50
         {
             base.ShaperChanged();
 
-            LogSql(nameof(ShaperChanged));
-
             AssertSql(@"
 -- hello
 
@@ -166,8 +144,6 @@ WHERE ((""n"".""Age"" > 80) OR (""n"".""Age"" < 20)) OR (""n"".""Age"" = 50)
         public override void SuperOwned()
         {
             base.SuperOwned();
-
-            LogSql(nameof(SuperOwned));
 
             AssertSql(@"
 SELECT ""o"".""Id"", ""o"".""Happy"", ""o"".""Other"", ""o"".""Apple_AnotherString"", ""o"".""ChangedBy"", ""o"".""Apple_Audit_IsDeleted"", ""o"".""Apple_What_AnotherString"", ""o"".""Audit_Taq"", ""o"".""Banana_Taq"", ""o"".""Banana_AnotherString"", ""o"".""Cherry_AnotherString"", ""o"".""Cherry_Taq""

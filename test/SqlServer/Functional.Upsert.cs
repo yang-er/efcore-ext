@@ -14,8 +14,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.InsertIfNotExistOne();
 
-            LogSql(nameof(InsertIfNotExistOne));
-
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING (
@@ -31,8 +29,6 @@ WHEN NOT MATCHED BY TARGET
         public override void InsertIfNotExistOne_CompiledQuery()
         {
             base.InsertIfNotExistOne_CompiledQuery();
-
-            LogSql(nameof(InsertIfNotExistOne_CompiledQuery));
 
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
@@ -50,8 +46,6 @@ WHEN NOT MATCHED BY TARGET
         {
             base.InsertIfNotExists_AnotherTable();
 
-            LogSql(nameof(InsertIfNotExists_AnotherTable));
-
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING [RankSource_{{schema}}] AS [r0]
@@ -64,8 +58,6 @@ WHEN NOT MATCHED BY TARGET
         public override void InsertIfNotExists_SubSelect_CompiledQuery()
         {
             base.InsertIfNotExists_SubSelect_CompiledQuery();
-
-            LogSql(nameof(InsertIfNotExists_SubSelect_CompiledQuery));
 
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
@@ -83,8 +75,6 @@ WHEN NOT MATCHED BY TARGET
         {
             base.Translation_Parameterize();
 
-            LogSql(nameof(Translation_Parameterize));
-
             AssertSql(@"
 MERGE INTO [TwoRelation_{{schema}}] AS [t]
 USING (
@@ -100,8 +90,6 @@ WHEN NOT MATCHED BY TARGET
         public override void Upsert_AlternativeKey()
         {
             base.Upsert_AlternativeKey();
-
-            LogSql(nameof(Upsert_AlternativeKey));
 
             AssertSql(@"
 MERGE INTO [ThreeRelation_{{schema}}] AS [t]
@@ -119,8 +107,6 @@ WHEN NOT MATCHED BY TARGET
         {
             base.Upsert_AnotherTable();
 
-            LogSql(nameof(Upsert_AnotherTable));
-
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING [RankSource_{{schema}}] AS [r0]
@@ -135,8 +121,6 @@ WHEN NOT MATCHED BY TARGET
         public override void Upsert_FromSql()
         {
             base.Upsert_FromSql();
-
-            LogSql(nameof(Upsert_FromSql));
 
             AssertSql(V31 | V50, @"
 MERGE INTO [RankCache_{{schema}}] AS [r]
@@ -169,8 +153,6 @@ WHEN NOT MATCHED BY TARGET
         {
             base.Upsert_NewAnonymousObject();
 
-            LogSql(nameof(Upsert_NewAnonymousObject));
-
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING (
@@ -189,8 +171,6 @@ WHEN NOT MATCHED BY TARGET
         public override void Upsert_NewAnonymousObject_CompiledQuery()
         {
             base.Upsert_NewAnonymousObject_CompiledQuery();
-
-            LogSql(nameof(Upsert_NewAnonymousObject_CompiledQuery));
 
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
@@ -211,8 +191,6 @@ WHEN NOT MATCHED BY TARGET
         {
             base.Upsert_SubSelect();
 
-            LogSql(nameof(Upsert_SubSelect));
-
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING (
@@ -231,8 +209,6 @@ WHEN NOT MATCHED BY TARGET
         {
             base.UpsertOne();
 
-            LogSql(nameof(UpsertOne));
-
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING (
@@ -250,8 +226,6 @@ WHEN NOT MATCHED BY TARGET
         public override void UpsertOne_CompiledQuery()
         {
             base.UpsertOne_CompiledQuery();
-
-            LogSql(nameof(UpsertOne_CompiledQuery));
 
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]

@@ -37,15 +37,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
 #endif
         }
 
-        [Conditional("LOG_SQL")]
-        protected void LogSql(string fileName)
-            => System.IO.File.WriteAllText(
-                "D:\\" + fileName + ".sql",
-                ((ICommandNotifier)_factory.CommandTracer)
-                    .LastCommand
-                    .Replace("\"", "\"\"")
-                    .Replace(_factory.UniqueId, "{{schema}}"));
-
         protected IDisposable CatchCommand()
         {
             return _factory.CommandTracer.BeginScope();

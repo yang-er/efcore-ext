@@ -14,8 +14,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.CompiledQuery_NormalUpdate();
 
-            LogSql(nameof(CompiledQuery_NormalUpdate));
-
             AssertSql(@"
 UPDATE [i]
 SET [i].[Value] = ([i].[Value] + [t].[Value]) - @__cc
@@ -32,8 +30,6 @@ WHERE [i].[Id] = @__bb
         public override void LocalTableJoin()
         {
             base.LocalTableJoin();
-
-            LogSql(nameof(LocalTableJoin));
 
             AssertSql(@"
 UPDATE [i]
@@ -52,8 +48,6 @@ WHERE [i].[Id] <> 2
         public override void NormalUpdate()
         {
             base.NormalUpdate();
-
-            LogSql(nameof(NormalUpdate));
 
             AssertSql(@"
 UPDATE [i]

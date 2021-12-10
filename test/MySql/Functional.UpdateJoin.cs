@@ -19,8 +19,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.CompiledQuery_NormalUpdate();
 
-            LogSql(nameof(CompiledQuery_NormalUpdate));
-
             AssertSql(@"
 UPDATE `ItemA_{{schema}}` AS `i`
 INNER JOIN (
@@ -36,8 +34,6 @@ WHERE `i`.`Id` = @__bb
         public override void LocalTableJoin()
         {
             base.LocalTableJoin();
-
-            LogSql(nameof(LocalTableJoin));
 
             if (ServerVersion.Type == ServerType.MySql && ServerVersion.Version >= new System.Version(8, 0, 19))
             {
@@ -71,8 +67,6 @@ WHERE `i`.`Id` <> 2
         public override void NormalUpdate()
         {
             base.NormalUpdate();
-
-            LogSql(nameof(NormalUpdate));
 
             AssertSql(@"
 UPDATE `ItemA_{{schema}}` AS `i`

@@ -14,8 +14,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.CompiledQuery_ConcatenateBody();
 
-            LogSql(nameof(CompiledQuery_ConcatenateBody));
-
             AssertSql(V31, @"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Name"" = i.""Name"" || @__suffix, ""Quantity"" = i.""Quantity"" + @__incrementStep
@@ -33,8 +31,6 @@ WHERE i.""ItemId"" <= 500
         {
             base.CompiledQuery_ConstantUpdateBody();
 
-            LogSql(nameof(CompiledQuery_ConstantUpdateBody));
-
             AssertSql(@"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Description"" = 'Updated', ""Price"" = 1.5
@@ -46,8 +42,6 @@ WHERE i.""ItemId"" <= 388
         {
             base.CompiledQuery_HasOwnedType();
 
-            LogSql(nameof(CompiledQuery_HasOwnedType));
-
             AssertSql(@"
 UPDATE ""ChangeLog_{{schema}}"" AS c
 SET ""Audit_IsDeleted"" = NOT (c.""Audit_IsDeleted"")
@@ -57,8 +51,6 @@ SET ""Audit_IsDeleted"" = NOT (c.""Audit_IsDeleted"")
         public override void CompiledQuery_NavigationSelect()
         {
             base.CompiledQuery_NavigationSelect();
-
-            LogSql(nameof(CompiledQuery_NavigationSelect));
 
             AssertSql(@"
 UPDATE ""Detail_{{schema}}"" AS d
@@ -72,8 +64,6 @@ WHERE d.""JudgingId"" = j.""JudgingId""
         {
             base.CompiledQuery_NavigationWhere();
 
-            LogSql(nameof(CompiledQuery_NavigationWhere));
-
             AssertSql(@"
 UPDATE ""Detail_{{schema}}"" AS d
 SET ""Another"" = j.""SubmissionId""
@@ -86,8 +76,6 @@ WHERE (j.""PreviousJudgingId"" = @__x) AND (d.""JudgingId"" = j.""JudgingId"")
         {
             base.CompiledQuery_ParameterUpdateBody();
 
-            LogSql(nameof(CompiledQuery_ParameterUpdateBody));
-
             AssertSql(@"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Description"" = @__desc, ""Price"" = @__pri
@@ -98,8 +86,6 @@ WHERE i.""ItemId"" <= 388
         public override void CompiledQuery_ScalarSubquery()
         {
             base.CompiledQuery_ScalarSubquery();
-
-            LogSql(nameof(CompiledQuery_ScalarSubquery));
 
             AssertSql(@"
 UPDATE ""Detail_{{schema}}"" AS d
@@ -112,8 +98,6 @@ SET ""Another"" = (
         public override void CompiledQuery_SetNull()
         {
             base.CompiledQuery_SetNull();
-
-            LogSql(nameof(CompiledQuery_SetNull));
 
             AssertSql(V31, @"
 UPDATE ""Judging_{{schema}}"" AS j
@@ -129,8 +113,6 @@ SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = N
         public override void ConcatenateBody()
         {
             base.ConcatenateBody();
-
-            LogSql(nameof(ConcatenateBody));
 
             AssertSql(V31, @"
 UPDATE ""Item_{{schema}}"" AS i
@@ -149,8 +131,6 @@ WHERE (i.""ItemId"" <= 500) AND (i.""Price"" >= @__price_0)
         {
             base.ConstantUpdateBody();
 
-            LogSql(nameof(ConstantUpdateBody));
-
             AssertSql(@"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Description"" = 'Updated', ""Price"" = 1.5
@@ -162,8 +142,6 @@ WHERE (i.""ItemId"" <= 388) AND (i.""Price"" >= @__price_0)
         {
             base.HasOwnedType();
 
-            LogSql(nameof(HasOwnedType));
-
             AssertSql(@"
 UPDATE ""ChangeLog_{{schema}}"" AS c
 SET ""Audit_IsDeleted"" = NOT (c.""Audit_IsDeleted"")
@@ -173,8 +151,6 @@ SET ""Audit_IsDeleted"" = NOT (c.""Audit_IsDeleted"")
         public override void NavigationSelect()
         {
             base.NavigationSelect();
-
-            LogSql(nameof(NavigationSelect));
 
             AssertSql(@"
 UPDATE ""Detail_{{schema}}"" AS d
@@ -188,8 +164,6 @@ WHERE d.""JudgingId"" = j.""JudgingId""
         {
             base.NavigationWhere();
 
-            LogSql(nameof(NavigationWhere));
-
             AssertSql(@"
 UPDATE ""Detail_{{schema}}"" AS d
 SET ""Another"" = j.""SubmissionId""
@@ -202,8 +176,6 @@ WHERE (j.""PreviousJudgingId"" = @__x_0) AND (d.""JudgingId"" = j.""JudgingId"")
         {
             base.ParameterUpdateBody();
 
-            LogSql(nameof(ParameterUpdateBody));
-
             AssertSql(@"
 UPDATE ""Item_{{schema}}"" AS i
 SET ""Description"" = @__desc_1, ""Price"" = @__pri_2
@@ -214,8 +186,6 @@ WHERE (i.""ItemId"" <= 388) AND (i.""Price"" >= @__price_0)
         public override void ScalarSubquery()
         {
             base.ScalarSubquery();
-
-            LogSql(nameof(ScalarSubquery));
 
             AssertSql(@"
 UPDATE ""Detail_{{schema}}"" AS d
@@ -228,8 +198,6 @@ SET ""Another"" = (
         public override void SetNull()
         {
             base.SetNull();
-
-            LogSql(nameof(SetNull));
 
             AssertSql(V31, @"
 UPDATE ""Judging_{{schema}}"" AS j
@@ -245,8 +213,6 @@ SET ""CompileError"" = NULL, ""ExecuteMemory"" = NULL, ""PreviousJudgingId"" = N
         public override void BodyScalarQueryWithWhere()
         {
             base.BodyScalarQueryWithWhere();
-
-            LogSql(nameof(BodyScalarQueryWithWhere));
 
             AssertSql(V31 | V50, @"
 UPDATE ""Contest_{{schema}}"" AS c0

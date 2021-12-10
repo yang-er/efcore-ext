@@ -14,8 +14,6 @@ namespace Microsoft.EntityFrameworkCore.Tests
         {
             base.SourceFromSql();
 
-            LogSql(nameof(SourceFromSql));
-
             AssertSql(V31 | V50, @"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING (
@@ -75,8 +73,6 @@ WHEN NOT MATCHED BY SOURCE
         {
             base.Synchronize();
 
-            LogSql(nameof(Synchronize));
-
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
 USING [RankSource_{{schema}}] AS [r0]
@@ -106,8 +102,6 @@ WHEN NOT MATCHED BY SOURCE
         {
             base.Synchronize_LocalTable();
 
-            LogSql(nameof(Synchronize_LocalTable));
-
             AssertSql(@"
 MERGE INTO [RankSource_{{schema}}] AS [r]
 USING (
@@ -129,8 +123,6 @@ WHEN NOT MATCHED BY SOURCE
         {
             base.Synchronize_LocalTable_Compiled();
 
-            LogSql(nameof(Synchronize_LocalTable_Compiled));
-
             AssertSql(@"
 MERGE INTO [RankSource_{{schema}}] AS [r]
 USING (
@@ -149,8 +141,6 @@ WHEN NOT MATCHED BY SOURCE
         public override void Synchronize_RemoteTable_Compiled()
         {
             base.Synchronize_RemoteTable_Compiled();
-
-            LogSql(nameof(Synchronize_RemoteTable_Compiled));
 
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
@@ -172,8 +162,6 @@ WHEN NOT MATCHED BY SOURCE
         public override void Upsert()
         {
             base.Upsert();
-
-            LogSql(nameof(Upsert));
 
             AssertSql(@"
 MERGE INTO [RankCache_{{schema}}] AS [r]
