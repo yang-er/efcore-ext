@@ -27,32 +27,23 @@ jobs:
     inputs:
       targetType: 'inline'
       script: |
-        Set-Service postgresql-x64-14 -StartupType Manual
-        Start-Service postgresql-x64-14
-    displayName: 'Setup PostgreSQL'
-
-  - script: |
-      choco install mysql --version=8.0.26
-      mysql -h localhost -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'Password12!';"
-    displayName: 'Setup MySQL'
-
-  - task: UseDotNet@2
-    inputs:
-      packageType: 'sdk'
-      version: '3.1.x'
-    displayName: 'Install .NET Core 3.1'
-
-  - task: UseDotNet@2
-    inputs:
-      packageType: 'sdk'
-      version: '5.0.x'
-    displayName: 'Install .NET 5.0'
-
-  - task: UseDotNet@2
-    inputs:
-      packageType: 'sdk'
-      version: '6.0.x'
-    displayName: 'Install .NET 6.0'
+        Write-Host "> Setting up PostgreSQL"
+        $postgresService = Get-Service postgresql* | select -First 1
+        Set-Service -InputObject $postgresService -StartupType Manual
+        Start-Service -InputObject $postgresService
+        Get-Service -InputObject $postgresService | Out-String | Write-Host
+        Write-Host ""
+        Write-Host "> Setting up MySQL"
+        mysqld --initialize
+        mysqld install
+        $mysqlService = Get-Service mysql* | select -First 1
+        Start-Service -InputObject $mysqlService
+        mysqladmin -u root password Password12!
+        Get-Service -InputObject $mysqlService | Out-String | Write-Host
+        Write-Host ""
+        Write-Host "> Listing .NET SDKs"
+        dotnet --list-sdks
+    displayName: 'Setup Environment'
 
   - task: DotNetCoreCLI@2
     inputs:
