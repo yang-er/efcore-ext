@@ -30,16 +30,14 @@ jobs:
         Write-Host "> Setting up PostgreSQL"
         $postgresService = Get-Service postgresql* | select -First 1
         Set-Service -InputObject $postgresService -StartupType Manual
-        Start-Service -InputObject $postgresService
-        Get-Service -InputObject $postgresService | Out-String | Write-Host
+        net start $postgresService.Name
         Write-Host ""
         Write-Host "> Setting up MySQL"
-        mysqld --initialize
+        mysqld --initialize-insecure
         mysqld install
         $mysqlService = Get-Service mysql* | select -First 1
-        Start-Service -InputObject $mysqlService
-        mysqladmin -u root password Password12!
-        Get-Service -InputObject $mysqlService | Out-String | Write-Host
+        net start $mysqlService.Name
+        mysql -u root --skip-password -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'Password12!'; FLUSH PRIVILEGES;"
         Write-Host ""
         Write-Host "> Listing .NET SDKs"
         dotnet --list-sdks
