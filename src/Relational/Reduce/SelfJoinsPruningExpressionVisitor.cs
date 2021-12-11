@@ -35,30 +35,32 @@ namespace Microsoft.EntityFrameworkCore.Query
         }
 
         // Remove the join from parent select and reduce the column name with reducer
-        protected virtual void RemoveJoin<T>(SelectExpression parentSelect, PredicateJoinExpressionBase join, T reducer) where T : class
+        protected virtual void RemoveJoin(SelectExpression parentSelect, PredicateJoinExpressionBase join)
         {
-            using (_columnRewriting.Setup(join.Table, reducer))
+            // Here _columnRewriting should be prepared.
+            var tables = (List<TableExpressionBase>)parentSelect.Tables;
+            int pendingRemovalIndex = tables.IndexOf(join); // in case the original join is removed
+            _columnRewriting.Visit(tables);
+
+            var projections = (List<ProjectionExpression>)parentSelect.Projection;
+            _columnRewriting.Visit(projections);
+
+            var projectionMapping = parentSelect.GetProjectionMapping();
+            _columnRewriting.Visit(projectionMapping);
+
+            var clientProjections = parentSelect.GetClientProjections();
+            _columnRewriting.Visit(clientProjections);
+
+            if (join is InnerJoinExpression && join.Table is SelectExpression reducedSelect)
             {
-                var tables = (List<TableExpressionBase>)parentSelect.Tables;
-                tables.Remove(join);
-                _columnRewriting.Visit(tables);
-
-                var projections = (List<ProjectionExpression>)parentSelect.Projection;
-                _columnRewriting.Visit(projections);
-
-                var projectionMapping = parentSelect.GetProjectionMapping();
-                _columnRewriting.Visit(projectionMapping);
-
-                if (join is InnerJoinExpression && join.Table is SelectExpression reducedSelect)
-                {
-                    var predicate1 = _columnRewriting.Visit(parentSelect.Predicate);
-                    var predicate2 = _columnRewriting.Visit(reducedSelect.Predicate);
-                    var predicate = MergePredicate(ExpressionType.AndAlso, predicate1, predicate2);
-                    parentSelect.SetPredicate(predicate);
-                }
-
-                _processed = true;
+                var predicate1 = _columnRewriting.Visit(parentSelect.Predicate);
+                var predicate2 = _columnRewriting.Visit(reducedSelect.Predicate);
+                var predicate = MergePredicate(ExpressionType.AndAlso, predicate1, predicate2);
+                parentSelect.SetPredicate(predicate);
             }
+
+            parentSelect.RemoveTableAt(pendingRemovalIndex);
+            _processed = true;
         }
 
         public Expression Reduce(Expression query)
@@ -108,8 +110,7 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             var selectTables = (List<TableExpressionBase>)selectExpression.Tables;
             var newTables = selectTables
-                .Select(i => Visit(i))
-                .Cast<TableExpressionBase>()
+                .Select(i => VisitAndConvert(i, nameof(VisitSelect)))
                 .ToList();
 
             // For UNION sequences, it is likely to be:
@@ -146,6 +147,8 @@ namespace Microsoft.EntityFrameworkCore.Query
                     && i == 0)
                 {
                     resulting = table;
+
+#if EFCORE31 || EFCORE50
                     using (_columnRewriting.Setup(selectTables[i], table))
                     {
                         UpdateParent();
@@ -156,15 +159,42 @@ namespace Microsoft.EntityFrameworkCore.Query
                                 newSelect.Predicate,
                                 selectExpression.Predicate));
                     }
+#elif EFCORE60
+                    using (_columnRewriting.Setup(newSelect.GetTableReference(table), selectExpression.GetTableReference(selectTables[i])))
+                    {
+                        selectExpression.SetPredicate(
+                            MergePredicate(
+                                ExpressionType.AndAlso,
+                                _columnRewriting.VisitAndConvert(newSelect.Predicate, "FixPredicate"),
+                                selectExpression.Predicate));
+
+                        table.SetAlias(selectTables[i].Alias);
+                        selectTables[i] = table;
+                    }
+#endif
                 }
                 else if (newTables[i] is JoinExpressionBase joinNew && selectTables[i] is JoinExpressionBase joinOld)
                 {
                     if (joinNew.Table != joinOld.Table)
                     {
+#if EFCORE31 || EFCORE50
                         using (_columnRewriting.Setup(joinOld.Table, joinNew.Table))
                         {
                             UpdateParent();
                         }
+#elif EFCORE60
+                        if (joinNew.Alias != joinOld.Alias)
+                        {
+                            using (_columnRewriting.Setup(joinOld.Table, joinNew.Table))
+                            {
+                                UpdateParent();
+                            }
+                        }
+                        else
+                        {
+                            selectTables[i] = joinNew;
+                        }
+#endif
                     }
                 }
                 else
@@ -243,7 +273,10 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                     if (join.Table is TableExpression)
                     {
-                        RemoveJoin(selectExpression, join, pendingTable);
+                        using (_columnRewriting.Setup(selectExpression.GetTableReference(join.Table), selectExpression.GetTableReference(pendingTable)))
+                        {
+                            RemoveJoin(selectExpression, join);
+                        }
                     }
                     else if (join.Table is SelectExpression removalSelect)
                     {
@@ -256,13 +289,16 @@ namespace Microsoft.EntityFrameworkCore.Query
                             //.Distinct(ProjectionNameComparer.Default)
                             .ToDictionary(p => p.Alias, p => (Expression)p.Expression);
 
-                        using (_columnRewriting.Setup(removalSelect.Tables[0], pendingTable))
+                        using (_columnRewriting.Setup(removalSelect.GetTableReference(removalSelect.Tables[0]), selectExpression.GetTableReference(pendingTable)))
                         {
                             removalSelect.SetPredicate(_columnRewriting.Visit(removalSelect.Predicate));
                             _columnRewriting.Visit(previousProjections);
                         }
 
-                        RemoveJoin(selectExpression, join, previousProjections);
+                        using (_columnRewriting.Setup(selectExpression.GetTableReference(join.Table), previousProjections))
+                        {
+                            RemoveJoin(selectExpression, join);
+                        }
                     }
                     else
                     {
@@ -305,7 +341,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 var selectExpression = unionExpression.Source1;
                 var predicate2 = unionExpression.Source2.Predicate;
 
-                using (_columnRewriting.Setup(table2, table1))
+                using (_columnRewriting.Setup(select2.GetTableReference(table2), select1.GetTableReference(table1)))
                 {
                     predicate2 = _columnRewriting.Visit(predicate2);
                 }
@@ -321,7 +357,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             bool SameSelectFields(SelectExpression select1, SelectExpression select2, TableExpression table1, TableExpression table2)
             {
-                using (_columnRewriting.Setup(table2, table1))
+                using (_columnRewriting.Setup(select2.GetTableReference(table2), select1.GetTableReference(table1)))
                 {
                     for (int i = 0; i < select1.Projection.Count; i++)
                     {

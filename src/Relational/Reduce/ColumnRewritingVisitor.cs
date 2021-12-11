@@ -5,12 +5,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
+#if EFCORE31 || EFCORE50
+using TableReferenceExpression = Microsoft.EntityFrameworkCore.Query.SqlExpressions.TableExpressionBase;
+#elif EFCORE60
+using TableReferenceExpression = Microsoft.EntityFrameworkCore.Query.BulkSqlExpressionFactoryExtensions.TableReferenceExpression;
+#endif
+
 namespace Microsoft.EntityFrameworkCore.Query
 {
     public class ColumnRewritingExpressionVisitor : ExpressionVisitor
     {
         private readonly ISqlExpressionFactory _sqlExpressionFactory;
-        private TableExpressionBase _from, _to1;
+        private TableReferenceExpression _from, _to1;
         private IReadOnlyDictionary<string, Expression> _to2;
 
         public ColumnRewritingExpressionVisitor(
@@ -30,17 +36,28 @@ namespace Microsoft.EntityFrameworkCore.Query
                 : throw new ArgumentNullException();
         }
 
-        public IDisposable Setup<TReducer>(TableExpressionBase from, TReducer to) where TReducer : class
+        public IDisposable Setup(TableReferenceExpression from, TableReferenceExpression to)
         {
-            Check.NotNull(from, nameof(from));
-            Check.NotNull(to, nameof(to));
+            _from = Check.NotNull(from, nameof(from));
+            _to1 = Check.NotNull(to, nameof(to));
+            _to2 = null;
 
-            (_from, _to2, _to1) = to switch
-            {
-                TableExpressionBase table => (from, default(IReadOnlyDictionary<string, Expression>), table),
-                IReadOnlyDictionary<string, Expression> projection => (from, projection, default(TableExpressionBase)),
-                _ => throw new InvalidOperationException(),
-            };
+            return new ResettingDisposable(this);
+        }
+
+#if EFCORE60
+        [Obsolete]
+        public IDisposable Setup(TableExpressionBase from, TableExpressionBase to)
+        {
+            throw new NotImplementedException();
+        }
+#endif
+
+        public IDisposable Setup(TableReferenceExpression from, IReadOnlyDictionary<string, Expression> to)
+        {
+            _from = Check.NotNull(from, nameof(from));
+            _to2 = Check.NotNull(to, nameof(to));
+            _to1 = null;
 
             return new ResettingDisposable(this);
         }

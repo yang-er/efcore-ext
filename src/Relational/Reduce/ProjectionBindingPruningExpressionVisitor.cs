@@ -109,6 +109,23 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 return projectionBindingExpression;
             }
+#elif EFCORE60
+            else if (projectionBindingExpression.IndexMap != null)
+            {
+                var links = projectionBindingExpression.IndexMap;
+                if (_processed.Add((IDictionary<IProperty, int>)links))
+                {
+                    var properties = links.ToList();
+                    foreach (var link in properties)
+                    {
+                        var rawIndex = link.Value;
+                        var property = link.Key;
+                        ((IDictionary<IProperty, int>)links)[property] = _remappedIndex[rawIndex];
+                    }
+                }
+
+                return projectionBindingExpression;
+            }
 #endif
             else
             {

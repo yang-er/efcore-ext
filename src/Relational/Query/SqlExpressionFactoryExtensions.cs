@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -96,8 +97,24 @@ namespace Microsoft.EntityFrameworkCore.Query
 #elif EFCORE60
             return AccessTableReferenceExpression(selectExpression)
                 .Select(exp => new TableReferenceExpression(exp))
-                .Where(exp => exp.Table == tableExpression)
+                .Where(exp =>
+                    exp.Table == tableExpression
+                    || (exp.Table is PredicateJoinExpressionBase joinedExpression
+                        && joinedExpression.Table == tableExpression))
                 .Single();
+#endif
+        }
+
+        public static void RemoveTableAt(
+            this SelectExpression selectExpression,
+            int pendingRemovalIndex)
+        {
+            Check.NotNull(selectExpression, nameof(selectExpression));
+
+            ((List<TableExpressionBase>)selectExpression.Tables).RemoveAt(pendingRemovalIndex);
+
+#if EFCORE60
+            ((IList)AccessTableReferenceExpression(selectExpression)).RemoveAt(pendingRemovalIndex);
 #endif
         }
 
@@ -106,6 +123,18 @@ namespace Microsoft.EntityFrameworkCore.Query
         {
             Check.NotNull(selectExpression, nameof(selectExpression));
             return AccessProjectionMapping(selectExpression);
+        }
+
+        public static List<Expression> GetClientProjections(
+            this SelectExpression selectExpression)
+        {
+            Check.NotNull(selectExpression, nameof(selectExpression));
+
+#if EFCORE31 || EFCORE50
+            return new List<Expression>();
+#elif EFCORE60
+            return AccessClientProjections(selectExpression);
+#endif
         }
 
         public static IDictionary<EntityProjectionExpression, IDictionary<IProperty, int>> GetEntityProjectionCache(

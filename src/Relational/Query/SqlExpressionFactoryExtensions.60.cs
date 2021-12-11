@@ -11,6 +11,15 @@ namespace Microsoft.EntityFrameworkCore.Query
 {
     public static partial class BulkSqlExpressionFactoryExtensions
     {
+        public static ColumnExpression Column(
+            this ISqlExpressionFactory factory,
+            ColumnExpression updateFrom,
+            TableReferenceExpression table)
+        {
+            Check.NotNull(factory, nameof(factory));
+            return ColumnExpressionConstructor(updateFrom.Name, table, updateFrom.Type, updateFrom.TypeMapping, updateFrom.IsNullable);
+        }
+
         internal static Expression AddCrossJoinForMerge(
             this SelectExpression outerSelectExpression,
             ShapedQueryExpression innerSource,
@@ -71,6 +80,12 @@ namespace Microsoft.EntityFrameworkCore.Query
                 .Begin<SelectExpression>()
                 .AccessField("_projectionMapping")
                 .Compile<Func<SelectExpression, IDictionary<ProjectionMember, Expression>>>();
+
+        public static readonly Func<SelectExpression, List<Expression>> AccessClientProjections
+            = ExpressionBuilder
+                .Begin<SelectExpression>()
+                .AccessField("_clientProjections")
+                .Compile<Func<SelectExpression, List<Expression>>>();
 
         private static readonly Func<SelectExpression, IEnumerable<Expression>> AccessTableReferenceExpression
             = ExpressionBuilder
@@ -212,7 +227,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                 => this;
         }
 
-        public struct TableReferenceExpression
+        public class TableReferenceExpression : Expression
         {
             private readonly Expression _value;
 
@@ -236,6 +251,34 @@ namespace Microsoft.EntityFrameworkCore.Query
                 string alias)
             {
                 _value = TableReferenceExpressionConstructor(selectExpression, alias);
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is TableReferenceExpression tre
+                    && this._value.Equals(tre._value);
+            }
+
+            public override int GetHashCode()
+            {
+                return _value.GetHashCode();
+            }
+
+            protected override Expression VisitChildren(ExpressionVisitor visitor)
+            {
+                Check.NotNull(visitor, nameof(visitor));
+                Expression value = visitor.Visit(_value);
+                return value == _value ? this : new TableReferenceExpression(value);
+            }
+
+            public static bool operator ==(TableExpressionBase table, TableReferenceExpression reference)
+            {
+                return reference.Table == table;
+            }
+
+            public static bool operator !=(TableExpressionBase table, TableReferenceExpression reference)
+            {
+                return reference.Table != table;
             }
         }
     }

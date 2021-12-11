@@ -78,10 +78,16 @@ FROM [ChangeLog_{{schema}}] AS [c]
         {
             base.OwnedThenUnionDistinct();
 
-            AssertSql(@"
+            AssertSql(V31 | V50, @"
 SELECT [c].[ChangeLogId], [c].[Description], [c].[ChangedBy], [c].[Audit_IsDeleted], [c].[Audit_What_HelloString]
 FROM [ChangeLog_{{schema}}] AS [c]
 WHERE (([c].[ChangeLogId] > 80) OR ([c].[ChangeLogId] < 20)) OR ([c].[ChangeLogId] = 50)
+");
+
+            AssertSql(V60, @"
+SELECT [t0].[ChangeLogId], [t0].[Description], [t0].[ChangedBy], [t0].[Audit_IsDeleted], [t0].[ChangeLogId], [t0].[Audit_What_HelloString]
+FROM [ChangeLog_{{schema}}] AS [t0]
+WHERE (([t0].[ChangeLogId] > 80) OR ([t0].[ChangeLogId] < 20)) OR ([t0].[ChangeLogId] = 50)
 ");
         }
 

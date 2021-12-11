@@ -16,6 +16,28 @@ namespace Microsoft.EntityFrameworkCore.Query
             _model = model;
         }
 
+        public static bool IsColumnBelongTo(ColumnExpression column, TableExpressionBase table)
+        {
+            return column.Table == table
+#if EFCORE60
+                || (column.Table is JoinExpressionBase joinExpression && joinExpression.Table == table)
+#endif
+                ;
+        }
+
+        public static bool IsOnlyNotNull(TableExpressionBase tableOwner, SqlExpression sql)
+        {
+            return sql is SqlBinaryExpression binaryExpression && (
+                (binaryExpression.OperatorType == ExpressionType.NotEqual
+                    && binaryExpression.Left is ColumnExpression columnExpression
+                    && IsColumnBelongTo(columnExpression, tableOwner)
+                    && binaryExpression.Right is SqlConstantExpression constantExpression
+                    && constantExpression.Value == null)
+                || (binaryExpression.OperatorType == ExpressionType.AndAlso
+                    && IsOnlyNotNull(tableOwner, binaryExpression.Left)
+                    && IsOnlyNotNull(tableOwner, binaryExpression.Right)));
+        }
+
         protected virtual HashSet<string> TakeOutKeys(TableExpressionBase left, TableExpressionBase right, SqlExpression predicate, Func<ColumnExpression, string> accessor)
         {
             var discovered = new HashSet<string>();
@@ -31,11 +53,28 @@ namespace Microsoft.EntityFrameworkCore.Query
                     if (binaryExpression.Left is ColumnExpression col
                         && binaryExpression.Right is ColumnExpression col2
                         && col.Name == accessor(col2)
-                        && col.Table == left && col2.Table == right)
+                        && col.Table == left
+                        && IsColumnBelongTo(col2, right))
                     {
                         discovered.Add(col.Name);
                         return true;
                     }
+#if EFCORE60
+                    else if (binaryExpression.Left is ColumnExpression col1
+                        && binaryExpression.Right is CaseExpression caseExpr
+                        && caseExpr.Operand == null
+                        && caseExpr.ElseResult == null
+                        && caseExpr.WhenClauses.Count == 1
+                        && IsOnlyNotNull(right, caseExpr.WhenClauses[0].Test)
+                        && caseExpr.WhenClauses[0].Result is ColumnExpression col3
+                        && col1.Name == accessor(col3)
+                        && col1.Table == left
+                        && IsColumnBelongTo(col3, right))
+                    {
+                        discovered.Add(col1.Name);
+                        return true;
+                    }
+#endif
                     else
                     {
                         return false;
@@ -51,7 +90,6 @@ namespace Microsoft.EntityFrameworkCore.Query
                 }
             }
 
-            VisitSql(predicate);
             return VisitSql(predicate) ? discovered : null;
         }
 
@@ -84,7 +122,7 @@ namespace Microsoft.EntityFrameworkCore.Query
             var joinFields = TakeOutKeys(table, select, predicate, column =>
             {
                 // The select expression is pushed down, so the projection fields should have their column name.
-                if (column.Table != select) return null;
+                if (!IsColumnBelongTo(column, select)) return null;
                 var projection = select.Projection.Single(p => p.Alias == column.Name);
                 return (projection.Expression as ColumnExpression)?.Name;
             });
