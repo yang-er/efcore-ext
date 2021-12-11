@@ -137,6 +137,8 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
                                 ;//.IsRequired();
                         });
                     });
+
+                    owned.Property(e => e.AnotherString).IsRequired();
                 });
             });
 

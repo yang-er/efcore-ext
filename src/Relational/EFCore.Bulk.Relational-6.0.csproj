@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <Compile Remove="Provider\**" />
-    <Compile Remove="Reduce\**" />
     <Compile Remove="**\*.50.cs" />
     <Compile Remove="**\*.31.cs" />
   </ItemGroup>

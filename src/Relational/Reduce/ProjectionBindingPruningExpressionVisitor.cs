@@ -92,6 +92,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     _remappedIndex[projectionBindingExpression.Index.Value],
                     projectionBindingExpression.Type);
             }
+#if EFCORE31 || EFCORE50
             else if (projectionBindingExpression.IndexMap != null)
             {
                 var links = projectionBindingExpression.IndexMap;
@@ -108,6 +109,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 return projectionBindingExpression;
             }
+#endif
             else
             {
                 return projectionBindingExpression;

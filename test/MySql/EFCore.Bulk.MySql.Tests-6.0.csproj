@@ -21,10 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Functional.SelfJoinsRemoval.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <AssemblyAttribute Include="Xunit.TestCaseOrdererAttribute">
       <_Parameter1>Microsoft.EntityFrameworkCore.TestUtilities.Xunit.TestPriorityOrderer</_Parameter1>
       <_Parameter2>Microsoft.EntityFrameworkCore.TestUtilities</_Parameter2>

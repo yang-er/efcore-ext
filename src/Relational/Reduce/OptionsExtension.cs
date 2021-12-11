@@ -20,9 +20,11 @@ namespace Microsoft.EntityFrameworkCore.Bulk
             var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IQueryTranslationPostprocessorFactory));
             if (descriptor == null) throw new InvalidOperationException("No IQueryTranslationPostprocessorFactory registered.");
 
-            services.Replace(ServiceDescriptor.Singleton(
-                typeof(IQueryTranslationPostprocessorFactory),
-                typeof(TableSplittingJoinsWrappingQueryTranslationPostprocessorFactory<>).MakeGenericType(descriptor.ImplementationType)));
+            services.Replace(
+                ServiceDescriptor.Describe(
+                    typeof(IQueryTranslationPostprocessorFactory),
+                    typeof(TableSplittingJoinsWrappingQueryTranslationPostprocessorFactory<>).MakeGenericType(descriptor.ImplementationType),
+                    descriptor.Lifetime));
         }
 
         public void Validate(IDbContextOptions options)
