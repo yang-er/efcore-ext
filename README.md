@@ -1,6 +1,6 @@
 # EFCore.BulkExtensions
 
-[![AppVeyor status](https://ci.appveyor.com/api/projects/status/8damo2nfqc2sbc2g?svg=true)](https://ci.appveyor.com/project/yang-er/efcore-bulkext) [![Travis CI status](https://travis-ci.com/yang-er/efcore-ext.svg?branch=dev&status=started)](https://travis-ci.com/github/yang-er/efcore-ext)
+[![Build Status](https://dev.azure.com/tlylz/efcore/_apis/build/status/Extensions%20CI?repoName=yang-er%2Fefcore-ext&branchName=dev&jobName=Build%2C%20Test%20and%20Publish)](https://dev.azure.com/tlylz/efcore/_build/latest?definitionId=24&repoName=yang-er%2Fefcore-ext&branchName=dev)
 
 Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, Merge Into, Upsert**).
 
@@ -8,7 +8,7 @@ Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, M
 
 Some features like shadow properties update, value conversion hasn't been tested. PRs about the testcases are welcome.
 
-Current version supports EFCore 3.1 and EFCore 5.0. Still trying to support EFCore 6.0.
+Current version supports EFCore 3.1, 5.0 and 6.0.
 
 Targeting `netstandard2.0` and used on EFCore 3.1 projects.
 Targeting `netstandard2.1` and used on EFCore 5.0 projects.
