@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <Compile Include="..\Relational\Provider\**" />
+    <Compile Remove="..\Relational\Provider\ParameterBasedSqlProcessor.cs" />
+	<Compile Remove="QueryCompilationContextFactory.cs" />
   </ItemGroup>
 
   <ItemGroup>

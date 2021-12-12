@@ -1,6 +1,4 @@
-﻿#if EFCORE50 || EFCORE60
-
-using Microsoft.EntityFrameworkCore.Bulk;
+﻿using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Utilities;
 using System.Collections.Generic;
@@ -286,5 +284,3 @@ namespace Microsoft.EntityFrameworkCore.Query
             => new RelationalBulkParameterBasedSqlProcessor(_dependencies, useRelationalNulls, _options);
     }
 }
-
-#endif

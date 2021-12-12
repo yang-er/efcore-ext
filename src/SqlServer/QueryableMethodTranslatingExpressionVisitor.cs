@@ -1,6 +1,4 @@
-﻿#if EFCORE60
-
-using Microsoft.EntityFrameworkCore.Bulk;
+﻿using Microsoft.EntityFrameworkCore.Bulk;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
@@ -100,5 +98,3 @@ namespace Microsoft.EntityFrameworkCore.SqlServer.Query
                 _anonymousExpressionFactory);
     }
 }
-
-#endif

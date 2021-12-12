@@ -25,10 +25,12 @@ namespace Microsoft.EntityFrameworkCore.Query
                 {
                     return new ProjectionBindingExpression(_new, proj.ProjectionMember, proj.Type);
                 }
+#if EFCORE31 || EFCORE50
                 else if (proj.IndexMap != null)
                 {
                     return new ProjectionBindingExpression(_new, proj.IndexMap);
                 }
+#endif
             }
 
             return node == _origin ? _new : base.VisitExtension(node);

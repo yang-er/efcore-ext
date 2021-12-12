@@ -603,7 +603,10 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
             private readonly IEvaluatableExpressionFilter _evaluatableExpressionFilter;
             private readonly ISet<ParameterExpression> _allowedParameters = new HashSet<ParameterExpression>();
             private readonly IModel _model;
+
+#if EFCORE50 || EFCORE60
             private readonly bool _parameterize;
+#endif
 
             private bool _evaluatable;
             private bool _containsClosure;
@@ -619,8 +622,6 @@ namespace Microsoft.EntityFrameworkCore.Query.Internal
                 _model = model;
 #if EFCORE50 || EFCORE60
                 _parameterize = parameterize;
-#elif EFCORE31
-                _parameterize = false;
 #endif
             }
 

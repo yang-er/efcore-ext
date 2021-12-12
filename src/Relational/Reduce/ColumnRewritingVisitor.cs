@@ -45,14 +45,6 @@ namespace Microsoft.EntityFrameworkCore.Query
             return new ResettingDisposable(this);
         }
 
-#if EFCORE60
-        [Obsolete]
-        public IDisposable Setup(TableExpressionBase from, TableExpressionBase to)
-        {
-            throw new NotImplementedException();
-        }
-#endif
-
         public IDisposable Setup(TableReferenceExpression from, IReadOnlyDictionary<string, Expression> to)
         {
             _from = Check.NotNull(from, nameof(from));
