@@ -156,5 +156,27 @@ SELECT `o`.`Id`, `o`.`Happy`, `o`.`Other`, `o`.`Apple_AnotherString`, `o`.`Chang
 FROM `OwnedThree_{{schema}}` AS `o`
 ");
         }
+
+        public override void Manual_OnlyLeftJoin()
+        {
+            base.Manual_OnlyLeftJoin();
+
+            AssertSql(@"
+SELECT `a`.`Id`, `b`.`Id` AS `Id0`, `a`.`Name`, `a`.`Owner`, `b`.`Id` AS `Id3`, `b`.`Name` AS `Name0`, `b`.`Owner` AS `Owner0`, `b`.`Source`
+FROM `AppleEntity_{{schema}}` AS `a`
+LEFT JOIN `BananaEntity_{{schema}}` AS `b` ON `a`.`Id` = `b`.`Id`
+");
+        }
+
+        public override void Manual_LeftAndInnerJoin()
+        {
+            base.Manual_LeftAndInnerJoin();
+
+            AssertSql(@"
+SELECT `a`.`Id`, `b`.`Id` AS `Id0`, `a`.`Name`, `a`.`Owner`, `b`.`Name` AS `Name0`, `b`.`Owner` AS `Owner0`, `b`.`Source`
+FROM `AppleEntity_{{schema}}` AS `a`
+INNER JOIN `BananaEntity_{{schema}}` AS `b` ON `a`.`Id` = `b`.`Id`
+");
+        }
     }
 }

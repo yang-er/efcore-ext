@@ -53,7 +53,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                     if (binaryExpression.Left is ColumnExpression col
                         && binaryExpression.Right is ColumnExpression col2
                         && col.Name == accessor(col2)
-                        && col.Table == left
+                        && IsColumnBelongTo(col, left)
                         && IsColumnBelongTo(col2, right))
                     {
                         discovered.Add(col.Name);
@@ -68,7 +68,7 @@ namespace Microsoft.EntityFrameworkCore.Query
                         && IsOnlyNotNull(right, caseExpr.WhenClauses[0].Test)
                         && caseExpr.WhenClauses[0].Result is ColumnExpression col3
                         && col1.Name == accessor(col3)
-                        && col1.Table == left
+                        && IsColumnBelongTo(col1, left)
                         && IsColumnBelongTo(col3, right))
                     {
                         discovered.Add(col1.Name);

@@ -64,10 +64,23 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
     public class NormalEntity
     {
         public int Id { get; set; }
-
         public string Name { get; set; }
-
         public int Age { get; set; }
+    }
+
+    public class AppleEntity
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Owner { get; set; }
+    }
+
+    public class BananaEntity
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Owner { get; set; }
+        public string Source { get; set; }
     }
 
     public class TestingContext : DbContext
@@ -76,6 +89,8 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
         public DbSet<MiniInfo> MiniInfos { get; set; }
         public DbSet<OwnedThree> OwnedThrees { get; set; }
         public DbSet<NormalEntity> NormalEntities { get; set; }
+        public DbSet<AppleEntity> Apples { get; set; }
+        public DbSet<BananaEntity> Bananas { get; set; }
         public string DefaultSchema { get; }
 
         public TestingContext(string schema, DbContextOptions options)
@@ -174,6 +189,16 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
                 entity.ToTable(nameof(NormalEntity) + "_" + DefaultSchema);
 
                 entity.HasKey(e => e.Id);
+            });
+
+            modelBuilder.Entity<AppleEntity>(entity =>
+            {
+                entity.ToTable(nameof(AppleEntity) + "_" + DefaultSchema);
+            });
+
+            modelBuilder.Entity<BananaEntity>(entity =>
+            {
+                entity.ToTable(nameof(BananaEntity) + "_" + DefaultSchema);
             });
         }
     }
@@ -336,6 +361,44 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
                     context.ChangeLogs
                         .Where(a => a.ChangeLogId == 50))
                 .Load();
+        }
+
+        [ConditionalFact, TestPriority(12)]
+        public virtual void Manual_OnlyLeftJoin()
+        {
+            using var context = CreateContext();
+            using var scope = CatchCommand();
+
+            var query =
+                from a in context.Apples.Select(a => new { a.Id })
+                join b in context.Bananas.Select(b => new { b.Id }) on a.Id equals b.Id into bb from b in bb.DefaultIfEmpty()
+                join t in context.Apples.Where(a0 => a0.Name != null).Select(a0 => new { a0.Id, a0.Name }) on a.Id equals t.Id into aa0 from t in aa0.DefaultIfEmpty()
+                join t0 in context.Apples.Where(a1 => a1.Owner != null).Select(a1 => new { a1.Id, a1.Owner }) on t.Id equals t0.Id into aa1 from t0 in aa1.DefaultIfEmpty()
+                join t1 in context.Bananas.Where(b0 => b0.Name != null).Select(b0 => new { b0.Id, b0.Name }) on b.Id equals t1.Id into bb0 from t1 in bb0.DefaultIfEmpty()
+                join t2 in context.Bananas.Where(b1 => b1.Owner != null).Select(b1 => new { b1.Id, b1.Owner }) on t1.Id equals t2.Id into bb1 from t2 in bb1.DefaultIfEmpty()
+                join t3 in context.Bananas.Where(b2 => b2.Source != null).Select(b2 => new { b2.Id, b2.Source }) on t2.Id equals t3.Id into bb2 from t3 in bb2.DefaultIfEmpty()
+                select new { a.Id, Id0 = (int?)b.Id, Id1 = (int?)t.Id, t.Name, Id2 = (int?)t0.Id, t0.Owner, Id3 = (int?)t1.Id, Name0 = t1.Name, Id4 = (int?)t2.Id, Owner0 = t2.Owner, Id5 = (int?)t3.Id, t3.Source };
+
+            query.Load();
+        }
+
+        [ConditionalFact, TestPriority(13)]
+        public virtual void Manual_LeftAndInnerJoin()
+        {
+            using var context = CreateContext();
+            using var scope = CatchCommand();
+
+            var query =
+                from a in context.Apples.Select(a => new { a.Id })
+                join b in context.Bananas.Select(b => new { b.Id }) on a.Id equals b.Id
+                join t in context.Apples.Where(a0 => a0.Name != null).Select(a0 => new { a0.Id, a0.Name }) on a.Id equals t.Id into aa0 from t in aa0.DefaultIfEmpty()
+                join t0 in context.Apples.Where(a1 => a1.Owner != null).Select(a1 => new { a1.Id, a1.Owner }) on t.Id equals t0.Id into aa1 from t0 in aa1.DefaultIfEmpty()
+                join t1 in context.Bananas.Where(b0 => b0.Name != null).Select(b0 => new { b0.Id, b0.Name }) on b.Id equals t1.Id into bb0 from t1 in bb0.DefaultIfEmpty()
+                join t2 in context.Bananas.Where(b1 => b1.Owner != null).Select(b1 => new { b1.Id, b1.Owner }) on t1.Id equals t2.Id into bb1 from t2 in bb1.DefaultIfEmpty()
+                join t3 in context.Bananas.Where(b2 => b2.Source != null).Select(b2 => new { b2.Id, b2.Source }) on t2.Id equals t3.Id into bb2 from t3 in bb2.DefaultIfEmpty()
+                select new { a.Id, Id0 = b.Id, Id1 = (int?)t.Id, t.Name, Id2 = (int?)t0.Id, t0.Owner, Id3 = (int?)t1.Id, Name0 = t1.Name, Id4 = (int?)t2.Id, Owner0 = t2.Owner, Id5 = (int?)t3.Id, t3.Source };
+
+            query.Load();
         }
     }
 }
