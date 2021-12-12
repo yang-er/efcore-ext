@@ -46,6 +46,7 @@ If you want to try TableSplittingJoinsRemoval to remove useless self-joins, whic
 
 ```csharp
 options.UseTableSplittingJoinsRemoval();
+someQueryable.TagWith("PruneSelfJoins").ToList()
 ```
 
 The InMemory project is only used for unit tests, which is not efficient and may behave a little different from the relational providers.

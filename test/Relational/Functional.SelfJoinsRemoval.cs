@@ -217,7 +217,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
         {
             using var context = CreateContext();
             using var scope = CatchCommand();
-            context.ChangeLogs.Load();
+            context.ChangeLogs.TagWith("PruneSelfJoins").Load();
         }
 
         [ConditionalFact, TestPriority(1)]
@@ -225,7 +225,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
         {
             using var context = CreateContext();
             using var scope = CatchCommand();
-            context.MiniInfos.Include(e => e.Full).Load();
+            context.MiniInfos.Include(e => e.Full).TagWith("PruneSelfJoins").Load();
         }
 
         [ConditionalFact, TestPriority(2)]
@@ -233,7 +233,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
         {
             using var context = CreateContext();
             using var scope = CatchCommand();
-            context.OwnedThrees.Load();
+            context.OwnedThrees.TagWith("PruneSelfJoins").Load();
         }
 
         [ConditionalFact, TestPriority(3)]
@@ -244,6 +244,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
             
             context.OwnedThrees
                 .Join(context.ChangeLogs, o => o.Id, o => o.ChangeLogId, (o, p) => new { o, p })
+                .TagWith("PruneSelfJoins")
                 .Load();
         }
 
@@ -255,6 +256,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
 
             context.ChangeLogs
                 .Join(context.OwnedThrees, o => o.ChangeLogId, o => o.Id, (o, p) => new { o, p })
+                .TagWith("PruneSelfJoins")
                 .Load();
         }
 
@@ -267,6 +269,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
             context.OwnedThrees
                 .GroupJoin(context.ChangeLogs, o => o.Id, o => o.ChangeLogId, (o, p) => new { o, p })
                 .SelectMany(a => a.p.DefaultIfEmpty(), (a, p) => new { a.o, p })
+                .TagWith("PruneSelfJoins")
                 .Load();
         }
 
@@ -279,6 +282,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
             context.ChangeLogs
                 .GroupJoin(context.OwnedThrees, o => o.ChangeLogId, o => o.Id, (o, p) => new { o, p })
                 .SelectMany(a => a.p.DefaultIfEmpty(), (a, p) => new { a.o, p })
+                .TagWith("PruneSelfJoins")
                 .Load();
         }
 
@@ -293,6 +297,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
                 .SelectMany(a => a.p.DefaultIfEmpty(), (a, p) => new { a.o, p })
                 .Join(context.OwnedThrees, o => o.o.Id, o => o.Other, (a, o) => new { a.o, a.p, o2 = o })
                 .Where(o => o.o.Other != 3)
+                .TagWith("PruneSelfJoins")
                 .Load();
         }
 
@@ -304,7 +309,6 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
 
             context.NormalEntities
                 .Join(context.NormalEntities, a => a.Id, a => a.Id, (a, b) => a)
-                .TagWith("SkipSelfJoinsPruning")
                 .Load();
         }
 
@@ -323,6 +327,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
                     context.NormalEntities
                         .Where(a => a.Age == 50))
                 .TagWith("hello")
+                .TagWith("PruneSelfJoins")
                 .Load();
         }
 
@@ -343,6 +348,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
                     context.NormalEntities
                         .Where(a => a.Age == 50)
                         .Select(n => new { n.Id, n.Name, n.Age, Type = 3 }))
+                .TagWith("PruneSelfJoins")
                 .Load();
         }
 
@@ -360,6 +366,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
                 .Union(
                     context.ChangeLogs
                         .Where(a => a.ChangeLogId == 50))
+                .TagWith("PruneSelfJoins")
                 .Load();
         }
 
@@ -379,7 +386,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
                 join t3 in context.Bananas.Where(b2 => b2.Source != null).Select(b2 => new { b2.Id, b2.Source }) on t2.Id equals t3.Id into bb2 from t3 in bb2.DefaultIfEmpty()
                 select new { a.Id, Id0 = (int?)b.Id, Id1 = (int?)t.Id, t.Name, Id2 = (int?)t0.Id, t0.Owner, Id3 = (int?)t1.Id, Name0 = t1.Name, Id4 = (int?)t2.Id, Owner0 = t2.Owner, Id5 = (int?)t3.Id, t3.Source };
 
-            query.Load();
+            query.TagWith("PruneSelfJoins").Load();
         }
 
         [ConditionalFact, TestPriority(13)]
@@ -398,7 +405,7 @@ namespace Microsoft.EntityFrameworkCore.Tests.SelfJoinsRemoval
                 join t3 in context.Bananas.Where(b2 => b2.Source != null).Select(b2 => new { b2.Id, b2.Source }) on t2.Id equals t3.Id into bb2 from t3 in bb2.DefaultIfEmpty()
                 select new { a.Id, Id0 = b.Id, Id1 = (int?)t.Id, t.Name, Id2 = (int?)t0.Id, t0.Owner, Id3 = (int?)t1.Id, Name0 = t1.Name, Id4 = (int?)t2.Id, Owner0 = t2.Owner, Id5 = (int?)t3.Id, t3.Source };
 
-            query.Load();
+            query.TagWith("PruneSelfJoins").Load();
         }
     }
 }

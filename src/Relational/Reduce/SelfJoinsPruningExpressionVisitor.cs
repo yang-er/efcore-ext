@@ -21,8 +21,8 @@ namespace Microsoft.EntityFrameworkCore.Query
             Check.NotNull(queryCompilationContext, nameof(queryCompilationContext));
             Check.NotNull(sqlExpressionFactory, nameof(sqlExpressionFactory));
 
-            _skipped = queryCompilationContext.Tags.Contains("SkipSelfJoinsPruning");
-            if (_skipped) queryCompilationContext.Tags.Remove("SkipSelfJoinsPruning");
+            _skipped = !queryCompilationContext.Tags.Contains("PruneSelfJoins");
+            if (!_skipped) queryCompilationContext.Tags.Remove("PruneSelfJoins");
             _comparer = new SelfJoinsPredicateComparer(queryCompilationContext.Model);
             _columnRewriting = new ColumnRewritingExpressionVisitor(sqlExpressionFactory);
         }
