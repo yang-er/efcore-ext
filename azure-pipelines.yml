@@ -45,15 +45,8 @@ jobs:
 
   - task: DotNetCoreCLI@2
     inputs:
-      command: 'restore'
-      feedsToUse: 'select'
-    displayName: 'Restore Dependency'
-
-  - task: DotNetCoreCLI@2
-    inputs:
       command: 'build'
-      arguments: '--no-restore'
-    displayName: 'Build Plugin'
+    displayName: 'Restore and Build Plugin'
 
   - task: DotNetCoreCLI@2
     inputs:

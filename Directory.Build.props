@@ -30,7 +30,7 @@ Commonly Used Extension Methods:
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)artifacts\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 
     <!-- Versioning -->
-    <XysMinorVersion>27</XysMinorVersion>
+    <XysMinorVersion>28</XysMinorVersion>
     <ExtensionPackagePrefix>XiaoYang.EntityFrameworkCore.Bulk</ExtensionPackagePrefix>
 
     <!-- Product versions -->
@@ -48,7 +48,7 @@ Commonly Used Extension Methods:
 
   <!-- Assembly Information -->
   <PropertyGroup Condition=" $(MSBuildProjectName.EndsWith('-6.0')) ">
-    <PackageVersion>6.0.$(XysMinorVersion)-preview</PackageVersion>
+    <PackageVersion>6.0.$(XysMinorVersion)</PackageVersion>
     <Version>6.0.0</Version>
     <AssemblyVersion>6.0.0.0</AssemblyVersion>
     <FileVersion>6.0.0.0</FileVersion>
