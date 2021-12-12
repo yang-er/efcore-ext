@@ -53,10 +53,16 @@ namespace Microsoft.EntityFrameworkCore.Query
 
             if (join is InnerJoinExpression && join.Table is SelectExpression reducedSelect)
             {
+                throw new NotImplementedException(
+                    $"This is a rare situation in {nameof(SelfJoinsPruningExpressionVisitor)}.{nameof(RemoveJoin)} -> innerJoinSelect. " +
+                    $"Please report to the plugin author and provide some samples to make unit tests.");
+
+                /*
                 var predicate1 = _columnRewriting.Visit(parentSelect.Predicate);
                 var predicate2 = _columnRewriting.Visit(reducedSelect.Predicate);
                 var predicate = MergePredicate(ExpressionType.AndAlso, predicate1, predicate2);
                 parentSelect.SetPredicate(predicate);
+                */
             }
 
             parentSelect.RemoveTableAt(pendingRemovalIndex);
@@ -175,27 +181,19 @@ namespace Microsoft.EntityFrameworkCore.Query
                 }
                 else if (newTables[i] is JoinExpressionBase joinNew && selectTables[i] is JoinExpressionBase joinOld)
                 {
+                    throw new NotImplementedException(
+                        $"This is a rare situation in {nameof(SelfJoinsPruningExpressionVisitor)}.{nameof(VisitSelect)} -> joinNew & joinOld. " +
+                        $"Please report to the plugin author and provide some samples to make unit tests.");
+
+                    /*
                     if (joinNew.Table != joinOld.Table)
                     {
-#if EFCORE31 || EFCORE50
                         using (_columnRewriting.Setup(joinOld.Table, joinNew.Table))
                         {
                             UpdateParent();
                         }
-#elif EFCORE60
-                        if (joinNew.Alias != joinOld.Alias)
-                        {
-                            using (_columnRewriting.Setup(joinOld.Table, joinNew.Table))
-                            {
-                                UpdateParent();
-                            }
-                        }
-                        else
-                        {
-                            selectTables[i] = joinNew;
-                        }
-#endif
                     }
+                    */
                 }
                 else
                 {
@@ -204,7 +202,9 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                 ((List<TableExpressionBase>)selectExpression.Tables)[i] = resulting;
 
+#pragma warning disable CS8321
                 void UpdateParent()
+#pragma warning restore CS8321
                 {
                     selectExpression.SetPredicate(_columnRewriting.Visit(selectExpression.Predicate));
                     selectExpression.SetHaving(_columnRewriting.Visit(selectExpression.Having));
@@ -238,6 +238,11 @@ namespace Microsoft.EntityFrameworkCore.Query
                     var newTable = (TableExpressionBase)Visit(join.Table);
                     if (newTable != join.Table)
                     {
+                        throw new NotImplementedException(
+                            $"This is a rare situation in {nameof(SelfJoinsPruningExpressionVisitor)}.{nameof(VisitSelect)} -> visitNewJoin. " +
+                            $"Please report to the plugin author and provide some samples to make unit tests.");
+
+                        /*
                         if (newTable is not SelectExpression newSelect)
                         {
                             throw new NotImplementedException();
@@ -261,6 +266,7 @@ namespace Microsoft.EntityFrameworkCore.Query
 
                         selectTables[selectTables.IndexOf(join)] = newJoin;
                         join = newJoin;
+                        */
                     }
 
                     if (!_comparer.Compare(pendingTable, join))
@@ -384,13 +390,20 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override Expression VisitInnerJoin(InnerJoinExpression innerJoinExpression)
         {
             var result = (InnerJoinExpression)base.VisitInnerJoin(innerJoinExpression);
-            if (result.Table == innerJoinExpression.Table) return result;
-
-            if (result.Table.Alias == null) result.Table.SetAlias(innerJoinExpression.Table.Alias);
-
-            using (_columnRewriting.Setup(innerJoinExpression.Table, result.Table))
+            if (result.Table != innerJoinExpression.Table)
             {
-                result = result.Update(result.Table, _columnRewriting.Visit(result.JoinPredicate));
+                throw new NotImplementedException(
+                    $"This is a rare situation in {nameof(SelfJoinsPruningExpressionVisitor)}.{nameof(VisitInnerJoin)}. " +
+                    $"Please report to the plugin author and provide some samples to make unit tests.");
+
+                /*
+                if (result.Table.Alias == null) result.Table.SetAlias(innerJoinExpression.Table.Alias);
+
+                using (_columnRewriting.Setup(innerJoinExpression.Table, result.Table))
+                {
+                    result = result.Update(result.Table, _columnRewriting.Visit(result.JoinPredicate));
+                }
+                */
             }
 
             return result;
@@ -399,13 +412,20 @@ namespace Microsoft.EntityFrameworkCore.Query
         protected override Expression VisitLeftJoin(LeftJoinExpression leftJoinExpression)
         {
             var result = (LeftJoinExpression)base.VisitLeftJoin(leftJoinExpression);
-            if (result.Table == leftJoinExpression.Table) return result;
-
-            if (result.Table.Alias == null) result.Table.SetAlias(leftJoinExpression.Table.Alias);
-
-            using (_columnRewriting.Setup(leftJoinExpression.Table, result.Table))
+            if (result.Table != leftJoinExpression.Table)
             {
-                result = result.Update(result.Table, _columnRewriting.Visit(result.JoinPredicate));
+                throw new NotImplementedException(
+                    $"This is a rare situation in {nameof(SelfJoinsPruningExpressionVisitor)}.{nameof(VisitLeftJoin)}. " +
+                    $"Please report to the plugin author and provide some samples to make unit tests.");
+
+                /*
+                if (result.Table.Alias == null) result.Table.SetAlias(leftJoinExpression.Table.Alias);
+
+                using (_columnRewriting.Setup(leftJoinExpression.Table, result.Table))
+                {
+                    result = result.Update(result.Table, _columnRewriting.Visit(result.JoinPredicate));
+                }
+                */
             }
 
             return result;
