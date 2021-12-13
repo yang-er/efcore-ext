@@ -51,7 +51,7 @@ jobs:
   - task: DotNetCoreCLI@2
     inputs:
       command: 'test'
-      arguments: '--no-restore'
+      arguments: '--no-restore --collect "Code coverage"'
     displayName: 'Run Unit Tests'
 
   - task: DotNetCoreCLI@2
