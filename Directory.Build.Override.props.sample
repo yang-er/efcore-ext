@@ -1,10 +1,6 @@
 <Project>
 
   <PropertyGroup>
-    <UseSourceDebugging>False</UseSourceDebugging>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" $(UseSourceDebugging) == 'True' ">
     <EFCore50SourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore-5</EFCore50SourceDirectory>
     <EFCore50PgSourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.pg-5</EFCore50PgSourceDirectory>
     <EFCore50MySourceDirectory>$(MSBuildThisFileDirectory)..\microsoft\efcore.my-5</EFCore50MySourceDirectory>

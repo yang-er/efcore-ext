@@ -69,7 +69,7 @@ Commonly Used Extension Methods:
   </PropertyGroup>
 
   <!-- Source Code Debugging for EFCore -->
-  <Import Project="Directory.Build.Override.props" />
+  <Import Project="Directory.Build.Override.props" Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.Override.props')" />
 
   <PropertyGroup>
     <SignAssembly>True</SignAssembly>
