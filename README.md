@@ -1,6 +1,6 @@
 # EFCore.BulkExtensions
 
-[![Build Status](https://dev.azure.com/tlylz/efcore/_apis/build/status/Extensions%20CI?repoName=yang-er%2Fefcore-ext&branchName=dev&jobName=Build%2C%20Test%20and%20Publish)](https://dev.azure.com/tlylz/efcore/_build/latest?definitionId=24&repoName=yang-er%2Fefcore-ext&branchName=dev)
+[![Build Status](https://dev.azure.com/tlylz/efcore/_apis/build/status/Extensions%20CI?repoName=yang-er%2Fefcore-ext&branchName=dev&jobName=Build%2C%20Test%20and%20Publish)](https://dev.azure.com/tlylz/efcore/_build/latest?definitionId=24&repoName=yang-er%2Fefcore-ext&branchName=dev) ![Code coverage](https://img.shields.io/azure-devops/coverage/tlylz/EFCore/24/dev)
 
 Entity Framework Core extensions: Batch (**Delete, Update, Insert Into Select, Merge Into, Upsert**).
 
