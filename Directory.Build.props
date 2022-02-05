@@ -71,4 +71,34 @@ Commonly Used Extension Methods:
   <!-- Source Code Debugging for EFCore -->
   <Import Project="Directory.Build.Override.props" />
 
+  <PropertyGroup>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)efcore-ext.snk</AssemblyOriginatorKeyFile>
+    <_SnkPublicKey>0024000004800000940000000602000000240000525341310004000001000100e1ec0574836858250abc52cfc5f7c963acfe0bf75129b370b6d3d91be7945ba7f1fc7fff559160b5c99c7659d82e2a99d02e2deb8ef5300a7ec687c66f586b9fdb91032b2eb203931e8c7a033d4a19b857fb5debc70656e152a2c377b8de56cf145f48c49528885b70ef0bf15e90b217c839e5f3811979f77ae207daa4d89ae9</_SnkPublicKey>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" $(MSBuildProjectName.StartsWith('EFCore.Bulk-')) ">
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Microsoft.EntityFrameworkCore.Bulk.Relational, PublicKey=$(_SnkPublicKey)</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Microsoft.EntityFrameworkCore.Bulk.InMemory, PublicKey=$(_SnkPublicKey)</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup Condition=" $(MSBuildProjectName.StartsWith('EFCore.Bulk.Relational-')) OR $(MSBuildProjectName.StartsWith('EFCore.Bulk-')) ">
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Microsoft.EntityFrameworkCore.Bulk.SqlServer, PublicKey=$(_SnkPublicKey)</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Microsoft.EntityFrameworkCore.Bulk.PostgreSql, PublicKey=$(_SnkPublicKey)</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Microsoft.EntityFrameworkCore.Bulk.Sqlite, PublicKey=$(_SnkPublicKey)</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Microsoft.EntityFrameworkCore.Bulk.MySql, PublicKey=$(_SnkPublicKey)</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

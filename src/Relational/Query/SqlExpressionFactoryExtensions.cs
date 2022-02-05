@@ -8,16 +8,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 #if EFCORE31 || EFCORE50
 using TableReferenceExpression = Microsoft.EntityFrameworkCore.Query.SqlExpressions.TableExpressionBase;
 #endif
 
-[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.SqlServer")]
-[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.PostgreSql")]
-[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.Sqlite")]
-[assembly: InternalsVisibleTo("Microsoft.EntityFrameworkCore.Bulk.MySql")]
 namespace Microsoft.EntityFrameworkCore.Query
 {
     public static partial class BulkSqlExpressionFactoryExtensions
